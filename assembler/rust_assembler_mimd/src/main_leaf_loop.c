@@ -62,6 +62,7 @@ typedef struct
     uint32_t core_owner_count;
     uint16_t core_slots[256];
     struct Ray[256] rays; // 256 * 64 bytes for the rays
+    uint32_t on_emergency_idle_queue;
 } ray_queue_dram;
 
 typedef struct
@@ -247,60 +248,15 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                     {
                         int queue_address_high = node->queue_high_bit_addr;
                         set_address_bits(queue_address_high);
-
-                        // typedef struct { //16924 Bytes
-                        //     uint32_t head_relative; //relative to the start of the queue in DRAM
-                        //     uint32_t tail_relative; //relative to the start of the queue in DRAM
-                        //     uint32_t count;
-                        //     uint32_t next_ticket;//atomically incremented
-                        //     uint32_t now_serving; //spin on when this value equals your ticket, then increment when done
-                        //     uint32_t lock;
-                        //     uint32_t core_owner_count;
-                        //     uint16_t core_slots[256];
-                        //     struct Ray[256] rays; //256 * 64 bytes for the rays
-                        // } ray_queue_dram;
                         int queue_address_low = node->queue_low_bit_addr;
-                        queue_address_low += 20;
-                        // ensure_no_writers:
-                        int is_there_a_writer = atomic_add_dram(queue_address_low, 1);
-                        if (is_there_a_writer < 0)
-                        {
-                            atomic_add_dram(queue_address_low, -1);
-                            goto ensure_no_writers;
-                        }
+
                         // ensure_space_in_queue:
                         int cur_ray_count = load_dram_word(queue_address_low - 12);
                         if (cur_ray_count > 255)
                         {
                             goto ensure_space_in_queue;
                         }
-                        int cur_num_cores_serving_queue = load_dram_word(queue_address_low + 4);
-                        if (cur_num_cores_serving_queue == 0 && cur_ray_count > 200) {
-                            // need to throw the node_id into a queue for someone to pick up the geometry.
-                            // TODO
-                            uint32_t emergency_queue_high = self.emergency_queue_high;
-                            set_address_bits(emergency_queue_high);
-                            uint32_t emergency_queue_low = self.emergency_queue_low;
-                            emergency_queue_low += 8;
-                            //loop_emergency_queue_insertion:
-                            uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
-                            if(old_cnt >= 64) {
-                                atomic_add_dram(emergency_queue_low, -1);
-                                goto loop_emergency_queue_insertion;
-                            }
-                            emergency_queue_low -= 4;
-                            uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
-                            byte_index &= 0x000000FF;
-                            emergency_queue_low += byte_index;
-                            emergency_queue_low += 8;
-                            // ensure_emergency_slot_ready:
-                            uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
-                            if(is_ready == 1) {
-                                goto ensure_emergency_slot_ready;
-                            }
-                            store_dram_half(emergency_queue_low, node->node_id);
-                            store_dram_byte(emergency_queue_low + 2, 1);
-                        }
+                        //skip_adding_queue_to_emergency_queue:
                         queue_address_low -= 16;
                         int tail = atomic_add_dram(queue_address_low, 64);
                         tail &= 0x00003FFF;
@@ -321,15 +277,61 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                             ray_index = ray_index + 4;
                         }
                         queue_address_low = node->queue_low_bit_addr;
-                        uint32_t core_owner_count = load_dram_word(queue_address_low + 24);
-                        if (core_owner_count == 0)
+                        queue_address_low += 20;
+                        // ensure_no_writers:
+                        int is_there_a_writer = atomic_add_dram(queue_address_low, 1);
+                        if (is_there_a_writer < 0)
                         {
-                            node->core_owner = 0xFFFFFFFE;
+                            atomic_add_dram(queue_address_low, -1);
+                            is_there_a_writer = load_word_dram(queue_address_low);
+                            //ensure_no_writers_loop:
+                            if(is_there_a_writer < 0) {
+                                goto ensure_no_writers_loop;
+                            }
+                            else{
+                                goto ensure_no_writers;
+                            }
                         }
-                        else
-                        {
+                        uint32_t core_owner_count = load_dram_word(queue_address_low + 4);
+                        if (core_owner_count == 0){
+                            node->core_owner = 0xFFFFFFFF;
+                            if (cur_ray_count > 200) {
+                                // need to throw the node_id into a queue for someone to pick up the geometry.
+                                uint32_t queue_address_high = node->queue_high_bit_addr;
+                                set_address_bits(queue_address_high);
+                                uint32_t queue_address_low = node->queue_low_bit_addr;
+                                queue_address_low += 16924;
+                                uint32_t is_first_to_enqueue_queue = atomic_add_dram(queue_address_low, 1);
+                                if(is_first_to_enqueue_queue != 0) {
+                                    goto skip_adding_queue_to_emergency_queue;
+                                }
+                                uint32_t emergency_queue_high = self.emergency_queue_high;
+                                set_address_bits(emergency_queue_high);
+                                uint32_t emergency_queue_low = self.emergency_queue_low;
+                                emergency_queue_low += 8;
+                                //loop_emergency_queue_insertion:
+                                uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+                                if(old_cnt >= 64) {
+                                    atomic_add_dram(emergency_queue_low, -1);
+                                    goto loop_emergency_queue_insertion;
+                                }
+                                emergency_queue_low -= 4;
+                                uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+                                byte_index &= 0x000000FF;
+                                emergency_queue_low += byte_index;
+                                emergency_queue_low += 8;
+                                // ensure_emergency_slot_ready:
+                                uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+                                if(is_ready == 1) {
+                                    goto ensure_emergency_slot_ready;
+                                }
+                                store_dram_half(emergency_queue_low, node->node_id);
+                                store_dram_byte(emergency_queue_low + 2, 1);
+                            }
+                        }
+                        else{
                             uint32_t clock = get_clock();
-                            uint16_t idx = (self.core_id ^ clock) % core_owner_count;
+                            uint16_t idx = self.core_id ^ clock;
                             uint16_t prev_idx = node->prev_index;
                             if (idx == prev_idx)
                             {
@@ -401,6 +403,8 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                 // done_with_interrupt:
                 if (sent == 1 && slot == 0xFFFFFFFF)
                 {
+                    uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
+                    atomic_add(ray_send_pending_addr, -1);
                     goto ray_done;
                 }
                 goto send_ray_loop;
