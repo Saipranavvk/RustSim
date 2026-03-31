@@ -275,10 +275,31 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                             goto ensure_space_in_queue;
                         }
                         int cur_num_cores_serving_queue = load_dram_word(queue_address_low + 4);
-                        if (cur_num_cores_serving_queue > 200)
-                        {
+                        if (cur_num_cores_serving_queue == 0 && cur_ray_count > 200) {
                             // need to throw the node_id into a queue for someone to pick up the geometry.
                             // TODO
+                            uint32_t emergency_queue_high = self.emergency_queue_high;
+                            set_address_bits(emergency_queue_high);
+                            uint32_t emergency_queue_low = self.emergency_queue_low;
+                            emergency_queue_low += 8;
+                            //loop_emergency_queue_insertion:
+                            uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+                            if(old_cnt >= 64) {
+                                atomic_add_dram(emergency_queue_low, -1);
+                                goto loop_emergency_queue_insertion;
+                            }
+                            emergency_queue_low -= 4;
+                            uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+                            byte_index &= 0x000000FF;
+                            emergency_queue_low += byte_index;
+                            emergency_queue_low += 8;
+                            // ensure_emergency_slot_ready:
+                            uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+                            if(is_ready == 1) {
+                                goto ensure_emergency_slot_ready;
+                            }
+                            store_dram_half(emergency_queue_low, node->node_id);
+                            store_dram_byte(emergency_queue_low + 2, 1);
                         }
                         queue_address_low -= 16;
                         int tail = atomic_add_dram(queue_address_low, 64);
@@ -503,7 +524,10 @@ if (local_ray_count > 0)
     ray->active_ray = 1;
     goto start_ray_traversal;
 }
-
+uint8_t flushing_queue = *(self.local_queue_flushing);
+if(flushing_queue != 0) {
+    goto inf_loop;
+}
 // check_dram_queue:
 yield();
 int queue_address_low = self.ray_queue_address_low;
@@ -540,9 +564,37 @@ if (cur_ray_count > 0)
     ray->leaf_node_starting_point = self.branch_local_leaf_index;
     goto start_ray_traversal;
 }
+uint32_t emergency_queue_high = self.emergency_queue_high;
+set_address_bits(emergency_queue_high);
+uint32_t emergency_queue_low = self.emergency_queue_low;
+uint32_t count = load_dram_word(emergency_queue_low + 8);
+if(count <= 0) {
+    goto check_done;
+}
+emergency_queue_low += 8;
+uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+if(old_cnt <= 0) {
+    atomic_add_dram(emergency_queue_low, -1);
+    goto check_done;
+}
+emergency_queue_low -= 8;
+uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+byte_index &= 0x000000FF;
+emergency_queue_low += byte_index;
+emergency_queue_low += 12;
+// ensure_emergency_slot_ready:
+uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+if(is_ready == 1) {
+    goto ensure_emergency_slot_ready;
+}
+uint32_t new_node_id = load_dram_half(emergency_queue_low);
+store_dram_byte(emergency_queue_low + 2, 0);
+*(self.local_queue_flushing) = 1;
+*(self.local_queue_flushing + 4) = new_node_id;
+goto switch_dram_queue;
 
 yield();
-// check to see if we're done
+// check_done
 uint32_t finished_ray_high = self.ray_result_addr_high;
 set_address_bits(finished_ray_high);
 uint32_t finished_ray_low = self.ray_result_addr_low;

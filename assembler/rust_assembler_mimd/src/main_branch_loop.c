@@ -182,6 +182,20 @@ typedef struct
     uint32_t rays_forwarded_out_from_tile;
 } tile_data_sram;
 
+typedef struct {
+    uint16_t node_id;
+    uint8_t is_valid;
+    uint8_t pad;
+} node_slot;
+
+typedef struct {
+    uint32_t head;
+    uint32_t tail;
+    uint32_t count;
+    node_slot slots[64];
+}   emergency_node_queue;
+
+
 const ray_ack = 5;
 const reject_ray = 7;
 const wrong_core = 8;
@@ -322,10 +336,32 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                             goto ensure_space_in_queue;
                         }
                         int cur_num_cores_serving_queue = load_dram_word(queue_address_low + 4);
-                        if (cur_num_cores_serving_queue > 200)
+                        if (cur_num_cores_serving_queue == 0 && cur_ray_count > 200)
                         {
                             // need to throw the node_id into a queue for someone to pick up the geometry.
                             // TODO
+                            uint32_t emergency_queue_high = self.emergency_queue_high;
+                            set_address_bits(emergency_queue_high);
+                            uint32_t emergency_queue_low = self.emergency_queue_low;
+                            emergency_queue_low += 8;
+                            //loop_emergency_queue_insertion:
+                            uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+                            if(old_cnt >= 64) {
+                                atomic_add_dram(emergency_queue_low, -1);
+                                goto loop_emergency_queue_insertion;
+                            }
+                            emergency_queue_low -= 4;
+                            uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+                            byte_index &= 0x000000FF;
+                            emergency_queue_low += byte_index;
+                            emergency_queue_low += 8;
+                            // ensure_emergency_slot_ready:
+                            uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+                            if(is_ready == 1) {
+                                goto ensure_emergency_slot_ready;
+                            }
+                            store_dram_half(emergency_queue_low, node->node_id);
+                            store_dram_byte(emergency_queue_low + 2, 1);
                         }
                         queue_address_low -= 16;
                         int tail = atomic_add_dram(queue_address_low, 64);
@@ -417,7 +453,8 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                     is_odd_thread *= 1036;
                     local_queue += is_odd_thread; // odd threads write to the receiver queue rather than sender queue
                     uint32_t old_count = atomic_add(&local_queue.count, 1);
-                    if (old_count > 16)
+                    uint8_t flushing_queue = *(self.local_queue_flushing);
+                    if (old_count > 16 || flushing_queue == 1)
                     {
                         atomic_add(&local_queue.count, -1);
                         uint32_t reject_ray_msg = reject_ray << 24;
@@ -554,6 +591,10 @@ ray_val &= 0;
 node = ray->leaf_node_starting_point;
 goto start_ray_traversal;
 // no_rays_available:
+uint8_t flushing_queue = *(self.local_queue_flushing);
+if(flushing_queue != 0) {
+    goto inf_loop;
+}
 yield();
 // check dram ray queue
 int queue_address_low = self.ray_queue_address_low;
@@ -591,7 +632,36 @@ if (cur_ray_count > 0)
     goto start_ray_traversal;
 }
 yield();
-// check spawned_ray_pool
+uint32_t emergency_queue_high = self.emergency_queue_high;
+set_address_bits(emergency_queue_high);
+uint32_t emergency_queue_low = self.emergency_queue_low;
+uint32_t count = load_dram_word(emergency_queue_low + 8);
+if(count <= 0) {
+    goto check_spawned_ray_pool;
+}
+emergency_queue_low += 8;
+uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+if(old_cnt <= 0) {
+    atomic_add_dram(emergency_queue_low, -1);
+    goto check_spawned_ray_pool;
+}
+emergency_queue_low -= 8;
+uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+byte_index &= 0x000000FF;
+emergency_queue_low += byte_index;
+emergency_queue_low += 12;
+// ensure_emergency_slot_ready:
+uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+if(is_ready == 1) {
+    goto ensure_emergency_slot_ready;
+}
+uint32_t new_node_id = load_dram_half(emergency_queue_low);
+store_dram_byte(emergency_queue_low + 2, 0);
+*(self.local_queue_flushing) = 1;
+*(self.local_queue_flushing + 4) = new_node_id;
+goto switch_dram_queue;
+
+// check_spawned_ray_pool
 uint32_t spawned_ray_pool_high = self.spawned_ray_pool_high;
 set_address_bits(spawned_ray_pool_high);
 uint32_t spawned_ray_pool_low = self.spawned_ray_pool_low;
@@ -1006,6 +1076,7 @@ if (max_rez > pix_increment)
     goto loop_pixel;
 }
 // inf_loop:
+yield();
 goto inf_loop;
 
 int AABB_Intersect(AABB_Node *node, Ray *ray)
