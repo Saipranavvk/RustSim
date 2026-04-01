@@ -18,7 +18,7 @@ typedef struct
     uint16_t *parent;      // 2 bytes
     uint8_t is_right;      // 1 byte
     uint8_t tri_count;     // 1 byte
-    uint16_t pad;             // 2 bytes - padding to align the next field
+    uint16_t tri_start;             // 2 bytes - 
     uint16_t core_owner;          // 2 bytes - the core that is currently responsible for this node (0xFFFF if no owner)
     uint32_t queue_low_bit_addr;  // 4 bytes - the address of the low bits of the ray queue for this node, used for sending rays to the owning core
     uint16_t queue_high_bit_addr; // 2 bytes - the address of the high bits of the ray queue for this node, used for sending rays to the owning core
@@ -906,3 +906,65 @@ t = two - t;
 r0 = r0 * t;
 r0 |= sign;
 // r0 is returned
+
+
+
+
+
+
+
+
+//Eat_Ray_Interrupt:
+disable_interrupts(32);
+uint32_t is_value = nb_recv(32);
+if (is_value == 0) {
+    return;
+}
+uint32_t value = blocking_recv(32);
+uint32_t node_id = value >> 17;
+uint32_t core_id = value & 0x0001FFFF;
+if(node_id != self.node_id) {
+    uint32_t value_to_send = wrong_core << 24;
+    value_to_send |= self.thread_id;
+    send_packet(value_to_send, core_id);
+    enable_interrupts(32);
+    return;
+}
+uint8_t flushing_queue = *(self.local_queue_flushing);
+if(flushing_queue == 1){
+    goto reject_ray_interrupt;
+}
+uint32_t is_slot_empty = *(ray + 63);
+if(is_slot_empty == 0) {
+    uint32_t local_queue = ray;
+    goto receive_ray_data;
+}
+uint32_t local_queue = self.local_queue + 8; // skip head and tail
+uint32_t old_count = atomic_add(&local_queue.count, 1);
+if (old_count > 16)
+{
+    atomic_add(&local_queue.count, -1);
+    //reject_ray_interrupt:
+    uint32_t reject_ray_msg = reject_ray << 24;
+    reject_ray_msg |= self.thread_id;
+    send_packet(reject_ray_msg, core_id);
+    enable_interrupts(32);
+    return;
+}
+local_queue -= 4;
+uint32_t tail_relative = atomic_add(&local_queue, 64);
+tail_relative = tail_relative & 0x000007FF;
+local_queue += 8;
+local_queue += tail_relative;
+uint32_t ray_ack_msg = ray_ack << 24 | self.thread_id;
+send_packet(ray_ack_msg, core_id);
+//receive_ray_data:
+for(int i = 0; i < 16; i++) {
+    uint32_t ray_data = blocking_recv(self.thread_id);
+    *local_queue = ray_data;
+    local_queue += 4;
+}
+enable_interrupts(32);
+return;
+
+
