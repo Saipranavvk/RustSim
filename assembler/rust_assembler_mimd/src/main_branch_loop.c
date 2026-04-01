@@ -1686,9 +1686,9 @@ uint32_t tail_relative = atomic_add(&local_queue, 64);
 tail_relative = tail_relative & 0x000003FF;
 local_queue += 8;
 local_queue += tail_relative;
+//receive_ray_data:
 uint32_t ray_ack_msg = ray_ack << 24 | self.thread_id;
 send_packet(ray_ack_msg, core_id);
-//receive_ray_data:
 for(int i = 0; i < 16; i++) {
     uint32_t ray_data = blocking_recv(self.thread_id);
     *local_queue = ray_data;
