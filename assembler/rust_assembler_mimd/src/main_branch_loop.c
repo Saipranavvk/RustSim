@@ -193,7 +193,7 @@ typedef struct {
     uint32_t tail;
     uint32_t count;
     node_slot slots[64];
-}   emergency_node_queue;
+}  emergency_node_queue;
 
 
 const ray_ack = 5;
@@ -1469,5 +1469,10 @@ half_len_sq *= est;
 // resut is half_len_sq
 
 /* Stuff left:
-Interrupts
+Eat Ray Code Interrupt
+Switch roles Code
+Is Idle Code
+Is Busy Code
+
+Initialization Code
 */

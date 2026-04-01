@@ -151,6 +151,14 @@ typedef struct
     light[3];
 } light_array;
 
+typedef struct {
+    uint32_t head;
+    uint32_t tail;
+    uint32_t count;
+    node_slot slots[64];
+}  emergency_node_queue;
+
+
 const ray_ack = 5;
 const reject_ray = 7;
 const wrong_core = 8;
