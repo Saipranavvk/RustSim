@@ -10,9 +10,9 @@ typedef struct
     uint16_t *left_child;  // 2 bytes - 0 if leaf
     uint16_t *right_child; // 2 bytes - 0 if leaf
     uint16_t *parent;      // 2 bytes
+    uint16_t core_owner;          // 2 bytes - the core that is currently responsible for this node (0xFFFF if no owner)
     uint8_t is_right;      // 1 byte
     uint8_t pad[3];
-    uint16_t core_owner;          // 2 bytes - the core that is currently responsible for this node (0xFFFF if no owner)
     uint32_t queue_low_bit_addr;  // 4 bytes - the address of the low bits of the ray queue for this node, used for sending rays to the owning core
     uint16_t queue_high_bit_addr; // 2 bytes - the address of the high bits of the ray queue for this node, used for sending rays to the owning core
     uint16_t prev_index;          // 2 bytes - select a different index each time for the core owner
@@ -1476,3 +1476,156 @@ Is Busy Code
 
 Initialization Code
 */
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================
+// download_bvh_nodes
+// ============================================================
+// Pulls BVH nodes from DRAM into SRAM, starting at DRAM index 0.
+// Allocates nodes from sram_nodes[] pool using sram_alloc_count.
+//
+// Inputs:
+//   self->core_id          : this core's ID
+//   dram_nodes             : base pointer to DRAM node array
+//   sram_nodes             : base pointer to SRAM node pool
+//   self->sram_alloc_count : next free slot in sram_nodes (initially 0)
+//
+// Outputs:
+//   self->root_node        : pointer to the SRAM node whose core_owner == self->core_id
+//   sram_nodes populated with downloaded tree
+// ============================================================
+
+typedef struct {
+    uint32_t dram_tri_byte_index;
+    uint16_t *parent_ptr;    // absolute SRAM pointer to parent node, 0 for root
+    uint16_t *parent_left;   // pointer to parent's left_child field (to patch)
+    uint16_t *parent_right;  // pointer to parent's right_child field (to patch)
+    uint16_t is_right;        // 1 if this node is the right child of parent
+} DFS_Entry;
+
+DFS_Entry dfs_stack[17];
+uint32_t stack_top = self.stack_top + 12;
+*(self.sram_alloc_count) = self.node_array_top;
+uint32_t top_node_bits = self.node_array_high;
+set_address_bits(top_node_bits);
+// -- push root onto stack --
+*(dfs_stack - 12) = 0;
+*(dfs_stack - 8) = 0xFFFF; // invalid pointer to indicate root
+*(dfs_stack - 6) = 0;
+*(dfs_stack - 4) = 0;
+*(dfs_stack - 2) = 0;
+
+//dfs_loop:
+    if (stack_top == self.stack_top) {
+        goto dfs_done;
+    }
+    // -- pop --
+    stack_top-=12;
+    uint32_t dram_idx       = *(stack_top);
+    uint16_t *parent_ptr    = *(stack_top + 4);
+    uint16_t *patch_left    = *(stack_top + 6);
+    uint16_t *patch_right   = *(stack_top + 8);
+    uint8_t is_right        = *(stack_top + 10);
+
+
+    // -- allocate SRAM slot --
+
+    uint32_t sram_slot_address = self.sram_alloc_count;
+    uint32_t node = atomic_add(sram_slot_address, 48);
+
+    // -- load DRAM node --
+    AABB_Node_DRAM *dram_node = &dram_nodes[dram_idx];
+    uint32_t bottom_node_bits = self.node_array_low;
+    bottom_node_bits += dram_idx * 48;
+    // -- copy bounding box --
+    uint32_t x_min = load_dram_word(bottom_node_bits);
+    node->x_min = x_min;
+    uint32_t x_max = load_dram_word(bottom_node_bits + 4);
+    node->x_max = x_max;
+    uint32_t y_min = load_dram_word(bottom_node_bits + 8);
+    node->y_min = y_min;
+    uint32_t y_max = load_dram_word(bottom_node_bits + 12);
+    node->y_max = y_max;
+    uint32_t z_min = load_dram_word(bottom_node_bits + 16);
+    node->z_min = z_min;
+    uint32_t z_max = load_dram_word(bottom_node_bits + 20);
+    node->z_max = z_max;
+
+    // -- copy metadata --
+    uint16_t core_owner = load_dram_half(bottom_node_bits + 30);
+    node->core_owner       = core_owner;
+    uint16_t queue_high_bit_addr = load_dram_half(bottom_node_bits + 40);
+    uint32_t queue_low_bit_addr = load_dram_word(bottom_node_bits + 32);
+    node->queue_low_bit_addr  = queue_low_bit_addr;
+    node->queue_high_bit_addr = queue_high_bit_addr;
+    uint32_t node_id = load_dram_word(bottom_node_bits + 48);
+    node->node_id          = node_id;
+    uint16_t all_ones = 0xFFFF;
+    node->prev_index       = all_ones;
+    node->is_right         = is_right;
+
+    // -- set parent pointer --
+    node->parent = parent_ptr;
+
+    // -- default children to 0 (leaf / foreign owner) --
+    node->left_child  = all_ones; // 0xFFFF indicates no child
+    node->right_child = all_ones; // 0xFFFF indicates no child
+
+    // -- patch parent's child pointer to point to us --
+    if (parent_ptr != all_ones) goto patch_parent;
+    goto skip_patch;
+
+//patch_parent:
+    if (is_right == 1) goto patch_right_child;
+    *patch_left = node;
+    goto skip_patch;
+
+//patch_right_child:
+    *patch_right = node;
+
+//skip_patch:
+    // -- check if this node is our root --
+    uint16_t owner = dram_node->core_owner;
+    if (owner != self->core_id) goto check_recurse;
+    self->root_node = node;
+
+//check_recurse:
+    // -- decide whether to recurse into children --
+    // recurse if: owner == 0xFFFF OR owner == self->core_id
+    if (owner == all_ones) goto do_recurse;
+    if (owner == self->core_id) goto do_recurse;
+    // foreign owner: do not recurse, children stay 0
+    goto dfs_loop;
+
+//do_recurse:
+    // -- push right child first (so left is processed first) --
+    uint32_t right_idx = load_dram_word(bottom_node_bits + 24);
+    uint32_t left_idx = load_dram_word(bottom_node_bits + 28);
+    *(stack_top + 0)   = right_idx;
+    *(stack_top + 4)   = node;
+    *(stack_top + 6)  = &node->left_child;
+    *(stack_top + 8)  = &node->right_child;
+    *(stack_top + 10)   = 1;
+
+    stack_top += 12;
+
+    // -- push left child --
+    *(stack_top + 0)   = left_idx;
+    *(stack_top + 4)   = node;
+    *(stack_top + 6)  = &node->left_child;
+    *(stack_top + 8)  = &node->right_child;
+    *(stack_top + 10)   = 0;
+    stack_top += 12;
+
+    goto dfs_loop;
+
+//dfs_done:
