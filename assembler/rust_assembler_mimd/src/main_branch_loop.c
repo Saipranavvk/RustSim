@@ -151,7 +151,7 @@ typedef struct
     uint32_t head;
     uint32_t tail;
     uint32_t count;
-    struct tile_slot slots[1 << 14]; // slightly larger than 1920*1080/64 + 1. Also initializes to full.
+    struct tile_slot slots[1 << 14]; // slightly larger than 2560*1440/16/16 + 1. Also initializes to full.
 } tile_queue;
 
 typedef struct
@@ -1743,3 +1743,18 @@ Is Busy Code
 leaf-core init code
 */
 
+/*
+
+Idleness: On ray completion, atomic increment rays completed. 
+Alternatively, if we are just spending most of our time creating/forwarding rays, 
+maybe that could also be used as a proxy for idleness? Maybe we should have a counter for the number of rays received instead?
+
+Busyness: atomic increment on dram ray pull if full. If returned number > threshold, request help.
+If queue isn't full, mark the count as 0.
+
+Create interrupt handler for switching roles - how to switch from branch->branch or branch->leaf. 
+For latter, need option for launch using DRAM, and leaf code can handle most
+For former, just need to pull in data over NOC and jump to the write ready-up code in the bvh puller.
+Both are going to need to do some queue management tho :L
+
+*/
