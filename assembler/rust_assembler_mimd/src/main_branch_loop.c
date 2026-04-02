@@ -853,7 +853,8 @@ uint32_t zero = 0;
 *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1;
 self.tile_data_sram->rays_forwarded_out_from_tile = zero;
 self.tile_data_sram->rays_spawned_from_tile = zero;
-relinquish_ownership();
+set_ctx(16);
+relinquish_ownership(0);
 // spawn_from_tile:
 uint16_t tile_data_sram_address = &(self.tile_data_sram->count);
 uint32_t ray_num_from_tile = atomic_add(tile_data_sram_address, 1);
@@ -937,6 +938,7 @@ uint8_t one_byte = 1;
 ray->active_ray = one_byte;
 uint32_t no_hit = 0xFFFFFFFF;
 ray->tri_index = no_hit;
+node = self.sram_node_base_address;
 goto start_ray_traversal;
 
 // skip_grabbing_tile_rays
@@ -957,7 +959,7 @@ if (rays_finished != max_rays)
 // NUM_BOUNCES is a compile-time constant
 get_thread_ownership();
 set_ctx(15);
-relinquish_ownership();
+relinquish_ownership(1);
 yield();
 uint32_t pixel_addr_high = self.ray_result_addr_high;
 set_address_bits(pixel_addr_high);
@@ -1474,15 +1476,6 @@ half_len_sq = one_point_five - half_len_sq;
 half_len_sq *= est;
 // resut is half_len_sq
 
-/* Stuff left:
-Eat Ray Code Interrupt
-Switch roles Code
-Is Idle Code
-Is Busy Code
-
-Initialization Code
-*/
-
 
 
 
@@ -1516,38 +1509,40 @@ typedef struct {
     uint16_t *parent_left;   // pointer to parent's left_child field (to patch)
     uint16_t *parent_right;  // pointer to parent's right_child field (to patch)
     uint16_t is_right;        // 1 if this node is the right child of parent
+    uint32_t depth;
 } DFS_Entry;
 
 DFS_Entry dfs_stack[17];
-uint32_t stack_top = self.stack_top + 12;
+uint32_t stack_top = self.stack_top + 16;
 *(self.sram_alloc_count) = self.node_array_top;
 uint32_t top_node_bits = self.node_array_high;
 set_address_bits(top_node_bits);
 // -- push root onto stack --
-*(dfs_stack - 12) = 0;
-*(dfs_stack - 8) = 0xFFFF; // invalid pointer to indicate root
+*(dfs_stack - 16) = 0;
+*(dfs_stack - 12) = 0xFFFF; // invalid pointer to indicate root
+*(dfs_stack - 10) = 0;
+*(dfs_stack - 8) = 0;
 *(dfs_stack - 6) = 0;
 *(dfs_stack - 4) = 0;
 *(dfs_stack - 2) = 0;
-
+uint32_t leaf_node_table_ptr = self.leaf_core_lookup_table;
 //dfs_loop:
     if (stack_top == self.stack_top) {
         goto dfs_done;
     }
     // -- pop --
-    stack_top-=12;
+    stack_top-=16;
     uint32_t dram_idx       = *(stack_top);
     uint16_t *parent_ptr    = *(stack_top + 4);
     uint16_t *patch_left    = *(stack_top + 6);
     uint16_t *patch_right   = *(stack_top + 8);
-    uint8_t is_right        = *(stack_top + 10);
-
+    uint16_t is_right        = *(stack_top + 10);
+    uint32_t depth           = *(stack_top + 12);
 
     // -- allocate SRAM slot --
 
-    uint32_t sram_slot_address = self.sram_alloc_count;
+    uint32_t sram_slot_address = self.sram_node_base_address;
     uint32_t node = atomic_add(sram_slot_address, 48);
-
     // -- load DRAM node --
     AABB_Node_DRAM *dram_node = &dram_nodes[dram_idx];
     uint32_t bottom_node_bits = self.node_array_low;
@@ -1587,6 +1582,11 @@ set_address_bits(top_node_bits);
     node->left_child  = all_ones; // 0xFFFF indicates no child
     node->right_child = all_ones; // 0xFFFF indicates no child
 
+    if(depth > 12 && core_owner != 0xFFFF){
+        *leaf_node_table_ptr = node;
+        leaf_node_table_ptr += 2;
+    }
+
     // -- patch parent's child pointer to point to us --
     if (parent_ptr != all_ones) goto patch_parent;
     goto skip_patch;
@@ -1608,8 +1608,11 @@ set_address_bits(top_node_bits);
 //check_recurse:
     // -- decide whether to recurse into children --
     // recurse if: owner == 0xFFFF OR owner == self->core_id
-    if (owner == all_ones) goto do_recurse;
-    if (owner == self->core_id) goto do_recurse;
+    if (owner == all_ones) {} goto do_recurse;
+    if (owner == self->core_id) {
+        self.node_id = node_id;
+        goto do_recurse;
+    }
     // foreign owner: do not recurse, children stay 0
     goto dfs_loop;
 
@@ -1617,27 +1620,61 @@ set_address_bits(top_node_bits);
     // -- push right child first (so left is processed first) --
     uint32_t right_idx = load_dram_word(bottom_node_bits + 24);
     uint32_t left_idx = load_dram_word(bottom_node_bits + 28);
-    *(stack_top + 0)   = right_idx;
-    *(stack_top + 4)   = node;
-    *(stack_top + 6)  = &node->left_child;
-    *(stack_top + 8)  = &node->right_child;
-    *(stack_top + 10)   = 1;
+    *(stack_top + 0) = right_idx;
+    *(stack_top + 4) = node;
+    *(stack_top + 6) = &node->left_child;
+    *(stack_top + 8) = &node->right_child;
+    *(stack_top + 10) = 1;
+    *(stack_top + 12) = depth + 1;
 
-    stack_top += 12;
+
+    stack_top += 16;
 
     // -- push left child --
-    *(stack_top + 0)   = left_idx;
-    *(stack_top + 4)   = node;
-    *(stack_top + 6)  = &node->left_child;
-    *(stack_top + 8)  = &node->right_child;
-    *(stack_top + 10)   = 0;
-    stack_top += 12;
+    *(stack_top + 0) = left_idx;
+    *(stack_top + 4) = node;
+    *(stack_top + 6) = &node->left_child;
+    *(stack_top + 8) = &node->right_child;
+    *(stack_top + 10) = 0;
+    *(stack_top + 12) = depth + 1;
+    stack_top += 16;
 
     goto dfs_loop;
 
 //dfs_done:
-
-
+*(self.leaf_core_lookup_table + 256) = self->root_node;  // offset 128*2 = 256
+uint32_t is_odd_thread = self.thread_id & 1;
+is_odd_thread += 32;
+enable_interrupts(is_odd_thread);
+enable_interrupts(34);
+enable_interrupts(35);
+enable_interrupts(36);
+uint16_t queue_ptr_address = self.local_ray_queue_head;
+*(queue_ptr_address) = 0;
+*(queue_ptr_address + 4) = 0;
+*(queue_ptr_address + 8) = 0;
+queue_ptr_address += 75;
+for(int i = 0; i < 16; i++) {
+    *(queue_ptr_address) = 0;
+    queue_ptr_address += 4;
+}
+*(queue_ptr_address + 1) = 0;
+*(queue_ptr_address + 5) = 0;
+*(queue_ptr_address + 9) = 0;
+queue_ptr_address += 76;
+for(int i = 0; i < 16; i++) {
+    *(queue_ptr_address) = 0;
+    queue_ptr_address += 4;
+}
+*(self.local_queue_flushing) = 0;
+*(self.tile_data_sram + 4) = 0;
+*(self.ray_send_pending_addr) = 0;
+relinquish_ownership(1);
+uint32_t ray_base = self.ray_array_base;
+uint32_t ray_array_index = self.thread_id << 6; // * 64 bytes per ray
+ray = ray_array_index + ray_base;
+*(ray + 63) = 0; // set ray slot to empty
+goto grab_from_tile;
 
 //Eat_Ray_Interrupt:
 uint32_t is_odd_thread = self.thread_id & 1;
@@ -1645,6 +1682,7 @@ is_odd_thread += 32;
 disable_interrupts(is_odd_thread);
 uint32_t is_value = nb_recv(is_odd_thread);
 if (is_value == 0) {
+    enable_interrupts(is_odd_thread);
     return;
 }
 uint32_t value = blocking_recv(is_odd_thread);
@@ -1671,13 +1709,12 @@ is_odd_thread = self.thread_id & 1;
 is_odd_thread *= 1036;
 local_queue += is_odd_thread; // odd threads write to the receiver queue rather than sender queue
 uint32_t old_count = atomic_add(&local_queue.count, 1);
-if (old_count > 16)
-{
+if (old_count > 16) {
     atomic_add(&local_queue.count, -1);
     //reject_ray_interrupt:
     uint32_t reject_ray_msg = reject_ray << 24;
     reject_ray_msg |= self.thread_id;
-    send_packet(reject_ray_msg, core_id);
+    send_flit(reject_ray_msg, core_id);
     enable_interrupts(is_odd_thread);
     return;
 }
@@ -1696,3 +1733,13 @@ for(int i = 0; i < 16; i++) {
 }
 enable_interrupts(is_odd_thread);
 return;
+
+
+/* Stuff left:
+Switch roles Code
+Is Idle Code
+Is Busy Code
+
+leaf-core init code
+*/
+

@@ -222,8 +222,13 @@ fn assemble_instruction(
             set_imm1(&mut instr, 0);
             return instr;
         }
-        35 | 37 => { // getowner / relinquish: no operands
+        35 => { // getowner: no operands
             if !args.is_empty() { panic!("{} takes no operands", op_name); }
+            return instr;
+        }
+        37 => { // relinquish: relinquish bool
+            if args.len() > 1 { panic!("relinquish expects: relinquish bool"); }
+            set_imm1(&mut instr, args[0].parse::<bool>().unwrap_or_else(|_| panic!("Invalid boolean '{}'", args[0])));
             return instr;
         }
         36 => { // setctx: setctx IMM
