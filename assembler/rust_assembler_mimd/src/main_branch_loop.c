@@ -1735,6 +1735,175 @@ enable_interrupts(is_odd_thread);
 return;
 
 
+
+
+typedef struct {
+    uint16_t core_id;
+    uint8_t  is_valid;
+} idle_queue_slot;
+
+typedef struct {
+    uint32_t head_relative;   
+    uint32_t tail_relative;   
+    uint32_t count;           
+    uint32_t lock;            
+    idle_queue_slot slots[256];
+} idle_core_queue_dram;
+
+
+typedef struct {
+    uint32_t rays_processed;      // atomically incremented on each ray completion
+    uint32_t last_observed_cycle; // cycle when window last reset
+    uint8_t  previously_idle;     // 1 if was idle last window
+} core_handled;
+
+
+#define IDLE_WINDOW     1000000  // cycles between idle checks
+#define IDLE_THRESHOLD  100      // rays/window below this = idle
+#define BUSY_THRESHOLD  128      // queue depth above this = busy
+
+// Branch-specific thresholds
+#define BRANCH_IDLE_THRESHOLD  50   // forwards/window below this = idle
+#define BRANCH_BUSY_THRESHOLD  200  // forwards/window above this = busy
+
+
+
+#define IDLE_WINDOW 1000000
+#define IDLE_THRESHOLD 100 
+
+bool is_idle_leaf() {
+    uint32_t current_cycle = get_cycle_count();
+    uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
+
+    if (current_cycle - last_observed_cycle < IDLE_WINDOW) {
+        return self.core_handled->previously_idle; // window not elapsed, return last state
+    }
+
+    // DOUBLE CHECK
+    if(self.core_handled->previously_idle) {
+        return true;
+    }
+
+    uint32_t rays_processed = self.core_handled->rays_processed;
+
+    self.core_handled->rays_processed = 0;
+    self.core_handled->last_observed_cycle = current_cycle;
+
+
+    if (rays_processed >= IDLE_THRESHOLD) {
+        return false;
+    }
+
+    if (!(self.core_handled->previously_idle)) {
+        add_idle_core();
+    }
+
+    self.core_handled->previously_idle = 1;
+    return true;
+}
+
+bool is_busy_leaf() {
+    int queue_address_high = self.node->queue_high_bit_addr;
+    set_address_bits(queue_address_high);
+    int queue_address_low = self.node->queue_low_bit_addr;
+    uint32_t count = load_dram_word(queue_address_low + 8); // count field
+    if (count > BUSY_THRESHOLD) {
+        return true;
+    }
+    return false;
+}
+
+
+bool is_idle_branch() {
+    uint32_t queue_address_high = self.node->queue_high_bit_addr;
+    set_address_bits(queue_address_high);
+    uint32_t queue_address_low = self.node->queue_low_bit_addr;
+    
+
+    int32_t lock = -1;
+    while (lock >= 0) {
+        lock = atomic_add_dram(queue_address_low + 24, 1);
+    }
+    uint32_t core_owner_count = load_dram_word(queue_address_low + 24); // double check 24
+    atomic_add_dram(queue_address_low + 24, -1);
+
+
+    if (core_owner_count == 1) {
+        self.core_handled->previously_idle = 0;
+        return false;
+    }
+
+    uint32_t current_cycle = get_cycle_count();
+    uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
+
+    if (current_cycle - last_observed_cycle < IDLE_WINDOW) {
+        return self.core_handled->previously_idle;
+    }
+
+    uint32_t rays_forwarded = self.core_handled->rays_forwarded;
+
+    self.core_handled->rays_forwarded = 0;
+    self.core_handled->last_observed_cycle = current_cycle;
+
+    if (rays_forwarded >= BRANCH_IDLE_THRESHOLD) {
+        self.core_handled->previously_idle = 0;
+        return false;
+    }
+
+    if (!(self.core_handled->previously_idle)) {
+        add_idle_core();
+    }
+
+    self.core_handled->previously_idle = 1;
+    return true;
+}
+
+bool is_busy_branch() {
+
+    uint32_t current_cycle = get_cycle_count();
+    uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
+
+    if (current_cycle - last_observed_cycle < IDLE_WINDOW) {
+        return false;
+    }
+
+    // get lock
+    int32_t lock = -1;
+    while (lock >= 0) {
+        lock = atomic_add_dram(queue_address_low + 24, 1);
+    }
+    uint32_t core_owner_count = load_dram_word(queue_address_low + 24); // double check 24
+    atomic_add_dram(queue_address_low + 24, -1);
+
+    if (core_owner_count == 1) {
+        self.core_handled->previously_idle = 0;
+        return false;
+    }
+
+    uint32_t rays_forwarded = self.core_handled->rays_forwarded;
+
+    if (rays_forwarded >= BRANCH_BUSY_THRESHOLD) {
+        return true;
+    }
+
+    return false;
+}
+
+void add_idle_core() {
+    uint32_t idle_queue_address_high = self.idle_queue_address_high;
+    set_address_bits(idle_queue_address_high);
+    uint32_t idle_queue_address_low = self.idle_queue_address_low;
+    uint32_t slot_index = atomic_add_dram(idle_queue_address_low + 4, 1);
+    slot_index = slot_index & 0xFF;
+    uint32_t slot_address = idle_queue_address_low + 8 + slot_index * 8;
+    store_dram_half(self.core_id, slot_address);
+    store_dram_byte(1, slot_address + 2);
+}
+
+
+// TODO DO CODE FOR INCREMENTING RAY_PROCESSED
+
+
 /* Stuff left:
 Switch roles Code
 Is Idle Code
