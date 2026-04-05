@@ -2430,8 +2430,11 @@ impl Core {
                         self.ctx_ownership = -1;
                         switch_ctx = true;
                         self.pc[self.context_in_progress] += 4;
-                        for context in 0..REGS_PER_CONTEXT {
-                            self.pc[context] = self.pc[self.context_in_progress];
+                        let cur_pc = self.pc[self.context_in_progress];
+                        if instruction_to_execute.imm_1 != 0 {
+                            for context in 0..REGS_PER_CONTEXT {
+                                self.pc[context] = cur_pc;
+                            }
                         }
                     }
                     Operation::EnableInterrupts => {
