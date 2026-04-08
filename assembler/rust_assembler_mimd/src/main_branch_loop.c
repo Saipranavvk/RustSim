@@ -2074,3 +2074,4 @@ goto dfs_done_but_leaf;
 
 //need to do insertions/removals from core array dram queues
 //also need to do leaf tri index/vertex allocator
+//also true startup code node allocation
