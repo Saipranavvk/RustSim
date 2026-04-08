@@ -204,9 +204,20 @@ typedef struct {
     uint32_t head_relative;   
     uint32_t tail_relative;   
     uint32_t count;           
-    uint32_t lock;            
     idle_queue_slot slots[256];
+    uint32_t parent_node;
 } idle_core_queue_dram;
+
+typedef struct {
+    uint32_t parent_high;
+    uint32_t parent_low;
+    uint32_t left_high;
+    uint32_t left_low;
+    uint32_t right_high;
+    uint32_t right_low;
+    uint16_t is_left;
+    uint16_t height;
+} idle_queue_tree_node;
 
 
 typedef struct {
@@ -1700,7 +1711,7 @@ uint16_t queue_ptr_address = self.local_ray_queue_head;
 queue_ptr_address += 75;
 for(int i = 0; i < 16; i++) {
     *(queue_ptr_address) = 0;
-    queue_ptr_address += 4;
+    queue_ptr_address += 64;
 }
 *(queue_ptr_address + 1) = 0;
 *(queue_ptr_address + 5) = 0;
@@ -1708,7 +1719,7 @@ for(int i = 0; i < 16; i++) {
 queue_ptr_address += 76;
 for(int i = 0; i < 16; i++) {
     *(queue_ptr_address) = 0;
-    queue_ptr_address += 4;
+    queue_ptr_address += 64;
 }
 *(self.local_queue_flushing) = 0;
 *(self.tile_data_sram + 4) = 0;
@@ -1718,6 +1729,11 @@ uint32_t ray_base = self.ray_array_base;
 uint32_t ray_array_index = self.thread_id << 6; // * 64 bytes per ray
 ray = ray_array_index + ray_base;
 *(ray + 63) = 0; // set ray slot to empty
+*(self.core_handled->previously_idle) = 0;
+*(self.core_handled->rays_processed) = 0;
+*(self.core_handled->last_observed_cycle) = 0;
+*(self.ray_send_pending_addr) = 0;
+*(local_queue_flushing) = 0;
 goto grab_from_tile;
 
 //Eat_Ray_Interrupt:
@@ -1779,48 +1795,6 @@ enable_interrupts(is_odd_thread);
 return;
 
 
-
-
-
-bool is_idle_leaf() {
-    uint32_t current_cycle = get_cycle_count();
-    uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
-    uint32_t time_diff = current_cycle - last_observed_cycle;
-    if (time_diff < IDLE_WINDOW) {
-        return 0; 
-    }
-
-    if(self.core_handled->previously_idle) {
-        return 0;
-    }
-
-    uint32_t rays_processed = self.core_handled->rays_processed;
-
-    self.core_handled->rays_processed = 0;
-    self.core_handled->last_observed_cycle = current_cycle;
-    rays_processed <<= 16;
-    uint32_t ratio = rays_processed / time_diff;
-    if (time_diff >= IDLE_THRESHOLD) {
-        return 0;
-    }
-    add_idle_core();
-    self.core_handled->previously_idle = 1;
-    return 1;
-}
-
-// bool is_busy_leaf() {
-//     int queue_address_high = self.node->queue_high_bit_addr;
-//     set_address_bits(queue_address_high);
-//     int queue_address_low = self.node->queue_low_bit_addr;
-//     uint32_t count = load_dram_word(queue_address_low + 8); // count field
-//     if (count > BUSY_THRESHOLD) {
-//         return true;
-//     }
-//     return false;
-// }
-
-//inlined the above func
-
 bool is_idle_branch() {
     uint32_t current_cycle = get_cycle_count();
     uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
@@ -1839,7 +1813,7 @@ bool is_idle_branch() {
     self.core_handled->last_observed_cycle = current_cycle;
     rays_processed <<= 16;
     uint32_t ratio = rays_processed / time_diff;
-    if (time_diff >= BRANCH_IDLE_THRESHOLD) {
+    if (ratio >= BRANCH_IDLE_THRESHOLD) {
         return 0;
     }
 
@@ -1867,39 +1841,6 @@ bool is_idle_branch() {
     return 1;
 }
 
-// bool is_busy_branch() {
-
-//     uint32_t current_cycle = get_cycle_count();
-//     uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
-
-//     if (current_cycle - last_observed_cycle < IDLE_WINDOW) {
-//         return false;
-//     }
-
-//     // get lock
-//     int32_t lock = -1;
-//     while (lock >= 0) {
-//         lock = atomic_add_dram(queue_address_low + 24, 1);
-//     }
-//     uint32_t core_owner_count = load_dram_word(queue_address_low + 24); // double check 24
-//     atomic_add_dram(queue_address_low + 24, -1);
-
-//     if (core_owner_count == 1) {
-//         self.core_handled->previously_idle = 0;
-//         return false;
-//     }
-
-//     uint32_t rays_forwarded = self.core_handled->rays_forwarded;
-
-//     if (rays_forwarded >= BRANCH_BUSY_THRESHOLD) {
-//         return true;
-//     }
-
-//     return false;
-// }
-
-//inlined above function
-
 void add_idle_core() {
     uint32_t idle_queue_address_high = self.idle_queue_address_high;
     set_address_bits(idle_queue_address_high);
@@ -1911,7 +1852,7 @@ void add_idle_core() {
         atomic_add_dram(idle_queue_address_low, -1);
         goto idle_core_insert_spinlock;
     }
-    idle_queue_address -= 4;
+    idle_queue_address_low -= 4;
     uint32_t slot_index = atomic_add_dram(idle_queue_address_low, 4);
     slot_index = slot_index & 0x3FF;
     uint32_t slot_address = idle_queue_address_low + slot_index;
@@ -1924,17 +1865,6 @@ void add_idle_core() {
     store_dram_byte(1, slot_address + 10);
 }
 
-
-// TODO DO CODE FOR INCREMENTING RAY_PROCESSED
-
-
-/* Stuff left:
-Switch roles Code
-Is Idle Code
-Is Busy Code
-
-leaf-core init code
-*/
 
 /*
 
@@ -1951,3 +1881,196 @@ For former, just need to pull in data over NOC and jump to the write ready-up co
 Both are going to need to do some queue management tho :L
 
 */
+
+uint32_t ACCEPT_CHANGE = 13;
+uint32_t REJECT_CHANGE = 14;
+
+//search_for_idle_cores:
+// ============================================================
+// bottom_up_idle_core_search
+// ============================================================
+// Searches the idle_queue_tree starting at a known leaf queue,
+// ascending and searching sibling subtrees until an idle core
+// is found or the full tree is exhausted.
+//
+// Inputs:
+//   self->idle_queue_address_high : high bits of current leaf idle_queue_tree_node
+//   self->idle_queue_address_low  : low bits of current leaf idle_queue_tree_node
+//
+// Outputs:
+//   self->found_core_id : core_id of dequeued idle core, or 0xFFFF if none found
+// ============================================================
+
+typedef struct {
+    uint32_t high;
+    uint32_t low;
+    uint16_t height;
+    uint16_t _pad;
+} DFS_Entry;
+
+// 5-level tree: max 2*height entries live at once, height <= 5, 12 bytes each
+DFS_Entry dfs_stack[12];
+uint32_t dfs_top = 0;
+
+uint32_t idle_queue_address_high = self.idle_queue_address_high;
+set_address_bits(idle_queue_address_high);
+uint32_t current = self.idle_queue_address_low;
+int32_t found_core_id = 0xFFFF;
+
+//ascend:
+    uint16_t is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
+    uint16_t height  = load_dram_half(current + offsetof(idle_queue_tree_node, height));
+
+    uint32_t parent_high = load_dram_word(current + offsetof(idle_queue_tree_node, parent_high));
+    uint32_t parent_low  = load_dram_word(current + offsetof(idle_queue_tree_node, parent_low));
+    if (parent_high == 0xFFFFFFFF) goto search_done;
+
+    set_address_bits(parent_high);
+    uint32_t parent = parent_low;
+
+    parent += 8;
+    uint32_t sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, left_high));
+    uint32_t sibling_low  = load_dram_word(parent + offsetof(idle_queue_tree_node, left_low));
+
+//push_sibling:
+    dfs_stack[dfs_top].high   = sibling_high;
+    dfs_stack[dfs_top].low    = sibling_low;
+    dfs_stack[dfs_top].height = height; // sibling is at same height as us
+    dfs_top++;
+
+//dfs_loop:
+    if (dfs_top == 0) goto sibling_exhausted;
+    dfs_top--;
+
+    uint32_t dfs_node_high   = dfs_stack[dfs_top].high;
+    uint32_t dfs_node_low    = dfs_stack[dfs_top].low;
+    uint16_t dfs_node_height = dfs_stack[dfs_top].height;
+
+    set_address_bits(dfs_node_high);
+    uint32_t dfs_node = dfs_node_low;
+
+    if (dfs_node_height == 0) goto try_dequeue;
+
+    uint16_t child_height = dfs_node_height - 1;
+
+    uint32_t right_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_high));
+    uint32_t right_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_low));
+    dfs_stack[dfs_top].high   = right_high;
+    dfs_stack[dfs_top].low    = right_low;
+    dfs_stack[dfs_top].height = child_height;
+    dfs_top++;
+
+    uint32_t left_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_high));
+    uint32_t left_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_low));
+    dfs_stack[dfs_top].high   = left_high;
+    dfs_stack[dfs_top].low    = left_low;
+    dfs_stack[dfs_top].height = child_height;
+    dfs_top++;
+
+    goto dfs_loop;
+
+//try_dequeue:
+    uint32_t count_addr = dfs_node + offsetof(idle_core_queue_dram, count);
+    uint32_t count = load_dram_word(count_addr);
+    if (count == 0) goto dfs_loop;
+
+    int32_t old_count = atomic_add_dram(count_addr, -1);
+    if (old_count <= 0) goto revert_count;
+    goto claim_slot;
+
+//revert_count:
+    atomic_add_dram(count_addr, 1);
+    goto dfs_loop;
+
+//claim_slot:
+    uint32_t head_addr = dfs_node + offsetof(idle_core_queue_dram, head_relative);
+    uint32_t head_relative = atomic_add_dram(head_addr, 4);
+    head_relative = head_relative & 0x3FF;
+    uint32_t slot_addr = dfs_node + offsetof(idle_core_queue_dram, slots) + head_relative;
+    uint32_t valid_addr = slot_addr + offsetof(idle_queue_slot, is_valid);
+    uint32_t coreid_addr = slot_addr + offsetof(idle_queue_slot, core_id);
+
+//spinlock_valid:
+    uint16_t is_valid = load_dram_half(valid_addr);
+    if (is_valid == 0) goto spinlock_valid;
+
+    uint16_t found_core = load_dram_half(coreid_addr);
+    store_dram_half(0, valid_addr);
+    found_core_id = found_core;
+    goto search_done;
+
+//sibling_exhausted:
+    set_address_bits(parent_high);
+    current = parent_low;
+    uint16_t parent_is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
+    is_left = parent_is_left;
+    goto ascend;
+
+//search_done:
+if(found_core_id != 0xFFFF){
+    send_flit(self.thread_id, found_core_id, 34);
+    uint32_t will_accept_change = blocking_recv(16 + self.thread_id);
+    if((will_accept_change >> 24) == REJECT_CHANGE){
+        goto ray_done;
+    }
+    send_flit(1, found_core_id, 0);
+    if((will_accept_change & 1) != self.is_branch_core) {
+        uint32_t starting_address = branch_start_of_code;
+        uint32_t num_instructions = 1234 * 4;
+        for(int i = 0; i < num_instructions; i += 4){
+            uint32_t instruction_to_send = *(starting_address + i);
+            send_flit(instruction_to_send, found_core_id, 0);
+        }
+    }
+    uint32_t starting_address = branch_start_of_geometry;
+    uint32_t size_of_geo = 5678 * 4;
+    for(int i = 0; i < size_of_geo; i += 4){
+        uint32_t word_to_transfer_of_geo = *(starting_address + i);
+        send_flit(word_to_transfer_of_geo, found_core_id, 0);
+    }
+}
+goto ray_done;
+
+
+
+
+
+
+//switch_roles_interrupt:
+disable_interrupts(34);
+uint32_t is_value = nb_recv(34);
+if (is_value == 0) {
+    enable_interrupts(34);
+    return;
+}
+uint32_t switch_core_request = blocking_recv(34);
+if(self.core_handled->previously_idle == 0){
+    send_flit(REJECT_CHANGE << 24, switch_core_request >> 4, switch_core_request & 0xF + 16);
+    enable_interrupts(34);
+    return;
+}
+send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);get_ownership();
+uint32_t type_of_core = blocking_recv(0);
+if(type_of_core != self.is_branch_core){
+    uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
+    uint32_t num_instructions = 4321 * 4;
+    for(int i = 0; i < num_instructions; i += 4){
+        uint32_t instruction_to_recv = blocking_recv(0);
+        *(starting_address + i) = instruction_to_recv;
+    }
+}
+uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
+uint32_t size_of_geo = (type_of_core == 1) ? 5678 * 4 : 8765 * 4;
+for(int i = 0; i < size_of_geo; i += 4){
+    uint32_t word_to_transfer_of_geo = blocking_recv(0);
+    *(starting_address + i) = word_to_transfer_of_geo;
+}
+self.is_branch_core = type_of_core;
+if(type_of_core == 1){
+    goto dfs_done;
+}
+goto dfs_done_but_leaf;
+
+
+//need to do insertions/removals from core array dram queues
+//also need to do leaf tri index/vertex allocator
