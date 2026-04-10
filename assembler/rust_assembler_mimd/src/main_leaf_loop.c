@@ -1226,3 +1226,84 @@ void add_idle_core() {
     store_dram_byte(1, slot_address + 10);
 }
 
+
+
+
+#define LOCK_DECREMENT 0x7FFFFFFF // some large value idk
+
+// Return 0 on failure, return 1 on success
+
+uint32_t remove_from_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
+
+    set_address_bits(q_high);
+
+    uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+
+    uint32_t now_serving = load_dram_word(q_low + 16);
+    if (now_serving != my_ticket) {
+        now_serving = load_dram_word(q_low + 16)
+    }
+    int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+    while (lock_val != -LOCK_DECREMENT) {
+        lock_val = load_dram_word(q_low + 20);
+    }
+    uint32_t owner_count = load_dram_word(q_low + 24);
+    if (owner_count <= 1) {
+        atomic_add_dram(q_low + 20, LOCK_DECREMENT);
+        atomic_add_dram(q_low + 16, 1);
+        return 0;
+    }
+
+    uint32_t slots_base = q_low + 28;Wait
+    uint32_t i = 0;
+find_our_slot_remove:
+    if (i >= owner_count) goto slot_not_found_remove;
+    uint16_t slot_val = load_dram_half(slots_base + i * 2);
+    if (slot_val == self.core_id) goto found_our_slot_remove;
+    i += 1;
+    goto find_our_slot_remove;
+
+found_our_slot_remove:
+    uint32_t last_slot_addr = slots_base + (owner_count - 1) * 2;
+    uint16_t last_val = load_dram_half(last_slot_addr);
+    store_dram_half(slots_base + i * 2, last_val);
+    store_dram_half(last_slot_addr, 0);
+    atomic_add_dram(q_low + 24, -1);  // decrement core_owner_count
+    goto release_remove;
+
+slot_not_found_remove:
+    return 1;
+release_remove:
+    atomic_add_dram(q_low + 20, LOCK_DECREMENT);
+    atomic_add_dram(q_low + 16, 1);
+    return 1;
+}
+
+
+// Return 0 on failure, return 1 on success
+
+uint32_t add_to_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
+    set_address_bits(q_high);
+    uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+    uint32_t now_serving = load_dram_word(q_low + 16);
+    while (now_serving != my_ticket) {
+        now_serving = load_dram_word(q_low + 16);
+    }
+    int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+    while (lock_val != -LOCK_DECREMENT) {
+        lock_val = load_dram_word(q_low + 20);
+    }
+
+    uint32_t owner_count = load_dram_word(q_low + 24);
+    if (owner_count >= 32) {
+        atomic_add_dram(q_low + 20, LOCK_DECREMENT);
+        atomic_add_dram(q_low + 16, 1);
+        return 0;
+    }
+    uint32_t new_slot_addr = q_low + 28 + owner_count * 2;
+    store_dram_half(()new_slot_addr, self.core_id);
+    atomic_add_dram(q_low + 24, 1);
+    atomic_add_dram(q_low + 20, LOCK_DECREMENT);
+    atomic_add_dram(q_low + 16, 1);
+    return 1;
+}
