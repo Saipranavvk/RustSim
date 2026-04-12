@@ -1254,7 +1254,7 @@ uint32_t remove_from_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
         return 0;
     }
 
-    uint32_t slots_base = q_low + 28;Wait
+    uint32_t slots_base = q_low + 28;
     uint32_t i = 0;
 find_our_slot_remove:
     if (i >= owner_count) goto slot_not_found_remove;

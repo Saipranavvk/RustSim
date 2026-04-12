@@ -2097,7 +2097,7 @@ struct leaf_geo_alloc_info
 
 void leaf_node_idx_vertex_allocator()
 {
-    set_address_bits(self.node_array_high);
+    set_address_bits(self.node_array_high); 
     uint32_t dram_src = self.node_array_low + self.leaf_alloc.node_byte_offset;
     uint32_t sram_dst = self.sram_nodes;
     uint32_t words    = self.leaf_alloc.node_byte_count >> 2;

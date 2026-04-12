@@ -116,5 +116,7 @@ vertex_copy_loop:
     // jmp vertex_copy_loop
 
 vertex_copy_done:
-    return;
+
 }
+
+
