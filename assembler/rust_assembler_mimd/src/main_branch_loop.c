@@ -237,10 +237,6 @@ typedef struct {
 #define BRANCH_BUSY_THRESHOLD  200  // forwards/window above this = busy
 
 
-
-#define IDLE_WINDOW 1000000
-#define IDLE_THRESHOLD 100 
-
 const ray_ack = 5;
 const reject_ray = 7;
 const wrong_core = 8;

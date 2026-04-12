@@ -1207,7 +1207,7 @@ void add_idle_core() {
     set_address_bits(idle_queue_address_high);
     uint32_t idle_queue_address_low = self.idle_queue_address_low;
     idle_queue_address_low += 8;
-    //idle_core_insert_spinlock:
+idle_core_insert_spinlock:
     uint32_t old_count = atomic_add_dram(idle_queue_address_low, 1);
     if(old_count > 256){
         atomic_add_dram(idle_queue_address_low, -1);
@@ -1217,7 +1217,7 @@ void add_idle_core() {
     uint32_t slot_index = atomic_add_dram(idle_queue_address_low, 4);
     slot_index = slot_index & 0x3FF;
     uint32_t slot_address = idle_queue_address_low + slot_index;
-    //wait_for_idle_queue_slot_to_open:
+wait_for_idle_queue_slot_to_open:
     uint32_t is_open = load_dram_half(slot_address + 10);
     if(is_open != 0){
         goto wait_for_idle_queue_slot_to_open;
