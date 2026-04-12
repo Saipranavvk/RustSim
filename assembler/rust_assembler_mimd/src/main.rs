@@ -101,6 +101,23 @@ fn parse_imm_or_label(tok: &str, labels: &HashMap<String, u16>) -> u16 {
     panic!("Unknown immediate or label '{tok}'");
 }
 
+/// Parse a .data or .data(N) directive, returning the repeat count.
+/// Returns None if the token is not a .data directive.
+fn parse_data_repeat(op_raw: &str) -> Option<usize> {
+    let op_lower = op_raw.to_lowercase();
+    if op_lower == ".data" {
+        Some(1)
+    } else if let Some(inner) = op_lower.strip_prefix(".data(").and_then(|s| s.strip_suffix(')')) {
+        let n = inner.parse::<usize>().unwrap_or_else(|_| panic!("Bad .data repeat count '{}'", inner));
+        if n == 0 {
+            panic!(".data repeat count must be >= 1");
+        }
+        Some(n)
+    } else {
+        None
+    }
+}
+
 /* ===================== PASS 1: LABELS ===================== */
 
 fn collect_labels(src: &str) -> (u16, HashMap<String, u16>) {
@@ -138,7 +155,14 @@ fn collect_labels(src: &str) -> (u16, HashMap<String, u16>) {
         if origin.is_none() {
             panic!("Program must start with .org");
         }
-        pc = pc.wrapping_add(4);
+
+        // Check if this is a .data(N) directive so we advance PC correctly
+        let op_raw = line.split_whitespace().next().unwrap();
+        if let Some(repeat) = parse_data_repeat(op_raw) {
+            pc = pc.wrapping_add((repeat as u16) * 4);
+        } else {
+            pc = pc.wrapping_add(4);
+        }
     }
 
     (origin.expect("Missing .org"), labels)
@@ -149,10 +173,10 @@ fn collect_labels(src: &str) -> (u16, HashMap<String, u16>) {
 fn assemble_instruction(
     line: &str,
     labels: &HashMap<String, u16>,
-) -> u32 {
+) -> Vec<u32> {
     let line = line.trim();
     if line.is_empty() {
-        return 0;
+        return vec![0];
     }
 
     let mut instr = 0u32;
@@ -166,20 +190,22 @@ fn assemble_instruction(
         .filter(|s| !s.is_empty())
         .collect();
 
-    // Handle .data (case-insensitive), emit a raw u32 word.
+    // Handle .data and .data(N) (case-insensitive), emit raw u32 word(s).
     // Syntax:
-    //   .data 123
-    //   .data 0xDEADBEEF
-    if op_raw.eq_ignore_ascii_case(".data") {
+    //   .data 123              -> 1 word
+    //   .data 0xDEADBEEF       -> 1 word
+    //   .data(16) 0xDEADBEEF   -> 16 copies of the word
+    if let Some(repeat) = parse_data_repeat(op_raw) {
         let v = rest.trim();
         if v.is_empty() {
             panic!(".data requires a value");
         }
-        if let Some(hex) = v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
-            return u32::from_str_radix(hex.trim(), 16).expect("Bad .data hex value");
+        let word = if let Some(hex) = v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
+            u32::from_str_radix(hex.trim(), 16).expect("Bad .data hex value")
         } else {
-            return v.parse::<u32>().expect("Bad .data value");
-        }
+            v.parse::<u32>().expect("Bad .data value")
+        };
+        return vec![word; repeat];
     }
 
     let (op_name_base, fp_type) = parse_fp_suffix(op_raw);
@@ -214,28 +240,28 @@ fn assemble_instruction(
                 set_imm(&mut instr, parse_imm_or_label(args[1], labels));
                 set_imm1(&mut instr, 1);
             }
-            return instr;
+            return vec![instr];
         }
         34 => { // yield: yield rD
             if args.len() != 1 { panic!("yield expects: yield rD"); }
             set_dr(&mut instr, parse_reg(args[0]));
             set_imm1(&mut instr, 0);
-            return instr;
+            return vec![instr];
         }
         35 => { // getowner: no operands
             if !args.is_empty() { panic!("{} takes no operands", op_name); }
-            return instr;
+            return vec![instr];
         }
         37 => { // relinquish: relinquish bool
             if args.len() > 1 { panic!("relinquish expects: relinquish bool"); }
-            set_imm1(&mut instr, args[0].parse::<bool>().unwrap_or_else(|_| panic!("Invalid boolean '{}'", args[0])));
-            return instr;
+            set_imm1(&mut instr, if args[0].parse::<bool>().unwrap_or_else(|_| panic!("Invalid boolean '{}'", args[0])) {1} else {0});
+            return vec![instr];
         }
         36 => { // setctx: setctx IMM
             if args.len() != 1 { panic!("setctx expects: setctx IMM"); }
             set_imm(&mut instr, parse_imm_or_label(args[0], labels));
             set_imm1(&mut instr, 1);
-            return instr;
+            return vec![instr];
         }
         38 | 55 => { // intena/intdis SR1|IMM16
             if args.len() != 1 { panic!("intena expects: intena sr1|IMM16"); }
@@ -256,7 +282,7 @@ fn assemble_instruction(
         39 => { // setmembits: setmembits rS1
             if args.len() != 1 { panic!("setmembits expects: setmembits rS1"); }
             set_sr1(&mut instr, parse_reg(args[0]));
-            return instr;
+            return vec![instr];
         }
         23 => { // JMP
             if args.len() != 2 { panic!("jmp expects: dr rS1|IMM16"); }
@@ -269,12 +295,12 @@ fn assemble_instruction(
                 set_imm(&mut instr, parse_imm_or_label(args[1], labels));
                 set_imm1(&mut instr, 1);
             }
-            return instr;
+            return vec![instr];
         }
         52 => { //getclk
             if args.len() != 1 { panic!("getclk expects: dr"); }
             set_dr(&mut instr, parse_reg(args[0]));
-            return instr;
+            return vec![instr];
         }
         _ => {}
     }
@@ -312,7 +338,7 @@ fn assemble_instruction(
             set_imm1(&mut instr, 1); // Absolute immediate mode
         }
         
-        return instr;
+        return vec![instr];
     }
 
     if is_store_s {
@@ -335,7 +361,7 @@ fn assemble_instruction(
             set_sr2(&mut instr, base as u32);
             set_imm1(&mut instr, 0);
         }
-        return instr;
+        return vec![instr];
     }
 
     if is_store_d  {
@@ -350,7 +376,7 @@ fn assemble_instruction(
         set_sr1(&mut instr, src);
         set_sr2(&mut instr, base);
         set_imm1(&mut instr, 0);
-        return instr;
+        return vec![instr];
     }
 
     if is_atomicadd {
@@ -371,7 +397,7 @@ fn assemble_instruction(
             set_imm(&mut instr, parse_imm_or_label(args[2], labels));
             set_imm1(&mut instr, 1);
         }
-        return instr;
+        return vec![instr];
     }
 
     /* ---------- BRANCH ---------- */
@@ -389,7 +415,7 @@ fn assemble_instruction(
         set_imm(&mut instr, addr);
         
         set_imm1(&mut instr, parse_bool(args[3]) as u32);
-        return instr;
+        return vec![instr];
     }
 
     /* ---------- ALU ---------- */
@@ -408,7 +434,7 @@ fn assemble_instruction(
             set_imm(&mut instr, parse_imm_or_label(args[2], labels));
             set_imm1(&mut instr, 1);
         }
-        return instr;
+        return vec![instr];
     }
 
     /* ---------- FP ---------- */
@@ -434,7 +460,7 @@ fn assemble_instruction(
                 set_sr1(&mut instr, reg(args[1]));
                 set_sr2(&mut instr, reg(args[2]));
                 set_imm1(&mut instr, 0);
-                return instr;
+                return vec![instr];
             }
 
             // fpmac: rS1, rS2  (accumulator is implicit)
@@ -445,7 +471,7 @@ fn assemble_instruction(
                 set_sr1(&mut instr, reg(args[0]));
                 set_sr2(&mut instr, reg(args[1]));
                 set_imm1(&mut instr, 0);
-                return instr;
+                return vec![instr];
             }
 
             // fpsetacc: rS1   (load accumulator from a register)
@@ -455,7 +481,7 @@ fn assemble_instruction(
                 }
                 set_sr1(&mut instr, reg(args[0]));
                 set_imm1(&mut instr, 0);
-                return instr;
+                return vec![instr];
             }
 
             // fpstoreacc: rD  (store accumulator to dest register)
@@ -465,7 +491,7 @@ fn assemble_instruction(
                 }
                 set_dr(&mut instr, reg(args[0]));
                 set_imm1(&mut instr, 0);
-                return instr;
+                return vec![instr];
             }
 
             _ => {
@@ -491,8 +517,18 @@ pub fn assemble_program(src: &str) -> (u16, Vec<u32>, Vec<String>) {
         if line.is_empty() || line.starts_with(".org") || line.ends_with(':') {
             continue;
         }
-        words.push(assemble_instruction(line, &labels));
-        lines.push(raw.to_string());
+        let encoded = std::panic::catch_unwind(|| {
+                assemble_instruction(line, &labels)
+            }).unwrap_or_else(|e| {
+                eprintln!("ERROR on line: {}", raw.trim());
+                std::panic::resume_unwind(e);
+            });
+        let count = encoded.len();
+        words.extend(encoded);
+        // For .data(N), repeat the source line annotation for each emitted word
+        for _ in 0..count {
+            lines.push(raw.to_string());
+        }
     }
 
     (origin, words, lines)
