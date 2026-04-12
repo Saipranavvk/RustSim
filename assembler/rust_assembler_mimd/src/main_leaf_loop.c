@@ -1307,3 +1307,4 @@ uint32_t add_to_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
     atomic_add_dram(q_low + 16, 1);
     return 1;
 }
+
