@@ -435,7 +435,7 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
             for (int i = 0; i < node->tri_count; i++)
             {
                 Triangle_Intersect(tri_index, ray);
-                tri_index = tri_index + 12;
+                tri_index = tri_index + 6;
 
                 // Shadow ray early termination: if we hit anything, we're done
                 if (ray->light_id != 0 && ray->tri_index != 0xFFFFFFFF) {

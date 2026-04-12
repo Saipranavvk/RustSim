@@ -1845,7 +1845,7 @@ void add_idle_core() {
     idle_queue_address_low += 8;
     //idle_core_insert_spinlock:
     uint32_t old_count = atomic_add_dram(idle_queue_address_low, 1);
-    if(old_count > 256){
+    if(old_count >= 256){
         atomic_add_dram(idle_queue_address_low, -1);
         goto idle_core_insert_spinlock;
     }
