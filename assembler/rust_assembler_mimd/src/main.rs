@@ -11,6 +11,18 @@ enum FpType {
     Fp16 = 1,
     Fp8 = 2,
 }
+
+fn strip_comment(s: &str) -> &str {
+    // Find the earliest comment marker
+    let markers = ["#", ";", "//"];
+    let end = markers.iter()
+        .filter_map(|m| s.find(m))
+        .min()
+        .unwrap_or(s.len());
+    &s[..end]
+}
+
+
 //NEED ATOMICADD AND GETCLK
 /* ===================== ISA TABLE ===================== */
 
@@ -126,7 +138,7 @@ fn collect_labels(src: &str) -> (u16, HashMap<String, u16>) {
     let mut labels = HashMap::new();
 
     for (lineno, raw) in src.lines().enumerate() {
-        let line = raw.split('#').next().unwrap().trim();
+        let line = strip_comment(raw).trim();
         if line.is_empty() { continue; }
 
         if line.starts_with(".org") {
@@ -513,7 +525,7 @@ pub fn assemble_program(src: &str) -> (u16, Vec<u32>, Vec<String>) {
     let mut words = Vec::new();
     let mut lines = vec![];
     for raw in src.lines() {
-        let line = raw.split('#').next().unwrap().trim();
+        let line = strip_comment(raw).trim();
         if line.is_empty() || line.starts_with(".org") || line.ends_with(':') {
             continue;
         }
