@@ -321,6 +321,8 @@ DATA_RECV_LOOP:
     add r13, r13, 0xFFFFFFFF            # slot = 0xFFFFFFFF
 
 # At this point I got tired of hand writing, below is AI-ish, istg Alex dont be upsetty spaggeti
+# I labeled "CHECK_INTERRUPT_MAILBOX" in the C code, I plugged the above into AI and asked it to finish
+# I will check it l8r so cool ur pants
 
 
 CHECK_INTERRUPT_MAILBOX:
