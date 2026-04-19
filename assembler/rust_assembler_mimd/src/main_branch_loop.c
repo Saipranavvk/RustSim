@@ -62,8 +62,14 @@ typedef struct
     uint32_t core_owner_count;
     uint16_t core_slots[256];
     struct Ray[256] rays; // 256 * 64 bytes for the rays
-    struct leaf_geo_alloc_info leaf_alloc;
 } ray_queue_dram;
+
+typedef struct {
+    struct ray_queue_dram ray_queue_receiver;
+    struct ray_queue_dram ray_queue_sender;
+    struct leaf_geo_alloc_info leaf_alloc;
+} branch_ray_queue_large;
+
 
 typedef struct
 {                           // 16924 Bytes
@@ -385,8 +391,8 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                         if (is_there_a_writer < 0)
                         {
                             atomic_add_dram(queue_address_low, -1);
-                            is_there_a_writer = load_word_dram(queue_address_low);
                             // ensure_no_writers_loop:
+                            is_there_a_writer = load_word_dram(queue_address_low);
                             if (is_there_a_writer < 0)
                             {
                                 goto ensure_no_writers_loop;
@@ -670,10 +676,9 @@ if (cur_ray_count > 0)
         {
             branch_core_ask_for_help();
         }
-        else
-        {
-            *(self->pulled_from_full_queue_address) = 0;
-        }
+    }
+    else {
+        *(self->pulled_from_full_queue_address) = 0;
     }
     int cur_ray_count_check = atomic_add_dram(queue_address_low + 8, -1); // decrement the count of rays in the queue
     if (cur_ray_count_check <= 0)
@@ -736,8 +741,9 @@ store_dram_byte(emergency_queue_low + 2, 0);
 *(self.local_queue_flushing + 4) = new_node_id;
 goto switch_dram_queue;
 
-is_idle_branch();
+
 // check_spawned_ray_pool
+is_idle_branch();
 uint32_t spawned_ray_pool_high = self.spawned_ray_pool_high;
 set_address_bits(spawned_ray_pool_high);
 uint32_t spawned_ray_pool_low = self.spawned_ray_pool_low;
@@ -787,7 +793,6 @@ uint32_t meta = load_dram_word(spawned_ray_pool_low + 40);
 ray->pix_x = pix_xy;
 ray->bounce_count = meta & 0xFF;
 ray->light_id = (meta >> 8) & 0xFF;
-
 uint32_t is_shadow = ray->light_id;
 float len_sq = ray->dx * ray->dx;
 float tmp = ray->dy * ray->dy;
@@ -850,11 +855,6 @@ uint32_t tile_pool_high = self.tile_pool_high;
 set_address_bits(tile_pool_high);
 uint32_t tile_pool_low = self.tile_pool_low;
 // NEED TO THROW CURRENT TILE BACK CONDITIONALLY ON THE QUEUE
-uint8_t have_tile = *(self.tile_data_sram->is_active);
-if (have_tile == 0)
-{
-    goto skip_returning_tile;
-}
 uint8_t tile_rays_spawned = *(self.tile_data_sram->count);
 if (tile_rays_spawned > 255)
 {

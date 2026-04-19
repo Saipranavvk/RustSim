@@ -566,8 +566,8 @@ ray_done:
     and r9, r9, 0
     sb r9, r12, 63                  # clear slot
     lw r1, r0, 40                   # node = ray->leaf_node_starting_point
-    beq r15, r15, start_ray_traversal, true
-
+    #ABOVE, WE ASSUME THE QUEUE HAS BEEN INSERTED WITH THE CORRECT SRAM ADDRESS TODO
+    beq r15, r15, start_ray_traversal, true  
 
 CHECK_ODD_FOR_NO_RAYS:
     and r11, r10, 1
@@ -576,8 +576,487 @@ CHECK_ODD_FOR_NO_RAYS:
 
 no_rays_available:
     # (continues in rest of main loop file)
+    lw r3, LOCAL_QUEUE_FLUSHING
+    and r14, r3, 0
+    bne r3, r14, INF_LOOP, false
+    yield r8
+    lw r3, RAY_QUEUE_HIGH
+    setmembits r3
+    lw r3, RAY_QUEUE_LOW
+    and r14, r15, 1
+    mul r14, r14, 16924
+    add r3, r3, r14
+    lw_d r4, r3, 8
+    blte r4, r14, DRAM_RAY_QUEUE_EMPTY, true
+    add r5, r14, 256
+    blte r4, r5, RESET_PULLED_FROM_FULL_QUEUE_CNT, true
+    add r5, r14, PULLED_FROM_FULL_QUEUE_CNT
+    atomadd r5, r5, 1
+    add r6, r14, 1 # BRANCH_BUSY_THRESHOLD
+    blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false
+    jmp r7, BRANCH_CORE_ASK_FOR_HELP
+RESET_PULLED_FROM_FULL_QUEUE_CNT:
+    sw r14, PULLED_FROM_FULL_QUEUE_CNT
+PULL_ELEM_FROM_DRAM_QUEUE:
+    add r3, r3, 8
+    atomadd_d r4, r3, -1
+    bgt r4, r14, STILL_ELEM_IN_QUEUE, true
+    atomadd_d r4, r3, 1
+    beq r15, r15, ray_done, true
+STILL_ELEM_IN_QUEUE:
+    add r3, r3, -8
+    atomadd_d r4, r3, 64
+    add r3, r3, 540
+    and r4, r4, 0x3FFF
+    add r4, r3, r4
+WAIT_FOR_WRITE:
+    lbu_d r5, r4, 63
+    beq r5, r14, WAIT_FOR_WRITE, false   # r7=0
+    lw_d r6, r4, 0
+    lw_d r7, r4, 4
+    lw_d r8, r4, 8
+    lw_d r9, r4, 12
+    lw_d r10, r4, 16
+    lw_d r11, r4, 20
+    lw_d r12, r4, 24
+    lw_d r13, r4, 28
+    sw_d r6, r0, 0
+    sw_d r7, r0, 4
+    sw_d r8, r0, 8
+    sw_d r9, r0, 12
+    sw_d r10, r0, 16
+    sw_d r11, r0, 20
+    sw_d r12, r0, 24
+    sw_d r13, r0, 28
+    lw_d r6, r4, 32
+    lw_d r7, r4, 36
+    lw_d r8, r4, 40
+    lw_d r9, r4, 44
+    lw_d r10, r4, 48
+    lw_d r11, r4, 52
+    lw_d r12, r4, 56
+    lw_d r13, r4, 60
+    sw_d r6, r0, 32
+    sw_d r7, r0, 36
+    sw_d r8, r0, 40
+    sw_d r9, r0, 44
+    sw_d r10, r0, 48
+    sw_d r11, r0, 52
+    sw_d r12, r0, 56
+    sw_d r13, r0, 60
+    sb_d r14, r4, 63
+    add r6, r14, 1
+    sb r6, r0, 63
+    lw r1, r0, 40                   # node = ray->leaf_node_starting_point
+    sll r1, r1, 1
+    lhu r1, r1, LEAF_CORE_LOOKUP_TABLE
+    beq r15, r15, start_ray_traversal, true
+DRAM_RAY_QUEUE_EMPTY:
+    yield r8
+    lw r3, RAY_QUEUE_HIGH
+    setmembits r3
+    lw r3, RAY_QUEUE_LOW
+    lw_d r4, r3, 8
+    blte r4, r14, CHECK_SPAWNED_RAY_POOL, true
+    add r3, r3, 8
+    atomadd_d r4, r3, 1
+    blte r4, r14, EMERGENCY_SWITCH_BEGIN, false
+    atomadd_d r4, r3, -1
+    beq r15, r15, CHECK_SPAWNED_RAY_POOL, true
+EMERGENCY_SWITCH_BEGIN:
+    add r3, r3, -8
+    atomadd_d r4, r3, 4
+    and r4, r4, 0xFF
+    add r3, r3, r4
+    add r3, r3, 12
+ENSURE_EMERGENCY_SLOT_READY:
+    lhu_d r4, r3, 2
+    beq r4, r14, ENSURE_EMERGENCY_SLOT_READY, false
+    lhu_d r4, r3, 0
+    add r5, r14, 1
+    sh_d r5, r3, 0
+    sw r5, LOCAL_QUEUE_FLUSHING
+    sw r4, CORE_ID_TO_SWITCH_TO
+    beq r15, r15, SWITCH_DRAM_QUEUE, true
 
-    # .data section
+CHECK_SPAWNED_RAY_POOL:
+    jmp r2, IS_IDLE_BRANCH
+    lw r2, SPAWNED_RAY_POOL_HIGH
+    setmembits r2
+    lw r2, SPAWNED_RAY_POOL_LOW
+    lw_d r3, r2, 8
+    blte r3, r14, GRAB_FROM_TILE, true
+    add r2, r2, 8
+    atomadd_d r3, r2, -1
+    blte r14, r3, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true
+    atomadd_d r3, r2, 1
+    beq r15, r15, GRAB_FROM_TILE, true
+CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL:
+    add r2, r2, -8
+    atomadd_d r3, r2, 32
+    lw r4, SPAWNED_RAY_POOL_MASK
+    and r3, r3, r4
+    add r2, r2, r3
+ENSURE_RAY_POOL_SLOT_READY:
+    lbu_d r3, r2, 43
+    beq r3, r14, ENSURE_RAY_POOL_SLOT_READY, false
+    lw_d r3, r2, 12
+    lw_d r4, r2, 16
+    lw_d r5, r2, 20
+    lw_d r6, r2, 24
+    lw_d r7, r2, 28
+    lw_d r8, r2, 32
+    lw_d r9, r2, 36
+    lh_d r10, r2, 40
+    sb_d r14, r2, 43
+    sw r3, r0, 0
+    sw r4, r0, 4
+    sw r5, r0, 8
+    sw r6, r0, 12
+    sw r7, r0, 16
+    sw r8, r0, 20
+    sw r9, r0, 52
+    and r3, r10, 0xFF #bounce count
+    srl r4, r10, 8
+    and r4, r4, 0xFF # light_id
+    sb r3, r0, 60
+    sb r4, r0, 61
+    lw r5, r0, 12
+    lw r6, r0, 16
+    lw r7, r0, 20
+    fpmul.32 r8, r5, r5
+    fpmul.32 r9, r6, r6
+    fpmul.32 r10, r7, r7
+    fadd r8, r8, r9
+    fadd r8, r8, r10
+    jmp r9, INV_SQRT
+    fmul.32 r5, r5, r8
+    fmul.32 r6, r6, r8
+    fmul.32 r7, r7, r8
+    add r9, r5, 0
+    jmp r10, RECIPROCAL
+    sw r9, r0, 24
+    add r9, r6, 0
+    jmp r10, RECIPROCAL
+    sw r9, r0, 28
+    add r9, r7, 0
+    jmp r10, RECIPROCAL
+    sw r9, r0, 32
+    AND R14, R14, 0
+    blte r14, r4, IS_NOT_SHADOW, false
+    add r9, r8, 0
+    jmp r10, RECIPROCAL
+    beq r15, r15, FINISH_SETTING_OTHER_RAY_FIELDS, true
+IS_NOT_SHADOW:
+    lw r2, INFINITY
+    sw r2, r0, 36
+FINISH_SETTING_OTHER_RAY_FIELDS:
+    AND R14, R14, 0
+    sw r14, r0, 44
+    sw r14, r0, 48
+    add r13, r14, -1
+    sw r13, r0, 56
+    add r12, r14, 1
+    sb r12, r0, 63
+    sb r14, r0, 62
+    lw r1, ROOT_NODE_ADDRESS
+    beq r15, r15, start_ray_traversal, true
+GRAB_FROM_TILE:
+    lh r2, TILE_IS_ACTIVE
+    and r14, r14, 0
+    beq r2, r14, GET_NEW_TILE, false
+    lw r2, TILE_DATA_COUNT
+    add r3, r14, 255
+    bgt r2, r3, SKIP_RETURNING_TILE, true
+    lw r2, RAYS_SPAWNED_FROM_TILE
+    add r3, r14, 7 # TODO, Threshold for when to return tile to queue
+    bgt r3, r2, SPAWN_FROM_TILE, false
+    lw r4, RAYS_FORWARDED_OUT_FROM_TILE
+    sll r4, r4, 1
+    bgt r2, r4, SPAWN_FROM_TILE, true
+GET_NEW_TILE:
+    getowner
+    and r14, r14, 0
+    lw r2, TILE_QUEUE_HIGH
+    setmembits r2
+    lw r2, TILE_QUEUE_LOW
+    lhu r3, TILE_IS_ACTIVE
+    bne r3, r14, SKIP_RETURNING_TILE, false
+    lw r3, RAYS_SPAWNED_FROM_TILE
+    add r4, r14, 255
+    bgt r3, r4, SKIP_RETURNING_TILE, true
+    add r2, r2, 8
+    atomadd_d r15, r2, 1
+    add r2, r2 -4
+    atomadd_d r3, r2, 4
+    add r4, r14, 255
+    sll r4, r4, 8
+    add r4, r4, 255
+    and r3, r3, r4
+    add r2, r2, r3
+    add r2, r2, 8
+WAIT_FOR_TILE_SLOT_TO_OPEN:
+    lbu r3, r2, 3
+    beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false
+    lhu_d r3, r2, 0 #index
+    lbu_d r4, r2, 2 #cnt
+    sb_d r14, r2, 3 #mark slot as taken
+    sw r4, TILE_DATA_COUNT
+    div r5, r4, 160
+    mul r6, r5, 160
+    sub r6, r4, r6
+    add r2, r14, TILE_INTER_INDEX
+    sh r6, r2, 0
+    sh r5, r2, 2
+    sw r14, r2, 4
+    sw r14, r2, 8
+    sw r14, r2, 12
+    sw r14, r2, 16
+    and r3, r15, 0xF
+    add r2, r3, r2
+    add r4, r14, 1
+    sb r4, r2, 4
+    sw r14, RAYS_FORWARDED_OUT_FROM_TILE
+    sw r14, RAYS_SPAWNED_FROM_TILE
+    setctx 16
+    relinquish 0
+SPAWN_FROM_TILE:
+    AND r14, r14, 0
+    add r2, r14, TILE_DATA_COUNT
+    atomadd r3, r2, 1
+    add r4, r14, 255
+    bgt r3, r4, GET_NEW_TILE, false
+    add r2, r2, 28
+    atomadd r15, r2, 1
+    and r4, r3, 0xF #intra x
+    srl r5, r3, 4 # intra y
+    lhu r6, r2, 8 # inter x
+    lhu r7, r2, 10 # inter y
+    sll r6, r6, 4
+    sll r7, r7, 4
+    add r6, r6, r4 #tile_x_index
+    add r7, r7, r5  #tile_y_index
+    sh r6, r0, 52
+    sh r7, r0, 54
+    lw r2, INT_TO_FLOAT_TABLE_HIGH
+    setmembits r2
+    lw r2, INT_TO_FLOAT_TABLE_LOW
+    sll r6, r6, 2
+    sll r7, r7, 2
+    add r6, r2, r6
+    add r7, r2, r7
+    lw_d r3, r6, 0 #fpix_x
+    lw_d r4, r7, 0 #fpix_y
+    lw r5, CAM_X
+    sw r5, r0, 0
+    lw r6, CAM_Y
+    sw r6, r0, 4
+    lw r7, CAM_INV_FOCAL
+    sw r7, r0, 8
+    fsub.32 r8, r3, r5
+    fsub.32 r9, r4, r6
+    fmul.32 r2, r8, r7 #r2 = dx
+    fmul.32 r3, r9, r7 #r3 = dy
+    lw r4, NEG_ONE #r4 = dz
+    fmul.32 r5, r2, r2
+    fmul.32 r6, r3, r3
+    fmul.32 r7, r4, r4)
+    fadd.32 r5, r5, r6
+    fadd.32 r9, r5, r7 
+    add r6, r8, 0
+    add r7, r9, 0
+    jmp r9, INV_SQRT
+    fmul.32 r9, r8, r2
+    jmp r10, RECIPROCAL
+    sw r9, r0, 24
+    fmul.32 r9, r8, r3
+    jmp r10, RECIPROCAL
+    sw r9, r0, 28
+    fmul.32 r9, r8, r4
+    jmp r10, RECIPROCAL
+    sw r9, r0, 32
+    sw r2, r0, 12
+    sw r3, r0, 16
+    sw r4, r0, 20
+    lw r2, INFINITY
+    sw r2, r0, 36
+    and r14, r14, 0
+    sw r14, r0, 44
+    sw r14, r0, 48
+    sw r14, r0, 60
+    add r13, r14, 1
+    add r12, r14, -1
+    sw r12, r0, 56
+    sb r13, r0, 63
+    lw r1, ROOT_NODE_ADDRESS
+    goto start_ray_traversal
+SKIP_GRABBING_TILE_RAYS:
+    yield r8
+    lw r2, RAYS_COMPLETED_HIGH
+    setmembits r2
+    lw r2, RAYS_COMPLETED_LOW
+    lw_d r2, r2, 0
+    lw r3, MAX_RAYS
+    yield r8
+    bne r2, r3, ray_done, true
+
+#below is the final pass of the main loop, calculating the color of the final image
+    getowner
+    setctx 14
+    relinquish 1
+    yield r15
+    lw r0, RAYS_COMPLETED_HIGH
+    setmembits r0
+    lw r0, RAYS_COMPLETED_LOW
+    srl r1, r15, 4
+    and r2, r15, 0xF
+    mul r1, r1, 15
+    srl r1, r1, 8 #r1 = pix_increment
+    add r0, r0, r1
+    and r14, r14, 0
+    and r1, r1, 0
+
+LOOP_PIXEL:
+    add r2, r14, 2 #NUM_BOUNCES - 1
+    add r4, r14, RAY_ARRAY
+    and r5, r15, 0xF
+    sll r5, r5, 6
+    add r4, r4, r5 #r4 = backup for register pressure
+    sw r14, r4, 0 #carried_r
+    sw r14, r4, 4 #carried_g
+    sw r14, r4, 8 #carried_b
+BOUNCE_LOOP:
+    sll r5, r2, 6
+    add r5, r0, r5 #bounce address, it's the address of a ray slot
+    lw_d r6, r5, 0 #sr
+    lw_d r7, r5, 4 #sg
+    lw_d r8, r5, 8 #sb
+    lw_d r9, r5, 12 #metallic
+    sw r6, r4, 12
+    sw r7, r4, 16
+    sw r8, r4, 20
+    sw r9, r4, 24
+    sw r14, r4, 28 #acc_r
+    sw r14, r4, 32 #acc_g
+    sw r14, r4, 36 #acc_b
+    add r5, r5, 16
+    and r6, r6, 0 #light
+SHADOW_LOOP:
+    lw_d r9, r5, 12 #len_sq
+    or r8, r8, 0xFFFFFFFF
+    beq r9, r8, SHADOW_SKIP
+    jmp r10, RECIPROCAL
+    lw_d r7, r5, 0
+    lw_d r8, r5, 4
+    lw_d r10, r5, 8
+    fmul.32 r7, r7, r9
+    fmul.32 r8, r8, r9
+    fmul.32 r10, r10, r9
+    lw r11, r4, 28
+    lw r12, r4, 32
+    lw r13, r4, 36
+    fmul.32 r11, r11, r7
+    fmul.32 r12, r12, r8
+    fmul.32 r13, r13, r10
+    sw r11, r4, 28
+    sw r12, r4, 32
+    sw r13, r4, 36
+SHADOW_SKIP:
+    add r5, r5, 16
+    add r6, r6, 1
+    add r7, r14, 3
+    bgt r7, r6, SHADOW_LOOP, true 
+
+    lw r6, r4, 28 
+    lw r7, r4, 32 
+    lw r8, r4, 36
+    lw r9, r4, 12 #sr
+    lw r10, r4, 16 #sg
+    lw r11, r4, 20 #sb
+    lw r12, r4, 24
+    lw r13, ONE
+    fsub r13, r13, r12 #1-metallic
+    fmul.32 r6, r6, r9 #diffuse_r
+    fmul.32 r7, r7, r10 #diffuse_g
+    fmul.32 r8, r8, r11 #diffuse_b
+    fmul.32 r6, r6, r13 #diffuse_r * metallic
+    fmul.32 r7, r7, r13 #diffuse_g * metallic
+    fmul.32 r8, r8, r13 #diffuse_b * metallic
+    lw r13, r4, 0
+    fmul.32 r13, r13, r9
+    fmul.32 r13, r13, r12 #light_r * metallic
+    fmul.32 r6, r6, r13 #diffuse_r * metallic * light_r
+    sw r6, r4, 0
+    lw r13, r4, 4
+    fmul.32 r13, r13, r10
+    fmul.32 r13, r13, r12 #light_g * metallic
+    fmul.32 r7, r7, r13 #diffuse_g * metallic * light_g
+    sw r7, r4, 4
+    lw r13, r4, 8
+    fmul.32 r13, r13, r11
+    fmul.32 r13, r13, r12 #light_b * metallic
+    fmul.32 r8, r8, r13 #diffuse_b * metallic * light_b
+    sw r8, r4, 8
+    add r2, r2, -1
+    bgte r14, r2, BOUNCE_LOOP, true
+BOUNCE_DONE: //Label not used lol
+    lw r13, ONE
+    lw r10, r4, 0
+    lw r11, r4, 4
+    lw r12, r4, 8
+    fadd.32 r10, r10, r13
+    fadd.32 r11, r11, r13
+    fadd.32 r12, r12, r13
+    srl r10, r10, 14
+    srl r11, r11, 14
+    srl r12, r12, 14
+    and r10, r10, 0x1FF
+    and r11, r11, 0x1FF
+    and r12, r12, 0x1FF
+    lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE
+    lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE
+    lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE
+    lw r13, FRAME_BUF_HIGH
+    setmembits r13
+    lw r13, FRAME_BUF_LOW
+    srl r14, r15, 4
+    mul r14, r14, 15
+    and r9, r14, 0xF
+    add r14, r9, r14
+    sll r14, r14, 2
+    add r13, r13, r14
+    mul r9, r1, 8192
+    mul r9, r9, 60
+    add r13, r13, r9
+    sb r10, r13, 0
+    sb r11, r13, 1
+    sb r12, r13, 2
+    add r1, r1, 1
+    mul r13, r1, 8192
+    mul r13, r13, 3840
+    add r0, r0, r13
+    and r14, r14, 0
+    add r14, r14, 30
+    lw r13, FINISHED_PIXELS_HIGH
+    setmembits r13
+    lw r13, FINISHED_PIXELS_LOW
+    atomadd_d r13, r13, 1
+    bgt r14, r1, LOOP_PIXEL, true
+
+INF_LOOP:
+    yield r15
+    beq r15, r15, INF_LOOP, true
+
+
+
+FINISHED_PIXELS_HIGH:   .data -1
+FINISHED_PIXELS_LOW:    .data -1
+ONE:                    .data 0x3F800000
+MAX_RAYS:              .data 58982400
+EPSILON:                .data 0x38D1B717
+NEG_ONE:                .data 0xBF800000
+INFINITY:               .data 0x7F800000
+SPAWNED_RAY_POOL_MASK:  .data 0x007FFFFF
 RAY_SEND_PENDING_ADDR:  .data 0
 LOCAL_QUEUE:            .data 0
 LOCAL_QUEUE_FLUSHING:   .data 0
@@ -585,18 +1064,6 @@ LOCAL_RAY_QUEUE:        .data 0
 LOCAL_RAY_QUEUE_HEAD:   .data 0
 ROOT_NODE_ID:           .data 0
 LEAF_CORE_LOOKUP_TABLE: .data 0    
-
-
-
-
-    
-
-
-
-
-
-
-NODE_ID: .data -1
 IS_BRANCH_CORE: .data -1
 RAY_QUEUE_HIGH: .data -1
 RAY_QUEUE_LOW: .data -1
@@ -608,6 +1075,8 @@ TILE_QUEUE_HIGH: .data -1
 TILE_QUEUE_LOW: .data -1
 RAY_RESULT_HIGH: .data -1
 RAY_RESULT_LOW: .data -1
+RAYS_COMPLETED_HIGH: .data -1
+RAYS_COMPLETED_LOW: .data -1
 FRAME_BUF_HIGH: .data -1
 FRAME_BUF_LOW: .data -1
 NODE_ARRAY_HIGH: .data -1
@@ -632,22 +1101,25 @@ CAM_CY: .data -1
 CAM_INV_FOCAL: .data -1
 RAY_SEND_PENDING: .data -1
 PULLED_FROM_FULL_QUEUE_CNT: .data -1
-FLUSHING_LOCAL_QUEUE: .data -1
-TILE_DATA: .data 0
-.data 0 #count
-.data 0 #is_active/tile_x_index/tile_y_index
-.data 0 #cur_ray_spawned_from_tile[16] in bytes
+FLUSHING_LOCAL_QUEUE: .data 0
+CORE_ID_TO_SWITCH_TO: .data -1
+TILE_DATA_COUNT: .data 0 #count
+TILE_IS_ACTIVE: .data 0 
+TILE_INTER_INDEX: .data 0 #tile_x_index/tile_y_index
+TILE_CUR_RAY_SPAWNED:.data 0 #cur_ray_spawned_from_tile[16] in bytes
 .data 0 
 .data 0 
 .data 0
-.data 0 #rays_spawned_from_tile
-.data 0 #rays_forwarded_out_from_tile
+RAYS_SPAWNED_FROM_TILE: .data 0 #rays_spawned_from_tile
+RAYS_FORWARDED_OUT_FROM_TILE: .data 0 #rays_forwarded_out_from_tile
 RAYS_PROCESSED: .data 0
 LAST_OBSERVED_CYCLE: .data 0
 PREVIOUSLY_IDLE: .data 0
-//DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+FLOAT_TO_BYTE_RGB_TABLE: .data(128) 0
 LIGHT_ARRAY: .data(18) 0
+ROOT_NODE_ADDRESS: .data 0
+//DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
 RAY_ARRAY: .data(256) 0
-LEAF_CORE_LOOKUP_TABLE: .data(65) 0
-SENDER_RAY_QUEUE: .data(1036)
-RECEIVER_RAY_QUEUE: .data(1036)
+LEAF_CORE_LOOKUP_TABLE: .data(64) 0
+SENDER_RAY_QUEUE: .data(1036) 0
+RECEIVER_RAY_QUEUE: .data(1036) 0
