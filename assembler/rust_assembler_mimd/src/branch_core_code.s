@@ -576,476 +576,476 @@ CHECK_ODD_FOR_NO_RAYS:
 
 no_rays_available:
     # (continues in rest of main loop file)
-    lw r3, LOCAL_QUEUE_FLUSHING
-    and r14, r3, 0
-    bne r3, r14, INF_LOOP, false
-    yield r8
-    lw r3, RAY_QUEUE_HIGH
-    setmembits r3
-    lw r3, RAY_QUEUE_LOW
-    and r14, r15, 1
-    mul r14, r14, 16924
-    add r3, r3, r14
-    lw_d r4, r3, 8
-    blte r4, r14, DRAM_RAY_QUEUE_EMPTY, true
-    add r5, r14, 256
-    blte r4, r5, RESET_PULLED_FROM_FULL_QUEUE_CNT, true
-    add r5, r14, PULLED_FROM_FULL_QUEUE_CNT
-    atomadd r5, r5, 1
-    add r6, r14, 1 # BRANCH_BUSY_THRESHOLD
-    blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false
-    jmp r7, BRANCH_CORE_ASK_FOR_HELP
+lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_queue_flushing)
+    and r14, r3, 0                       # r14 = 0
+    bne r3, r14, INF_LOOP, false         # if (flushing_queue != 0) goto inf_loop
+    yield r8                             # yield()
+    lw r3, RAY_QUEUE_HIGH                # int queue_address_high = self.ray_queue_address_high
+    setmembits r3                        # set_address_bits(queue_address_high)
+    lw r3, RAY_QUEUE_LOW                 # int queue_address_low = self.ray_queue_address_low
+    and r14, r15, 1                      # r14 = self.is_branch_core (bit 0 of r15)
+    mul r14, r14, 16924                  # r14 *= 16924 (offset to branch queue if branch core)
+    add r3, r3, r14                      # queue_address_low += r14 (select correct queue)
+    lw_d r4, r3, 8                       # int cur_ray_count = load_dram_word(queue_address_low + 8)
+    blte r4, r14, DRAM_RAY_QUEUE_EMPTY, true  # if (cur_ray_count <= 0) goto DRAM_RAY_QUEUE_EMPTY
+    add r5, r14, 256                     # r5 = 256
+    blte r4, r5, RESET_PULLED_FROM_FULL_QUEUE_CNT, true  # if (cur_ray_count < 256) goto RESET_PULLED_FROM_FULL_QUEUE_CNT
+    add r5, r14, PULLED_FROM_FULL_QUEUE_CNT  # r5 = &PULLED_FROM_FULL_QUEUE_CNT
+    atomadd r5, r5, 1                    # uint32_t num_times_pulled = atomic_add(pulled_from_full_queue_address, 1)
+    add r6, r14, 1                       # r6 = BRANCH_BUSY_THRESHOLD (1)
+    blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false  # if (num_times_pulled <= BRANCH_BUSY_THRESHOLD) goto PULL_ELEM_FROM_DRAM_QUEUE
+    jmp r7, BRANCH_CORE_ASK_FOR_HELP    # branch_core_ask_for_help()
 RESET_PULLED_FROM_FULL_QUEUE_CNT:
-    sw r14, PULLED_FROM_FULL_QUEUE_CNT
+    sw r14, PULLED_FROM_FULL_QUEUE_CNT  # *(self->pulled_from_full_queue_address) = 0
 PULL_ELEM_FROM_DRAM_QUEUE:
-    add r3, r3, 8
-    atomadd_d r4, r3, -1
-    bgt r4, r14, STILL_ELEM_IN_QUEUE, true
-    atomadd_d r4, r3, 1
-    beq r15, r15, ray_done, true
+    add r3, r3, 8                        # queue_address_low += 8 (point to count field)
+    atomadd_d r4, r3, -1                 # int cur_ray_count_check = atomic_add_dram(queue_address_low + 8, -1)
+    bgt r4, r14, STILL_ELEM_IN_QUEUE, true  # if (cur_ray_count_check > 0) goto STILL_ELEM_IN_QUEUE
+    atomadd_d r4, r3, 1                  # atomic_add_dram(queue_address_low + 8, 1) -- undo decrement
+    beq r15, r15, ray_done, true         # goto ray_done
 STILL_ELEM_IN_QUEUE:
-    add r3, r3, -8
-    atomadd_d r4, r3, 64
-    add r3, r3, 540
-    and r4, r4, 0x3FFF
-    add r4, r3, r4
+    add r3, r3, -8                       # queue_address_low -= 8 (back to base)
+    atomadd_d r4, r3, 64                 # int head = atomic_add_dram(queue_address_low, 64) -- advance head
+    add r3, r3, 540                      # queue_address_low += 540 (skip head/count fields, +16 base + 524 padding? -- differs from pseudocode's +16)
+    and r4, r4, 0x3FFF                   # head = head & 0x00003FFF
+    add r4, r3, r4                       # queue_address_low = queue_address_low + head
 WAIT_FOR_WRITE:
-    lbu_d r5, r4, 63
-    beq r5, r14, WAIT_FOR_WRITE, false   # r7=0
-    lw_d r6, r4, 0
-    lw_d r7, r4, 4
-    lw_d r8, r4, 8
-    lw_d r9, r4, 12
-    lw_d r10, r4, 16
-    lw_d r11, r4, 20
-    lw_d r12, r4, 24
-    lw_d r13, r4, 28
-    sw_d r6, r0, 0
-    sw_d r7, r0, 4
-    sw_d r8, r0, 8
-    sw_d r9, r0, 12
-    sw_d r10, r0, 16
-    sw_d r11, r0, 20
-    sw_d r12, r0, 24
-    sw_d r13, r0, 28
-    lw_d r6, r4, 32
-    lw_d r7, r4, 36
-    lw_d r8, r4, 40
-    lw_d r9, r4, 44
-    lw_d r10, r4, 48
-    lw_d r11, r4, 52
-    lw_d r12, r4, 56
-    lw_d r13, r4, 60
-    sw_d r6, r0, 32
-    sw_d r7, r0, 36
-    sw_d r8, r0, 40
-    sw_d r9, r0, 44
-    sw_d r10, r0, 48
-    sw_d r11, r0, 52
-    sw_d r12, r0, 56
-    sw_d r13, r0, 60
-    sb_d r14, r4, 63
-    add r6, r14, 1
-    sb r6, r0, 63
-    lw r1, r0, 40                   # node = ray->leaf_node_starting_point
-    sll r1, r1, 1
-    lhu r1, r1, LEAF_CORE_LOOKUP_TABLE
-    beq r15, r15, start_ray_traversal, true
+    lbu_d r5, r4, 63                     # int ready = load_dram_byte(queue_address_low + 63)
+    beq r5, r14, WAIT_FOR_WRITE, false   # if (ready == 0) goto WAIT_FOR_WRITE  # r14=0
+    lw_d r6, r4, 0                       # load ray word [0]
+    lw_d r7, r4, 4                       # load ray word [4]
+    lw_d r8, r4, 8                       # load ray word [8]
+    lw_d r9, r4, 12                      # load ray word [12]
+    lw_d r10, r4, 16                     # load ray word [16]
+    lw_d r11, r4, 20                     # load ray word [20]
+    lw_d r12, r4, 24                     # load ray word [24]
+    lw_d r13, r4, 28                     # load ray word [28]
+    sw_d r6, r0, 0                       # store to ray SRAM [0]
+    sw_d r7, r0, 4                       # store to ray SRAM [4]
+    sw_d r8, r0, 8                       # store to ray SRAM [8]
+    sw_d r9, r0, 12                      # store to ray SRAM [12]
+    sw_d r10, r0, 16                     # store to ray SRAM [16]
+    sw_d r11, r0, 20                     # store to ray SRAM [20]
+    sw_d r12, r0, 24                     # store to ray SRAM [24]
+    sw_d r13, r0, 28                     # store to ray SRAM [28]
+    lw_d r6, r4, 32                      # load ray word [32]
+    lw_d r7, r4, 36                      # load ray word [36]
+    lw_d r8, r4, 40                      # load ray word [40]
+    lw_d r9, r4, 44                      # load ray word [44]
+    lw_d r10, r4, 48                     # load ray word [48]
+    lw_d r11, r4, 52                     # load ray word [52]
+    lw_d r12, r4, 56                     # load ray word [56]
+    lw_d r13, r4, 60                     # load ray word [60]
+    sw_d r6, r0, 32                      # store to ray SRAM [32]
+    sw_d r7, r0, 36                      # store to ray SRAM [36]
+    sw_d r8, r0, 40                      # store to ray SRAM [40]
+    sw_d r9, r0, 44                      # store to ray SRAM [44]
+    sw_d r10, r0, 48                     # store to ray SRAM [48]
+    sw_d r11, r0, 52                     # store to ray SRAM [52]
+    sw_d r12, r0, 56                     # store to ray SRAM [56]
+    sw_d r13, r0, 60                     # store to ray SRAM [60]
+    sb_d r14, r4, 63                     # write_dram_byte(queue_address_low + 63, 0) -- mark slot as consumed
+    add r6, r14, 1                       # r6 = 1
+    sb r6, r0, 63                        # ray->active_ray = 1
+    lw r1, r0, 40                        # node = ray->leaf_node_starting_point
+    sll r1, r1, 1                        # r1 <<= 1 (index into lookup table, 2 bytes per entry)
+    lhu r1, r1, LEAF_CORE_LOOKUP_TABLE   # r1 = LEAF_CORE_LOOKUP_TABLE[node] -- get target leaf core
+    beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
 DRAM_RAY_QUEUE_EMPTY:
-    yield r8
-    lw r3, RAY_QUEUE_HIGH
-    setmembits r3
-    lw r3, RAY_QUEUE_LOW
-    lw_d r4, r3, 8
-    blte r4, r14, CHECK_SPAWNED_RAY_POOL, true
-    add r3, r3, 8
-    atomadd_d r4, r3, 1
-    blte r4, r14, EMERGENCY_SWITCH_BEGIN, false
-    atomadd_d r4, r3, -1
-    beq r15, r15, CHECK_SPAWNED_RAY_POOL, true
+    yield r8                             # yield()
+    lw r3, RAY_QUEUE_HIGH                # (reload) queue_address_high
+    setmembits r3                        # set_address_bits(queue_address_high)
+    lw r3, RAY_QUEUE_LOW                 # (reload) queue_address_low
+    lw_d r4, r3, 8                       # count = load_dram_word(emergency_queue_low + 8)
+    blte r4, r14, CHECK_SPAWNED_RAY_POOL, true  # if (count <= 0) goto CHECK_SPAWNED_RAY_POOL
+    add r3, r3, 8                        # emergency_queue_low += 8
+    atomadd_d r4, r3, 1                  # uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1)
+    blte r4, r14, EMERGENCY_SWITCH_BEGIN, false  # if (old_cnt > 0) goto EMERGENCY_SWITCH_BEGIN -- differs: pseudocode checks <= 0 to UNDO
+    atomadd_d r4, r3, -1                 # atomic_add_dram(emergency_queue_low, -1) -- undo increment
+    beq r15, r15, CHECK_SPAWNED_RAY_POOL, true  # goto CHECK_SPAWNED_RAY_POOL
 EMERGENCY_SWITCH_BEGIN:
-    add r3, r3, -8
-    atomadd_d r4, r3, 4
-    and r4, r4, 0xFF
-    add r3, r3, r4
-    add r3, r3, 12
+    add r3, r3, -8                       # emergency_queue_low -= 8 (back to base)
+    atomadd_d r4, r3, 4                  # uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4)
+    and r4, r4, 0xFF                     # byte_index &= 0x000000FF
+    add r3, r3, r4                       # emergency_queue_low += byte_index
+    add r3, r3, 12                       # emergency_queue_low += 12
 ENSURE_EMERGENCY_SLOT_READY:
-    lhu_d r4, r3, 2
-    beq r4, r14, ENSURE_EMERGENCY_SLOT_READY, false
-    lhu_d r4, r3, 0
-    add r5, r14, 1
-    sh_d r5, r3, 0
-    sw r5, LOCAL_QUEUE_FLUSHING
-    sw r4, CORE_ID_TO_SWITCH_TO
-    beq r15, r15, SWITCH_DRAM_QUEUE, true
+    lhu_d r4, r3, 2                      # uint16_t is_ready = load_dram_byte(emergency_queue_low + 2)
+    beq r4, r14, ENSURE_EMERGENCY_SLOT_READY, false  # if (is_ready == 0) goto ENSURE_EMERGENCY_SLOT_READY
+    lhu_d r4, r3, 0                      # uint32_t new_node_id = load_dram_half(emergency_queue_low)
+    add r5, r14, 1                       # r5 = 1
+    sh_d r5, r3, 0                       # store_dram_byte(emergency_queue_low + 2, 0) -- mark slot consumed; differs: pseudocode writes to +2 but asm writes to +0
+    sw r5, LOCAL_QUEUE_FLUSHING          # *(self.local_queue_flushing) = 1
+    sw r4, CORE_ID_TO_SWITCH_TO         # *(self.local_queue_flushing + 4) = new_node_id
+    beq r15, r15, SWITCH_DRAM_QUEUE, true  # goto switch_dram_queue
 
 CHECK_SPAWNED_RAY_POOL:
-    jmp r2, IS_IDLE_BRANCH
-    lw r2, SPAWNED_RAY_POOL_HIGH
-    setmembits r2
-    lw r2, SPAWNED_RAY_POOL_LOW
-    lw_d r3, r2, 8
-    blte r3, r14, GRAB_FROM_TILE, true
-    add r2, r2, 8
-    atomadd_d r3, r2, -1
-    blte r14, r3, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true
-    atomadd_d r3, r2, 1
-    beq r15, r15, GRAB_FROM_TILE, true
+    jmp r2, IS_IDLE_BRANCH               # is_idle_branch()
+    lw r2, SPAWNED_RAY_POOL_HIGH         # uint32_t spawned_ray_pool_high = self.spawned_ray_pool_high
+    setmembits r2                        # set_address_bits(spawned_ray_pool_high)
+    lw r2, SPAWNED_RAY_POOL_LOW          # uint32_t spawned_ray_pool_low = self.spawned_ray_pool_low
+    lw_d r3, r2, 8                       # uint32_t count = load_dram_word(spawned_ray_pool_low + 8)
+    blte r3, r14, GRAB_FROM_TILE, true   # if (count <= 0) goto grab_from_tile
+    add r2, r2, 8                        # spawned_ray_pool_low += 8
+    atomadd_d r3, r2, -1                 # uint32_t old_cnt = atomic_add(spawned_ray_pool_low, -1)
+    blte r14, r3, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true  # if (old_cnt > 0) goto CONTINUE -- differs: pseudocode checks old_cnt <= 0 to undo
+    atomadd_d r3, r2, 1                  # atomic_add(spawned_ray_pool_low, 1) -- undo decrement
+    beq r15, r15, GRAB_FROM_TILE, true   # goto grab_from_tile
 CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL:
-    add r2, r2, -8
-    atomadd_d r3, r2, 32
-    lw r4, SPAWNED_RAY_POOL_MASK
-    and r3, r3, r4
-    add r2, r2, r3
+    add r2, r2, -8                       # spawned_ray_pool_low -= 8 (back to base)
+    atomadd_d r3, r2, 32                 # uint32_t head = atomic_add(spawned_ray_pool_low, 32)
+    lw r4, SPAWNED_RAY_POOL_MASK         # r4 = 0x007FFFFF
+    and r3, r3, r4                       # head &= head_mask
+    add r2, r2, r3                       # spawned_ray_pool_low += head
 ENSURE_RAY_POOL_SLOT_READY:
-    lbu_d r3, r2, 43
-    beq r3, r14, ENSURE_RAY_POOL_SLOT_READY, false
-    lw_d r3, r2, 12
-    lw_d r4, r2, 16
-    lw_d r5, r2, 20
-    lw_d r6, r2, 24
-    lw_d r7, r2, 28
-    lw_d r8, r2, 32
-    lw_d r9, r2, 36
-    lh_d r10, r2, 40
-    sb_d r14, r2, 43
-    sw r3, r0, 0
-    sw r4, r0, 4
-    sw r5, r0, 8
-    sw r6, r0, 12
-    sw r7, r0, 16
-    sw r8, r0, 20
-    sw r9, r0, 52
-    and r3, r10, 0xFF #bounce count
-    srl r4, r10, 8
-    and r4, r4, 0xFF # light_id
-    sb r3, r0, 60
-    sb r4, r0, 61
-    lw r5, r0, 12
-    lw r6, r0, 16
-    lw r7, r0, 20
-    fpmul.32 r8, r5, r5
-    fpmul.32 r9, r6, r6
-    fpmul.32 r10, r7, r7
-    fadd r8, r8, r9
-    fadd r8, r8, r10
-    jmp r9, INV_SQRT
-    fmul.32 r5, r5, r8
-    fmul.32 r6, r6, r8
-    fmul.32 r7, r7, r8
-    add r9, r5, 0
-    jmp r10, RECIPROCAL
-    sw r9, r0, 24
-    add r9, r6, 0
-    jmp r10, RECIPROCAL
-    sw r9, r0, 28
-    add r9, r7, 0
-    jmp r10, RECIPROCAL
-    sw r9, r0, 32
-    AND R14, R14, 0
-    blte r14, r4, IS_NOT_SHADOW, false
-    add r9, r8, 0
-    jmp r10, RECIPROCAL
-    beq r15, r15, FINISH_SETTING_OTHER_RAY_FIELDS, true
+    lbu_d r3, r2, 43                     # uint8_t slot_ready = load_dram_byte(spawned_ray_pool_low + 43)
+    beq r3, r14, ENSURE_RAY_POOL_SLOT_READY, false  # if (slot_ready == 0) goto ENSURE_RAY_POOL_SLOT_READY
+    lw_d r3, r2, 12                      # value_one = load_dram_word(spawned_ray_pool_low + 12)  -- ox
+    lw_d r4, r2, 16                      # value_two = load_dram_word(spawned_ray_pool_low + 16)  -- oy
+    lw_d r5, r2, 20                      # value_three = load_dram_word(spawned_ray_pool_low + 20) -- oz
+    lw_d r6, r2, 24                      # value_four = load_dram_word(spawned_ray_pool_low + 24)  -- dx
+    lw_d r7, r2, 28                      # value_five = load_dram_word(spawned_ray_pool_low + 28)  -- dy
+    lw_d r8, r2, 32                      # value_six = load_dram_word(spawned_ray_pool_low + 32)   -- dz
+    lw_d r9, r2, 36                      # pix_xy = load_dram_word(spawned_ray_pool_low + 36)
+    lh_d r10, r2, 40                     # meta = load_dram_word(spawned_ray_pool_low + 40)
+    sb_d r14, r2, 43                     # store_dram_byte(spawned_ray_pool_low + 43, 0) -- mark slot consumed
+    sw r3, r0, 0                         # ray->ox = value_one
+    sw r4, r0, 4                         # ray->oy = value_two
+    sw r5, r0, 8                         # ray->oz = value_three
+    sw r6, r0, 12                        # ray->dx = value_four
+    sw r7, r0, 16                        # ray->dy = value_five
+    sw r8, r0, 20                        # ray->dz = value_six
+    sw r9, r0, 52                        # ray->pix_xy = pix_xy  -- differs: pseudocode writes to pix_x field, asm writes to offset 52
+    and r3, r10, 0xFF                    # ray->bounce_count = meta & 0xFF
+    srl r4, r10, 8                       # r4 = meta >> 8
+    and r4, r4, 0xFF                     # ray->light_id = (meta >> 8) & 0xFF
+    sb r3, r0, 60                        # store ray->bounce_count
+    sb r4, r0, 61                        # store ray->light_id
+    lw r5, r0, 12                        # r5 = ray->dx
+    lw r6, r0, 16                        # r6 = ray->dy
+    lw r7, r0, 20                        # r7 = ray->dz
+    fpmul.32 r8, r5, r5                  # float len_sq = dx * dx
+    fpmul.32 r9, r6, r6                  # tmp = dy * dy
+    fpmul.32 r10, r7, r7                 # tmp2 = dz * dz
+    fadd r8, r8, r9                      # len_sq += tmp
+    fadd r8, r8, r10                     # len_sq += tmp2
+    jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
+    fmul.32 r5, r5, r8                   # ray->dx = dx * inv_len
+    fmul.32 r6, r6, r8                   # ray->dy = dy * inv_len
+    fmul.32 r7, r7, r8                   # ray->dz = dz * inv_len
+    add r9, r5, 0                        # r9 = ray->dx (move for RECIPROCAL call)
+    jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(ray->dx)  -- result in r9
+    sw r9, r0, 24                        # store ray->inv_dx
+    add r9, r6, 0                        # r9 = ray->dy
+    jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(ray->dy)
+    sw r9, r0, 28                        # store ray->inv_dy
+    add r9, r7, 0                        # r9 = ray->dz
+    jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(ray->dz)
+    sw r9, r0, 32                        # store ray->inv_dz
+    AND R14, R14, 0                      # r14 = 0
+    blte r14, r4, IS_NOT_SHADOW, false   # if (light_id == 0) goto IS_NOT_SHADOW  -- differs: pseudocode checks is_shadow != 0
+    add r9, r8, 0                        # r9 = inv_len (for shadow ray t_max = 1/|d| = distance to light)
+    jmp r10, RECIPROCAL                  # ray->t_max = reciprocal(inv_len)
+    beq r15, r15, FINISH_SETTING_OTHER_RAY_FIELDS, true  # goto FINISH_SETTING_OTHER_RAY_FIELDS
 IS_NOT_SHADOW:
-    lw r2, INFINITY
-    sw r2, r0, 36
+    lw r2, INFINITY                      # r2 = 0x7F800000
+    sw r2, r0, 36                        # ray->t_max = INFINITY
 FINISH_SETTING_OTHER_RAY_FIELDS:
-    AND R14, R14, 0
-    sw r14, r0, 44
-    sw r14, r0, 48
-    add r13, r14, -1
-    sw r13, r0, 56
-    add r12, r14, 1
-    sb r12, r0, 63
-    sb r14, r0, 62
-    lw r1, ROOT_NODE_ADDRESS
-    beq r15, r15, start_ray_traversal, true
+    AND R14, R14, 0                      # r14 = 0
+    sw r14, r0, 44                       # ray->check_left = 0
+    sw r14, r0, 48                       # ray->check_right = 0
+    add r13, r14, -1                     # r13 = 0xFFFFFFFF
+    sw r13, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+    add r12, r14, 1                      # r12 = 1
+    sb r12, r0, 63                       # ray->active_ray = 1
+    sb r14, r0, 62                       # ray->ray_depth = 0  -- differs: pseudocode doesn't explicitly set ray_depth here
+    lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
+    beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
 GRAB_FROM_TILE:
-    lh r2, TILE_IS_ACTIVE
-    and r14, r14, 0
-    beq r2, r14, GET_NEW_TILE, false
-    lw r2, TILE_DATA_COUNT
-    add r3, r14, 255
-    bgt r2, r3, SKIP_RETURNING_TILE, true
-    lw r2, RAYS_SPAWNED_FROM_TILE
-    add r3, r14, 7 # TODO, Threshold for when to return tile to queue
-    bgt r3, r2, SPAWN_FROM_TILE, false
-    lw r4, RAYS_FORWARDED_OUT_FROM_TILE
-    sll r4, r4, 1
-    bgt r2, r4, SPAWN_FROM_TILE, true
+    lh r2, TILE_IS_ACTIVE                # uint16_t is_active = *(self.tile_data_sram->is_active)
+    and r14, r14, 0                      # r14 = 0
+    beq r2, r14, GET_NEW_TILE, false     # if (!is_active) goto get_new_tile
+    lw r2, TILE_DATA_COUNT               # uint32_t tile_total_count = *(self.tile_data_sram->count)
+    add r3, r14, 255                     # r3 = 255
+    bgt r2, r3, SKIP_RETURNING_TILE, true  # if (tile_total_count > 255) goto skip_returning_tile
+    lw r2, RAYS_SPAWNED_FROM_TILE        # uint32_t rays_spawned_from_tile = *(self.tile_data_sram->rays_spawned_from_tile)
+    add r3, r14, 7                       # r3 = 7  # TODO, Threshold for when to return tile to queue
+    bgt r3, r2, SPAWN_FROM_TILE, false   # if (rays_spawned_from_tile < 7) goto spawn_from_tile
+    lw r4, RAYS_FORWARDED_OUT_FROM_TILE  # uint32_t rays_forwarded_out_from_tile = *(self.tile_data_sram->rays_forwarded_out_from_tile)
+    sll r4, r4, 1                        # rays_forwarded_out_from_tile <<= 1
+    bgt r2, r4, SPAWN_FROM_TILE, true    # if (rays_forwarded_out_from_tile < rays_spawned_from_tile) goto spawn_from_tile
 GET_NEW_TILE:
-    getowner
-    and r14, r14, 0
-    lw r2, TILE_QUEUE_HIGH
-    setmembits r2
-    lw r2, TILE_QUEUE_LOW
-    lhu r3, TILE_IS_ACTIVE
-    bne r3, r14, SKIP_RETURNING_TILE, false
-    lw r3, RAYS_SPAWNED_FROM_TILE
-    add r4, r14, 255
-    bgt r3, r4, SKIP_RETURNING_TILE, true
-    add r2, r2, 8
-    atomadd_d r15, r2, 1
-    add r2, r2 -4
-    atomadd_d r3, r2, 4
-    add r4, r14, 255
-    sll r4, r4, 8
-    add r4, r4, 255
-    and r3, r3, r4
-    add r2, r2, r3
-    add r2, r2, 8
+    getowner                             # get_ownership()
+    and r14, r14, 0                      # r14 = 0
+    lw r2, TILE_QUEUE_HIGH               # uint32_t tile_pool_high = self.tile_pool_high
+    setmembits r2                        # set_address_bits(tile_pool_high)
+    lw r2, TILE_QUEUE_LOW                # uint32_t tile_pool_low = self.tile_pool_low
+    lhu r3, TILE_IS_ACTIVE               # uint8_t tile_rays_spawned = *(self.tile_data_sram->is_active)  -- differs: pseudocode checks count not is_active
+    bne r3, r14, SKIP_RETURNING_TILE, false  # if (tile_rays_spawned != 0) goto skip_returning_tile  -- differs: pseudocode checks count > 255
+    lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
+    add r4, r14, 255                     # r4 = 255
+    bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
+    add r2, r2, 8                        # tile_pool_low += 8 (point to count field)
+    atomadd_d r15, r2, 1                 # atomic_add_dram(tile_pool_low, 1) -- increment tile count
+    add r2, r2 -4                        # tile_pool_low -= 4 (point to tail field)
+    atomadd_d r3, r2, 4                  # uint32_t bytes_relative_tail = atomic_add_dram(tile_pool_low, 4)
+    add r4, r14, 255                     # r4 = 255
+    sll r4, r4, 8                        # r4 = 255 << 8 = 0xFF00
+    add r4, r4, 255                      # r4 = 0xFFFF
+    and r3, r3, r4                       # bytes_relative_tail &= 0x0000FFFF
+    add r2, r2, r3                       # tile_pool_low += bytes_relative_tail
+    add r2, r2, 8                        # tile_pool_low += 8 (skip header)
 WAIT_FOR_TILE_SLOT_TO_OPEN:
-    lbu r3, r2, 3
-    beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false
-    lhu_d r3, r2, 0 #index
-    lbu_d r4, r2, 2 #cnt
-    sb_d r14, r2, 3 #mark slot as taken
-    sw r4, TILE_DATA_COUNT
-    div r5, r4, 160
-    mul r6, r5, 160
-    sub r6, r4, r6
-    add r2, r14, TILE_INTER_INDEX
-    sh r6, r2, 0
-    sh r5, r2, 2
-    sw r14, r2, 4
-    sw r14, r2, 8
-    sw r14, r2, 12
-    sw r14, r2, 16
-    and r3, r15, 0xF
-    add r2, r3, r2
-    add r4, r14, 1
-    sb r4, r2, 4
-    sw r14, RAYS_FORWARDED_OUT_FROM_TILE
-    sw r14, RAYS_SPAWNED_FROM_TILE
-    setctx 16
-    relinquish 0
+    lbu r3, r2, 3                        # uint8_t is_valid = load_dram_byte(tile_pool_low + 3)
+    beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false  # if (is_valid == 0) goto loop_on_putting_tile_back
+    lhu_d r3, r2, 0                      # uint16_t tile_index -- load tile index (2 bytes)
+    lbu_d r4, r2, 2                      # uint16_t tile_cnt -- load tile count (1 byte)
+    sb_d r14, r2, 3                      # store_dram_byte(tile_pool_low, 0) -- mark slot as taken
+    sw r4, TILE_DATA_COUNT               # self.tile_data_sram->count = tile_cnt
+    div r5, r4, 160                      # uint32_t tile_y_index = tile_index / 160
+    mul r6, r5, 160                      # r6 = tile_y_index * 160
+    sub r6, r4, r6                       # uint32_t tile_x_index = tile_index - (tile_y_index * 160)
+    add r2, r14, TILE_INTER_INDEX        # r2 = &TILE_INTER_INDEX
+    sh r6, r2, 0                         # self.tile_data_sram->tile_x_index = tile_x_index
+    sh r5, r2, 2                         # self.tile_data_sram->tile_y_index = tile_y_index
+    sw r14, r2, 4                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 0) = 0
+    sw r14, r2, 8                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = 0
+    sw r14, r2, 12                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = 0
+    sw r14, r2, 16                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = 0
+    and r3, r15, 0xF                     # r3 = self.thread_id (low 4 bits of r15)
+    add r2, r3, r2                       # r2 = &cur_ray_spawned_from_tile[thread_id]
+    add r4, r14, 1                       # r4 = 1
+    sb r4, r2, 4                         # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1
+    sw r14, RAYS_FORWARDED_OUT_FROM_TILE # self.tile_data_sram->rays_forwarded_out_from_tile = 0
+    sw r14, RAYS_SPAWNED_FROM_TILE       # self.tile_data_sram->rays_spawned_from_tile = 0
+    setctx 16                            # set_ctx(16)
+    relinquish 0                         # relinquish_ownership(0)
 SPAWN_FROM_TILE:
-    AND r14, r14, 0
-    add r2, r14, TILE_DATA_COUNT
-    atomadd r3, r2, 1
-    add r4, r14, 255
-    bgt r3, r4, GET_NEW_TILE, false
-    add r2, r2, 28
-    atomadd r15, r2, 1
-    and r4, r3, 0xF #intra x
-    srl r5, r3, 4 # intra y
-    lhu r6, r2, 8 # inter x
-    lhu r7, r2, 10 # inter y
-    sll r6, r6, 4
-    sll r7, r7, 4
-    add r6, r6, r4 #tile_x_index
-    add r7, r7, r5  #tile_y_index
-    sh r6, r0, 52
-    sh r7, r0, 54
-    lw r2, INT_TO_FLOAT_TABLE_HIGH
-    setmembits r2
-    lw r2, INT_TO_FLOAT_TABLE_LOW
-    sll r6, r6, 2
-    sll r7, r7, 2
-    add r6, r2, r6
-    add r7, r2, r7
-    lw_d r3, r6, 0 #fpix_x
-    lw_d r4, r7, 0 #fpix_y
-    lw r5, CAM_X
-    sw r5, r0, 0
-    lw r6, CAM_Y
-    sw r6, r0, 4
-    lw r7, CAM_INV_FOCAL
-    sw r7, r0, 8
-    fsub.32 r8, r3, r5
-    fsub.32 r9, r4, r6
-    fmul.32 r2, r8, r7 #r2 = dx
-    fmul.32 r3, r9, r7 #r3 = dy
-    lw r4, NEG_ONE #r4 = dz
-    fmul.32 r5, r2, r2
-    fmul.32 r6, r3, r3
-    fmul.32 r7, r4, r4)
-    fadd.32 r5, r5, r6
-    fadd.32 r9, r5, r7 
-    add r6, r8, 0
-    add r7, r9, 0
-    jmp r9, INV_SQRT
-    fmul.32 r9, r8, r2
-    jmp r10, RECIPROCAL
-    sw r9, r0, 24
-    fmul.32 r9, r8, r3
-    jmp r10, RECIPROCAL
-    sw r9, r0, 28
-    fmul.32 r9, r8, r4
-    jmp r10, RECIPROCAL
-    sw r9, r0, 32
-    sw r2, r0, 12
-    sw r3, r0, 16
-    sw r4, r0, 20
-    lw r2, INFINITY
-    sw r2, r0, 36
-    and r14, r14, 0
-    sw r14, r0, 44
-    sw r14, r0, 48
-    sw r14, r0, 60
-    add r13, r14, 1
-    add r12, r14, -1
-    sw r12, r0, 56
-    sb r13, r0, 63
-    lw r1, ROOT_NODE_ADDRESS
-    goto start_ray_traversal
+    AND r14, r14, 0                      # r14 = 0
+    add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
+    atomadd r3, r2, 1                    # uint32_t ray_num_from_tile = atomic_add(tile_data_sram_address, 1)
+    add r4, r14, 255                     # r4 = 255
+    bgt r3, r4, GET_NEW_TILE, false      # if (ray_num_from_tile > 255) goto get_new_tile
+    add r2, r2, 28                       # tile_data_sram_address += 28 (point to rays_spawned counter)
+    atomadd r15, r2, 1                   # atomic_add(tile_data_sram_address, 1) -- increment rays spawned
+    and r4, r3, 0xF                      # uint32_t intra_tile_x = ray_num_from_tile & 0xF
+    srl r5, r3, 4                        # uint32_t intra_tile_y = ray_num_from_tile >> 4
+    lhu r6, r2, 8                        # uint32_t inter_tile_x = *(self.tile_data_sram->tile_x_index)
+    lhu r7, r2, 10                       # uint32_t inter_tile_y = *(self.tile_data_sram->tile_y_index)
+    sll r6, r6, 4                        # inter_tile_x <<= 4
+    sll r7, r7, 4                        # inter_tile_y <<= 4
+    add r6, r6, r4                       # uint32_t pix_x = inter_tile_x + intra_tile_x
+    add r7, r7, r5                       # uint32_t pix_y = inter_tile_y + intra_tile_y
+    sh r6, r0, 52                        # ray->pix_x = pix_x
+    sh r7, r0, 54                        # ray->pix_y = pix_y
+    lw r2, INT_TO_FLOAT_TABLE_HIGH       # uint32_t itof_table_high = self.itof_table_high
+    setmembits r2                        # set_address_bits(itof_table_high)
+    lw r2, INT_TO_FLOAT_TABLE_LOW        # uint32_t itof_table_low = self.itof_table_low
+    sll r6, r6, 2                        # uint32_t x_offset = pix_x << 2
+    sll r7, r7, 2                        # uint32_t y_offset = pix_y << 2
+    add r6, r2, r6                       # r6 = itof_table_low + x_offset
+    add r7, r2, r7                       # r7 = itof_table_low + y_offset
+    lw_d r3, r6, 0                       # float fpix_x = load_dram_word(itof_table_low + x_offset)
+    lw_d r4, r7, 0                       # float fpix_y = load_dram_word(itof_table_low + y_offset)
+    lw r5, CAM_X                         # float cam_cx = *(self.cam_x)  -- differs: pseudocode uses cam_cx here, asm uses CAM_X
+    sw r5, r0, 0                         # ray->ox = cam_x  -- storing camera origin
+    lw r6, CAM_Y                         # float cam_cy = *(self.cam_y)
+    sw r6, r0, 4                         # ray->oy = cam_y
+    lw r7, CAM_INV_FOCAL                 # float cam_inv_f = *(self.cam_inv_f)
+    sw r7, r0, 8                         # ray->oz = cam_inv_f  -- differs: pseudocode stores cam_z, asm stores inv_focal here temporarily
+    fsub.32 r8, r3, r5                   # float dx = fpix_x - cam_cx
+    fsub.32 r9, r4, r6                   # float dy = fpix_y - cam_cy
+    fmul.32 r2, r8, r7                   # dx = dx * cam_inv_f
+    fmul.32 r3, r9, r7                   # dy = dy * cam_inv_f
+    lw r4, NEG_ONE                       # float dz = -1.0f
+    fmul.32 r5, r2, r2                   # float len_sq = dx * dx
+    fmul.32 r6, r3, r3                   # tmp = dy * dy
+    fmul.32 r7, r4, r4)                  # tmp2 = dz * dz
+    fadd.32 r5, r5, r6                   # len_sq += tmp
+    fadd.32 r9, r5, r7                   # len_sq += tmp2  (r9 = full len_sq)
+    add r6, r8, 0                        # r6 = dx (save for after INV_SQRT clobbers r8)  -- differs: pseudocode doesn't need this save
+    add r7, r9, 0                        # r7 = len_sq (save)
+    jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
+    fmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
+    jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
+    sw r9, r0, 24                        # store ray->inv_dx
+    fmul.32 r9, r8, r3                   # inv_dy intermediate
+    jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(inv_len * dy)
+    sw r9, r0, 28                        # store ray->inv_dy
+    fmul.32 r9, r8, r4                   # inv_dz intermediate
+    jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(inv_len * dz)
+    sw r9, r0, 32                        # store ray->inv_dz
+    sw r2, r0, 12                        # ray->dx = dx (unnormalized -- differs: pseudocode normalizes before storing)
+    sw r3, r0, 16                        # ray->dy = dy
+    sw r4, r0, 20                        # ray->dz = dz
+    lw r2, INFINITY                      # r2 = 0x7F800000
+    sw r2, r0, 36                        # ray->t_max = INFINITY
+    and r14, r14, 0                      # r14 = 0
+    sw r14, r0, 44                       # ray->check_left = 0
+    sw r14, r0, 48                       # ray->check_right = 0
+    sw r14, r0, 60                       # ray->bounce_count = 0
+    add r13, r14, 1                      # r13 = 1
+    add r12, r14, -1                     # r12 = 0xFFFFFFFF
+    sw r12, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+    sb r13, r0, 63                       # ray->active_ray = 1
+    lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
+    goto start_ray_traversal             # goto start_ray_traversal
 SKIP_GRABBING_TILE_RAYS:
-    yield r8
-    lw r2, RAYS_COMPLETED_HIGH
-    setmembits r2
-    lw r2, RAYS_COMPLETED_LOW
-    lw_d r2, r2, 0
-    lw r3, MAX_RAYS
-    yield r8
-    bne r2, r3, ray_done, true
+    yield r8                             # yield()
+    lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
+    setmembits r2                        # set_address_bits(finished_ray_high)
+    lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
+    lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
+    lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
+    yield r8                             # yield()
+    bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
 
-#below is the final pass of the main loop, calculating the color of the final image
-    getowner
-    setctx 14
-    relinquish 1
-    yield r15
-    lw r0, RAYS_COMPLETED_HIGH
-    setmembits r0
-    lw r0, RAYS_COMPLETED_LOW
-    srl r1, r15, 4
-    and r2, r15, 0xF
-    mul r1, r1, 15
-    srl r1, r1, 8 #r1 = pix_increment
-    add r0, r0, r1
-    and r14, r14, 0
-    and r1, r1, 0
+# below is the final pass of the main loop, calculating the color of the final image
+    getowner                             # get_thread_ownership()
+    setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
+    relinquish 1                         # relinquish_ownership(1)
+    yield r15                            # yield()
+    lw r0, RAYS_COMPLETED_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
+    setmembits r0                        # set_address_bits(pixel_addr_high)
+    lw r0, RAYS_COMPLETED_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
+    srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
+    and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
+    mul r1, r1, 15                       # pix_index *= 15
+    srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
+    add r0, r0, r1                       # pixel_addr_low += pix_increment
+    and r14, r14, 0                      # r14 = 0
+    and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
 
 LOOP_PIXEL:
-    add r2, r14, 2 #NUM_BOUNCES - 1
-    add r4, r14, RAY_ARRAY
-    and r5, r15, 0xF
-    sll r5, r5, 6
-    add r4, r4, r5 #r4 = backup for register pressure
-    sw r14, r4, 0 #carried_r
-    sw r14, r4, 4 #carried_g
-    sw r14, r4, 8 #carried_b
+    add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
+    add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+    and r5, r15, 0xF                     # r5 = thread_index
+    sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
+    add r4, r4, r5                       # r4 = thread-local scratch base
+    sw r14, r4, 0                        # carried_r = 0.0f
+    sw r14, r4, 4                        # carried_g = 0.0f
+    sw r14, r4, 8                        # carried_b = 0.0f
 BOUNCE_LOOP:
-    sll r5, r2, 6
-    add r5, r0, r5 #bounce address, it's the address of a ray slot
-    lw_d r6, r5, 0 #sr
-    lw_d r7, r5, 4 #sg
-    lw_d r8, r5, 8 #sb
-    lw_d r9, r5, 12 #metallic
-    sw r6, r4, 12
-    sw r7, r4, 16
-    sw r8, r4, 20
-    sw r9, r4, 24
-    sw r14, r4, 28 #acc_r
-    sw r14, r4, 32 #acc_g
-    sw r14, r4, 36 #acc_b
-    add r5, r5, 16
-    and r6, r6, 0 #light
+    sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
+    add r5, r0, r5                       # bounce_addr += pixel_addr_low
+    lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
+    lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
+    lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
+    lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
+    sw r6, r4, 12                        # scratch->sr = sr
+    sw r7, r4, 16                        # scratch->sg = sg
+    sw r8, r4, 20                        # scratch->sb = sb
+    sw r9, r4, 24                        # scratch->metallic = metallic
+    sw r14, r4, 28                       # acc_r = 0.0f
+    sw r14, r4, 32                       # acc_g = 0.0f
+    sw r14, r4, 36                       # acc_b = 0.0f
+    add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
+    and r6, r6, 0                        # uint32_t light = 0
 SHADOW_LOOP:
-    lw_d r9, r5, 12 #len_sq
-    or r8, r8, 0xFFFFFFFF
-    beq r9, r8, SHADOW_SKIP
-    jmp r10, RECIPROCAL
-    lw_d r7, r5, 0
-    lw_d r8, r5, 4
-    lw_d r10, r5, 8
-    fmul.32 r7, r7, r9
-    fmul.32 r8, r8, r9
-    fmul.32 r10, r10, r9
-    lw r11, r4, 28
-    lw r12, r4, 32
-    lw r13, r4, 36
-    fmul.32 r11, r11, r7
-    fmul.32 r12, r12, r8
-    fmul.32 r13, r13, r10
-    sw r11, r4, 28
-    sw r12, r4, 32
-    sw r13, r4, 36
+    lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
+    or r8, r8, 0xFFFFFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
+    beq r9, r8, SHADOW_SKIP             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+    jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
+    lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
+    lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
+    lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
+    fmul.32 r7, r7, r9                   # lr *= atten
+    fmul.32 r8, r8, r9                   # lg *= atten
+    fmul.32 r10, r10, r9                 # lb *= atten
+    lw r11, r4, 28                       # r11 = acc_r
+    lw r12, r4, 32                       # r12 = acc_g
+    lw r13, r4, 36                       # r13 = acc_b
+    fmul.32 r11, r11, r7                 # acc_r *= lr  -- differs: pseudocode does acc_r += lr not *=
+    fmul.32 r12, r12, r8                 # acc_g *= lg
+    fmul.32 r13, r13, r10               # acc_b *= lb
+    sw r11, r4, 28                       # store acc_r
+    sw r12, r4, 32                       # store acc_g
+    sw r13, r4, 36                       # store acc_b
 SHADOW_SKIP:
-    add r5, r5, 16
-    add r6, r6, 1
-    add r7, r14, 3
-    bgt r7, r6, SHADOW_LOOP, true 
+    add r5, r5, 16                       # shadow_addr += 16 (next light slot)
+    add r6, r6, 1                        # light += 1
+    add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
+    bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
 
-    lw r6, r4, 28 
-    lw r7, r4, 32 
-    lw r8, r4, 36
-    lw r9, r4, 12 #sr
-    lw r10, r4, 16 #sg
-    lw r11, r4, 20 #sb
-    lw r12, r4, 24
-    lw r13, ONE
-    fsub r13, r13, r12 #1-metallic
-    fmul.32 r6, r6, r9 #diffuse_r
-    fmul.32 r7, r7, r10 #diffuse_g
-    fmul.32 r8, r8, r11 #diffuse_b
-    fmul.32 r6, r6, r13 #diffuse_r * metallic
-    fmul.32 r7, r7, r13 #diffuse_g * metallic
-    fmul.32 r8, r8, r13 #diffuse_b * metallic
-    lw r13, r4, 0
-    fmul.32 r13, r13, r9
-    fmul.32 r13, r13, r12 #light_r * metallic
-    fmul.32 r6, r6, r13 #diffuse_r * metallic * light_r
-    sw r6, r4, 0
-    lw r13, r4, 4
-    fmul.32 r13, r13, r10
-    fmul.32 r13, r13, r12 #light_g * metallic
-    fmul.32 r7, r7, r13 #diffuse_g * metallic * light_g
-    sw r7, r4, 4
-    lw r13, r4, 8
-    fmul.32 r13, r13, r11
-    fmul.32 r13, r13, r12 #light_b * metallic
-    fmul.32 r8, r8, r13 #diffuse_b * metallic * light_b
-    sw r8, r4, 8
-    add r2, r2, -1
-    bgte r14, r2, BOUNCE_LOOP, true
+    lw r6, r4, 28                        # r6 = acc_r
+    lw r7, r4, 32                        # r7 = acc_g
+    lw r8, r4, 36                        # r8 = acc_b
+    lw r9, r4, 12                        # r9 = sr
+    lw r10, r4, 16                       # r10 = sg
+    lw r11, r4, 20                       # r11 = sb
+    lw r12, r4, 24                       # r12 = metallic
+    lw r13, ONE                          # r13 = 1.0f
+    fsub r13, r13, r12                   # float inv_metallic = 1.0f - metallic
+    fmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
+    fmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
+    fmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
+    fmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
+    fmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
+    fmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
+    lw r13, r4, 0                        # r13 = carried_r
+    fmul.32 r13, r13, r9                 # carried_r *= sr
+    fmul.32 r13, r13, r12               # carried_r *= metallic
+    fmul.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+    sw r6, r4, 0                         # store new carried_r
+    lw r13, r4, 4                        # r13 = carried_g
+    fmul.32 r13, r13, r10               # carried_g *= sg
+    fmul.32 r13, r13, r12               # carried_g *= metallic
+    fmul.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+    sw r7, r4, 4                         # store new carried_g
+    lw r13, r4, 8                        # r13 = carried_b
+    fmul.32 r13, r13, r11               # carried_b *= sb
+    fmul.32 r13, r13, r12               # carried_b *= metallic
+    fmul.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+    sw r8, r4, 8                         # store new carried_b
+    add r2, r2, -1                       # bounce -= 1
+    bgte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
 BOUNCE_DONE: //Label not used lol
-    lw r13, ONE
-    lw r10, r4, 0
-    lw r11, r4, 4
-    lw r12, r4, 8
-    fadd.32 r10, r10, r13
-    fadd.32 r11, r11, r13
-    fadd.32 r12, r12, r13
-    srl r10, r10, 14
-    srl r11, r11, 14
-    srl r12, r12, 14
-    and r10, r10, 0x1FF
-    and r11, r11, 0x1FF
-    and r12, r12, 0x1FF
-    lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE
-    lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE
-    lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE
-    lw r13, FRAME_BUF_HIGH
-    setmembits r13
-    lw r13, FRAME_BUF_LOW
-    srl r14, r15, 4
-    mul r14, r14, 15
-    and r9, r14, 0xF
-    add r14, r9, r14
-    sll r14, r14, 2
-    add r13, r13, r14
-    mul r9, r1, 8192
-    mul r9, r9, 60
-    add r13, r13, r9
-    sb r10, r13, 0
-    sb r11, r13, 1
-    sb r12, r13, 2
-    add r1, r1, 1
-    mul r13, r1, 8192
-    mul r13, r13, 3840
-    add r0, r0, r13
-    and r14, r14, 0
-    add r14, r14, 30
-    lw r13, FINISHED_PIXELS_HIGH
-    setmembits r13
-    lw r13, FINISHED_PIXELS_LOW
-    atomadd_d r13, r13, 1
-    bgt r14, r1, LOOP_PIXEL, true
+    lw r13, ONE                          # r13 = 1.0f
+    lw r10, r4, 0                        # r10 = carried_r
+    lw r11, r4, 4                        # r11 = carried_g
+    lw r12, r4, 8                        # r12 = carried_b
+    fadd.32 r10, r10, r13               # carried_r += 1.0f
+    fadd.32 r11, r11, r13               # carried_g += 1.0f
+    fadd.32 r12, r12, r13               # carried_b += 1.0f
+    srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
+    srl r11, r11, 14                     # carried_g >>= 14
+    srl r12, r12, 14                     # carried_b >>= 14
+    and r10, r10, 0x1FF                  # carried_r &= 0x1FF
+    and r11, r11, 0x1FF                  # carried_g &= 0x1FF
+    and r12, r12, 0x1FF                  # carried_b &= 0x1FF
+    lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
+    lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
+    lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
+    lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
+    setmembits r13                       # set_address_bits(pixel_addr_high)
+    lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
+    srl r14, r15, 4                      # r14 = core_id >> 4
+    mul r14, r14, 15                     # r14 *= 15
+    and r9, r14, 0xF                     # r9 = thread_index
+    add r14, r9, r14                     # r14 += thread_index
+    sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
+    add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
+    mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
+    mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
+    add r13, r13, r9                     # pixel_addr_low += r9
+    sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
+    sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
+    sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
+    add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
+    mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
+    mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
+    add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
+    and r14, r14, 0                      # r14 = 0
+    add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
+    lw r13, FINISHED_PIXELS_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
+    setmembits r13                       # set_address_bits(finished_pixel_high)
+    lw r13, FINISHED_PIXELS_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
+    atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
+    bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
 
 INF_LOOP:
-    yield r15
-    beq r15, r15, INF_LOOP, true
+    yield r15                            # yield()
+    beq r15, r15, INF_LOOP, true         # goto inf_loop
 
 
 
