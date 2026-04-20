@@ -1270,9 +1270,8 @@ if (cur_num_new_rays > 260000)
     goto ensure_space_ray_pool;
 }
 new_ray_pool_low += 8;
-atomic_add_dram(new_ray_pool_low, 3)
-    new_ray_pool_low
-    -= 4;
+atomic_add_dram(new_ray_pool_low, 3);
+new_ray_pool_low -= 4;
 uint32_t tail_slot = atomic_add_dram(new_ray_pool_low, 32); // need to break this into 3 transactions, since it could wrap around
 uint32_t tail_mask = 0x007FFFFF;
 tail_slot &= tail_mask;
@@ -1376,9 +1375,6 @@ uint32_t tri_index = ray->tri_index;
 tri_index <<= 5;
 low_triangle += tri_index;
 float roughness = load_dram_word(low_triangle + 12);
-float norm_x = load_dram_word(low_triangle + 20);
-float norm_y = load_dram_word(low_triangle + 24);
-float norm_z = load_dram_word(low_triangle + 28);
 ray->tri_index = zero;
 float hit_x = ray->ox + ray->t_max * ray->dx;
 float hit_y = ray->oy + ray->t_max * ray->dy;

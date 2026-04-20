@@ -1634,13 +1634,17 @@ impl Core {
                             self.register_file
                                 [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] =
+                        let result = if instruction_to_execute.is_imm {
+                            (sr2_val as i32).wrapping_sub(self.register_file
+                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT] as i32) as u32
+                        } else {
                             ((self.register_file
                                 [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
                                 as i32)
-                                .wrapping_sub(sr2_val as i32)) as u32;
-
+                                .wrapping_sub(sr2_val as i32)) as u32
+                        };
+                        self.register_file
+                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = result;
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::And => {
@@ -2114,56 +2118,46 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreByte => {
+                        let byte = self.register_file
+                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                            as u8;
                         if instruction_to_execute.is_imm {
-                            let byte = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u8;
                             self.write_sram_byte(byte, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let byte = self.register_file
+                            let address = (self.register_file
                                 [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u8;
-                            let address = self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u16;
+                                as u32 + instruction_to_execute.imm_0) as u16;
                             self.write_sram_byte(byte, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreHalf => {
+                        let half = self.register_file
+                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                            as u16;
                         if instruction_to_execute.is_imm {
-                            let half = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u16;
                             self.write_sram_half(half, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let half = self.register_file
+                            let address = (self.register_file
                                 [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u16;
-                            let address = self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u16;
+                                as u32 + instruction_to_execute.imm_0) as u16;
                             self.write_sram_half(half, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
-
                     }
                     Operation::StoreWord => {
+                        let word = self.register_file
+                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                            as u32;
                         if instruction_to_execute.is_imm {
-                            let word = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32;
                             self.write_sram_word(word, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let word = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32;
                             if DEBUG {
                                 println!("WORD TO STORE CORE {}: 0x{:08X}/{}, cycle: {}", self.core_id, word, word as i32, self.cycle);
                             }
-                            let address = self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u16;
+                            let address = (self.register_file
+                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                                as u32 + instruction_to_execute.imm_0) as u16;
                             self.write_sram_word(word, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
@@ -2469,8 +2463,12 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::SetMemoryBits => {
+                        let temp = self.memory_bits[self.context_in_progress];
+
                         self.memory_bits[self.context_in_progress] = self.register_file
                             [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1];
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = temp;
+
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::ReadSignedByteDram => {
@@ -2726,15 +2724,20 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreWordDram => {
-                        let dram_address = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                            as usize
+                        let dram_address = (if instruction_to_execute.imm_1 != 0 {
+                            instruction_to_execute.imm_0 as u16 as usize
+                        } else {
+                            (self.register_file
+                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                                as u32 + instruction_to_execute.imm_0) as usize
+                        })
                             | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x3 == 0,
-                            "DRAM Word LOADS CAN'T BE UNALIGNED"
+                            "DRAM Word STORES CAN'T BE UNALIGNED"
                         );
-                        let value_to_store = self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1];
+                        let value_to_store = self.register_file
+                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr];
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 4;
                             let long_dram_request = LongDramRequest {
@@ -2758,20 +2761,23 @@ impl Core {
                             dram[dram_address / 4] = value_to_store;
                         }
                         self.pc[self.context_in_progress] += 4;
-
                     }
                     Operation::StoreHalfDram => {
-                        let dram_address = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                            as usize
+                        let dram_address = (if instruction_to_execute.imm_1 != 0 {
+                            instruction_to_execute.imm_0 as u16 as usize
+                        } else {
+                            (self.register_file
+                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                                as u32 + instruction_to_execute.imm_0) as usize
+                        })
                             | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
-                        let value_to_store = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                            & 0xFFFF;
                         assert!(
                             dram_address & 0x1 == 0,
-                            "DRAM Half LOADS CAN'T BE UNALIGNED"
+                            "DRAM Half STORES CAN'T BE UNALIGNED"
                         );
+                        let value_to_store = self.register_file
+                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
+                            & 0xFFFF;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 2;
                             let long_dram_request = LongDramRequest {
@@ -2782,7 +2788,6 @@ impl Core {
                                 core_id: self.core_id,
                                 origin_stack: self.top_bits_dram_stack,
                             };
-
                             if let Some(dram_request) = &self.dram_long_request {
                                 let could_send = dram_request[dram_address / DRAM_STACK_SIZE]
                                     .send(long_dram_request);
@@ -2794,7 +2799,7 @@ impl Core {
                         } else {
                             self.dram_bytes_wrote_close += 2;
                             let old_value = dram[dram_address / 4];
-                            let byte_offset = dram_address & 0x2; //will be either 0 or 2
+                            let byte_offset = dram_address & 0x2;
                             let mut value_to_store = (value_to_store as u32) << (byte_offset * 8);
                             value_to_store =
                                 (old_value & !(0xFFFF << (byte_offset * 8))) | value_to_store;
@@ -2803,12 +2808,16 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreByteDram => {
-                        let dram_address = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                            as usize
+                        let dram_address = (if instruction_to_execute.imm_1 != 0 {
+                            instruction_to_execute.imm_0 as u16 as usize
+                        } else {
+                            (self.register_file
+                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                                as u32 + instruction_to_execute.imm_0) as usize
+                        })
                             | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
                         let value_to_store = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
                             & 0xFF;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 1;
@@ -2820,7 +2829,6 @@ impl Core {
                                 core_id: self.core_id,
                                 origin_stack: self.top_bits_dram_stack,
                             };
-
                             if let Some(dram_request) = &self.dram_long_request {
                                 let could_send = dram_request[dram_address / DRAM_STACK_SIZE]
                                     .send(long_dram_request);
@@ -2832,7 +2840,7 @@ impl Core {
                         } else {
                             self.dram_bytes_wrote_close += 1;
                             let old_value = dram[dram_address / 4];
-                            let byte_offset = dram_address & 0x3; //will be between 0 and 3
+                            let byte_offset = dram_address & 0x3;
                             let mut value_to_store = (value_to_store as u32) << (byte_offset * 8);
                             value_to_store =
                                 (old_value & !(0xFF << (byte_offset * 8))) | value_to_store;

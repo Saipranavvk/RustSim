@@ -99,8 +99,7 @@ RIGHT_BITFIELD_DONE:
 CHECK_BOTH_ZERO:
     # else if (left_bitfield_check == 0 && right_bitfield_check == 0)
     or r6, r4, r9                   # r6 = left | right
-    beq r6, r7, DO_AABB, true       # both zero -> do AABB test
-    beq r15, r15, TRAVERSE_LEFT_OR_RIGHT, true  # one is zero, one is not
+    bne r6, r7, TRAVERSE_LEFT_OR_RIGHT, false       # both zero -> do AABB test
 
 DO_AABB:
     # int hit = AABB_Intersect(node, ray);
@@ -727,12 +726,12 @@ ENSURE_RAY_POOL_SLOT_READY:
     fpmul.32 r8, r5, r5                  # float len_sq = dx * dx
     fpmul.32 r9, r6, r6                  # tmp = dy * dy
     fpmul.32 r10, r7, r7                 # tmp2 = dz * dz
-    fadd r8, r8, r9                      # len_sq += tmp
-    fadd r8, r8, r10                     # len_sq += tmp2
+    fpadd r8, r8, r9                      # len_sq += tmp
+    fpadd r8, r8, r10                     # len_sq += tmp2
     jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
-    fmul.32 r5, r5, r8                   # ray->dx = dx * inv_len
-    fmul.32 r6, r6, r8                   # ray->dy = dy * inv_len
-    fmul.32 r7, r7, r8                   # ray->dz = dz * inv_len
+    fpmul.32 r5, r5, r8                   # ray->dx = dx * inv_len
+    fpmul.32 r6, r6, r8                   # ray->dy = dy * inv_len
+    fpmul.32 r7, r7, r8                   # ray->dz = dz * inv_len
     add r9, r5, 0                        # r9 = ray->dx (move for RECIPROCAL call)
     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(ray->dx)  -- result in r9
     sw r9, r0, 24                        # store ray->inv_dx
@@ -855,24 +854,24 @@ SPAWN_FROM_TILE:
     sw r7, r0, 8                         # ray->oz = cam_inv_f  -- differs: pseudocode stores cam_z, asm stores inv_focal here temporarily
     fsub.32 r8, r3, r5                   # float dx = fpix_x - cam_cx
     fsub.32 r9, r4, r6                   # float dy = fpix_y - cam_cy
-    fmul.32 r2, r8, r7                   # dx = dx * cam_inv_f
-    fmul.32 r3, r9, r7                   # dy = dy * cam_inv_f
+    fpmul.32 r2, r8, r7                   # dx = dx * cam_inv_f
+    fpmul.32 r3, r9, r7                   # dy = dy * cam_inv_f
     lw r4, NEG_ONE                       # float dz = -1.0f
-    fmul.32 r5, r2, r2                   # float len_sq = dx * dx
-    fmul.32 r6, r3, r3                   # tmp = dy * dy
-    fmul.32 r7, r4, r4)                  # tmp2 = dz * dz
-    fadd.32 r5, r5, r6                   # len_sq += tmp
-    fadd.32 r9, r5, r7                   # len_sq += tmp2  (r9 = full len_sq)
+    fpmul.32 r5, r2, r2                   # float len_sq = dx * dx
+    fpmul.32 r6, r3, r3                   # tmp = dy * dy
+    fpmul.32 r7, r4, r4)                  # tmp2 = dz * dz
+    fpadd.32 r5, r5, r6                   # len_sq += tmp
+    fpadd.32 r9, r5, r7                   # len_sq += tmp2  (r9 = full len_sq)
     add r6, r8, 0                        # r6 = dx (save for after INV_SQRT clobbers r8)  -- differs: pseudocode doesn't need this save
     add r7, r9, 0                        # r7 = len_sq (save)
     jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
-    fmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
+    fpmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
     sw r9, r0, 24                        # store ray->inv_dx
-    fmul.32 r9, r8, r3                   # inv_dy intermediate
+    fpmul.32 r9, r8, r3                   # inv_dy intermediate
     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(inv_len * dy)
     sw r9, r0, 28                        # store ray->inv_dy
-    fmul.32 r9, r8, r4                   # inv_dz intermediate
+    fpmul.32 r9, r8, r4                   # inv_dz intermediate
     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(inv_len * dz)
     sw r9, r0, 32                        # store ray->inv_dz
     sw r2, r0, 12                        # ray->dx = dx (unnormalized -- differs: pseudocode normalizes before storing)
@@ -905,9 +904,9 @@ SKIP_GRABBING_TILE_RAYS:
     setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
     relinquish 1                         # relinquish_ownership(1)
     yield r15                            # yield()
-    lw r0, RAYS_COMPLETED_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
+    lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
     setmembits r0                        # set_address_bits(pixel_addr_high)
-    lw r0, RAYS_COMPLETED_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
+    lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
     srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
     and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
     mul r1, r1, 15                       # pix_index *= 15
@@ -943,21 +942,22 @@ BOUNCE_LOOP:
     and r6, r6, 0                        # uint32_t light = 0
 SHADOW_LOOP:
     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
-    or r8, r8, 0xFFFFFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
+    or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
     beq r9, r8, SHADOW_SKIP             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+    #TODO EVERY TIME I DO A JUMP I NEED TO RESET MEMBITS
     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
     lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
     lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
-    fmul.32 r7, r7, r9                   # lr *= atten
-    fmul.32 r8, r8, r9                   # lg *= atten
-    fmul.32 r10, r10, r9                 # lb *= atten
+    fpmul.32 r7, r7, r9                   # lr *= atten
+    fpmul.32 r8, r8, r9                   # lg *= atten
+    fpmul.32 r10, r10, r9                 # lb *= atten
     lw r11, r4, 28                       # r11 = acc_r
     lw r12, r4, 32                       # r12 = acc_g
     lw r13, r4, 36                       # r13 = acc_b
-    fmul.32 r11, r11, r7                 # acc_r *= lr  -- differs: pseudocode does acc_r += lr not *=
-    fmul.32 r12, r12, r8                 # acc_g *= lg
-    fmul.32 r13, r13, r10               # acc_b *= lb
+    fpmul.32 r11, r11, r7                 # acc_r *= lr  -- differs: pseudocode does acc_r += lr not *=
+    fpmul.32 r12, r12, r8                 # acc_g *= lg
+    fpmul.32 r13, r13, r10               # acc_b *= lb
     sw r11, r4, 28                       # store acc_r
     sw r12, r4, 32                       # store acc_g
     sw r13, r4, 36                       # store acc_b
@@ -976,26 +976,26 @@ SHADOW_SKIP:
     lw r12, r4, 24                       # r12 = metallic
     lw r13, ONE                          # r13 = 1.0f
     fsub r13, r13, r12                   # float inv_metallic = 1.0f - metallic
-    fmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
-    fmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
-    fmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
-    fmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
-    fmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
-    fmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
+    fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
+    fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
+    fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
+    fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
+    fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
+    fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
     lw r13, r4, 0                        # r13 = carried_r
-    fmul.32 r13, r13, r9                 # carried_r *= sr
-    fmul.32 r13, r13, r12               # carried_r *= metallic
-    fmul.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+    fpmul.32 r13, r13, r9                 # carried_r *= sr
+    fpmul.32 r13, r13, r12               # carried_r *= metallic
+    fpmul.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
     sw r6, r4, 0                         # store new carried_r
     lw r13, r4, 4                        # r13 = carried_g
-    fmul.32 r13, r13, r10               # carried_g *= sg
-    fmul.32 r13, r13, r12               # carried_g *= metallic
-    fmul.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+    fpmul.32 r13, r13, r10               # carried_g *= sg
+    fpmul.32 r13, r13, r12               # carried_g *= metallic
+    fpmul.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
     sw r7, r4, 4                         # store new carried_g
     lw r13, r4, 8                        # r13 = carried_b
-    fmul.32 r13, r13, r11               # carried_b *= sb
-    fmul.32 r13, r13, r12               # carried_b *= metallic
-    fmul.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+    fpmul.32 r13, r13, r11               # carried_b *= sb
+    fpmul.32 r13, r13, r12               # carried_b *= metallic
+    fpmul.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
     sw r8, r4, 8                         # store new carried_b
     add r2, r2, -1                       # bounce -= 1
     bgte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
@@ -1004,9 +1004,9 @@ BOUNCE_DONE: //Label not used lol
     lw r10, r4, 0                        # r10 = carried_r
     lw r11, r4, 4                        # r11 = carried_g
     lw r12, r4, 8                        # r12 = carried_b
-    fadd.32 r10, r10, r13               # carried_r += 1.0f
-    fadd.32 r11, r11, r13               # carried_g += 1.0f
-    fadd.32 r12, r12, r13               # carried_b += 1.0f
+    fpadd.32 r10, r10, r13               # carried_r += 1.0f
+    fpadd.32 r11, r11, r13               # carried_g += 1.0f
+    fpadd.32 r12, r12, r13               # carried_b += 1.0f
     srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
     srl r11, r11, 14                     # carried_g >>= 14
     srl r12, r12, 14                     # carried_b >>= 14
@@ -1047,8 +1047,496 @@ INF_LOOP:
     yield r15                            # yield()
     beq r15, r15, INF_LOOP, true         # goto inf_loop
 
+AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
+    lw r2, r1, 0                        
+    lw r3, r0, 0
+    fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+    lw r5, r0, 24
+    fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+    lw r6, r1, 4
+    fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+    fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+    fpminmax.32 r12, r2, r3, false         # float tmin = min(t1, t2)
+    fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+    lw r2, r0, 36
+    fpminmax.32 r13, r2, r3, false          # tmax = min(tmax, ray->t_max)
+    fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+    lw r10, EPSILON                 # float epsilon = self.epsilon
+    fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+    and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+    blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+    #doing y now
+    lw r2, r1, 8
+    lw r3, r0, 4
+    fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+    lw r5, r0, 28
+    fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+    lw r6, r1, 12
+    fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+    fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+    fpminmax.32 r5, r2, r3, false         # float tmin = min(t1, t2)
+    fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+    fpminmax.32 r13, r13, r3, false          # tmax = min(tmax, ray->t_max)
+    fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, t1)
+    fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+    fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+    and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+    blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+    #doing z now
+    lw r2, r1, 16                           # r2 = node->z_min
+    lw r3, r0, 8                            # r3 = ray->oz
+    fpsub.32 r2, r2, r3                     # r2 = node->z_min - ray->oz
+    lw r5, r0, 32                           # r5 = ray->inv_dz
+    fpmul.32 r2, r2, r5                     # tz1 = (node->z_min - ray->oz) * ray->inv_dz
+    lw r6, r1, 20                           # r6 = node->z_max
+    fpsub.32 r3, r6, r3                     # r3 = node->z_max - ray->oz
+    fpmul.32 r3, r3, r5                     # tz2 = (node->z_max - ray->oz) * ray->inv_dz
+    fpminmax.32 r5, r2, r3, false           # r5 = min(tz1, tz2)
+    fpminmax.32 r3, r2, r3, true            # r3 = max(tz1, tz2)
+    fpminmax.32 r13, r13, r3, false         # tmax = min(tmax, max(tz1, tz2))
+    fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, min(tz1, tz2))
+    fplt.32 r6, r12, r13                    # r6 = tmin < tmax
+    fplt.32 r8, r10, r13                     # r8 = epsilon < tmax
+    and r11, r6, r8                         # r11 = (tmin <= tmax) && (0.0 < tmax)
+    beq r15, r15, AABB_INTERSECT_RETURN, true # return r11
+
+COMPLETE_RAY: #Only register in use is r0. everything else is fair game.
+    lw r1, RAYS_COMPLETED_HIGH          # r1 = self.ray_result_addr_high
+    setmembits r1                        # set_address_bits(finished_ray_high)
+    lw r1, RAYS_COMPLETED_LOW           # r1 = self.ray_result_addr_low
+    atomadd_d r15, r1, 1               # atomic_add(finished_ray_low, 1) //THIS NEEDS TO BE COMPLETED AT THE END, NOT THE BEGINNING, TODO!!!!!!!!!
+    lhu r1, r0, 54                      # r1 = ray->pix_y
+    mul r1, r1, 2560                    # r1 = pix_y * 2560
+    lhu r2, r0, 52                      # r2 = ray->pix_x
+    add r1, r2, r1                      # r1 = pix_y * 2560 + pix_x = pix_index #I have the pix index in r2
+    sll r1, r1, 8                       # r1 = pix_index << 8 (each pixel has 256 bytes of results)
+    lw r2, RAY_RESULT_HIGH              # r2 = RAY_RESULT_HIGH
+    setmembits r2                        # set_address_bits(result_addr_high)
+    lw r2, RAY_RESULT_LOW               # r2 = result_addr_low
+    add r1, r2, r1                      # r1 = result_addr_low + pix_index
+    lbu r2, r0, 60                      # r2 = ray->bounce_count
+    sll r2, r2, 6                       # r2 = bounce_count << 6 (each bounce has 64 bytes)
+    add r1, r1, r2                      # r1 = result_addr + pix_index + bounce_offset #I now have the address of the bounce + shadow array (4 16 byte packs)
+    lbu r2, r0, 61                      # r2 = ray->light_id
+    and r14, r14, 0                     # r14 = 0
+    bne r2, r14, SHADOW_RAY, true       # if (ray->light_id != 0) goto shadow_ray
+    or r13, r13, 0xFFFFFFFF             # r13 = 0xFFFFFFFF
+    lw r2, r0, 56                       # r2 = ray->tri_index
+    bne r13, r2, RAY_HIT_A_TRI_IN_COMPLETE, true  # if (ray->tri_index != 0xFFFFFFFF) goto RAY_HIT_A_TRI_IN_COMPLETE
+    sb r14, r0, 63                      # ray->active_ray = 0
+    beq r15, r15, ray_done, true        # goto ray_done
+
+RAY_HIT_A_TRI_IN_COMPLETE: #r0 = ray, r1 = addr, r14 = 0
+    lw r3, TRIANGLE_ARRAY_HIGH          # r3 = self.triangle_address_high
+    setmembits r3                        # set_address_bits(tri_addr_high)
+    lw r3, TRIANGLE_ARRAY_LOW           # r3 = tri_addr_low
+    sll r2, r2, 5                       # r2 = tri_index << 5 (* 32 bytes per triangle)
+    add r2, r2, r3                      # r2 = tri_addr_low + tri_offset #r2 = tri index
+    lw_d r3, r2, 0                      # r3 = tri_red = load_dram_word(tri_addr_low) #tri_red
+    lw_d r4, r2, 4                      # r4 = tri_green #tri_green
+    lw_d r5, r2, 8                      # r5 = tri_blue #tri_blue
+    lw_d r6, r2, 12                     # r6 = tri_roughness #tri_roughness
+    sw r6, r0, 40                       # ray->leaf_node_starting_point = roughness (temp storage)
+    lw_d r6, r2, 16                     # r6 = tri_metallic
+    lw_d r7, r2, 20                     # r7 = norm_x
+    lw_d r8, r2, 24                     # r8 = norm_y
+    lw_d r9, r2, 28                     # r9 = norm_z
+    sw r9, r0, 32                       # ray->inv_dz = norm_z (temp storage)
+    lw r10, RAYS_COMPLETED_HIGH         # r10 = RAY_RESULT_HIGH (restore membits to result buffer)
+    setmembits r10                       # set_address_bits(result_addr_high)
+    sw_d r3, r1, 0                      # store_dram_word(result_addr_low, tri_red)
+    sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, tri_green)
+    sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, tri_blue)
+    sw_d r6, r1, 16                     # store_dram_word(result_addr_low + 16, tri_metallic) (note: skips offset 12 which is len_sq/tri_index union)
+    lw r3, r0, 0                        # r3 = ray->ox //r3 = ox
+    lw r4, r0, 24                       # r4 = ray->inv_dx
+    lw r5, 36                           # r5 = ray->t_max //r5 = tmax
+    fpmul.32 r4, r4, r5                 # r4 = inv_dx * t_max... wait, this should be dx * t_max
+    fpadd.32 r4, r4, r3                 # r4 = ox + dx * t_max = hit_x //r4 = hit_x
+    lw r6, r0, 4                        # r6 = ray->oy //r6 = oy
+    lw r10, r0, 16                      # r10 = ray->inv_dy... should be dy (offset 16)
+    fpmul.32 r10, r10, r5               # r10 = dy * t_max
+    fpadd.32 r10, r10, r6               # r10 = oy + dy * t_max = hit_y //r10 = hit_y
+    lw r11, r0, 8                       # r11 = ray->oz //r11 - oz
+    lw r12, r0, 20                      # r12 = ray->dz (offset 20)
+    fpmul.32 r12, r5, r12               # r12 = t_max * dz
+    fpadd.32 r12, r11, r12              # r12 = oz + dz * t_max = hit_z //r12 = hit_z
+    # light 0 -> slot 1: ndotl = norm_x * (lx - hit_x) + norm_y * (ly - hit_y) + norm_z * (lz - hit_z)
+    lw r13, LIGHT0_X                    # r13 = light0.x
+    fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+    fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+    lw r14, LIGHT0_Y                    # r14 = light0.y
+    fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+    fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+    fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+    lw r14, LIGHT0_Z                    # r14 = light0.z
+    fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+    fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+    fpadd.32 r13, r14, r13              # r13 = full ndotl for light 0
+    and r14, r14, 0                     # r14 = 0 (for max with 0.0)
+    fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+    sw_d r13, r1, 28                    # store_dram_word(result_addr_low + 28, ndotl) -> slot 1 offset 12
+    # light 1 -> slot 2
+    lw r13, LIGHT1_X                    # r13 = light1.x
+    fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+    fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+    lw r14, LIGHT1_Y                    # r14 = light1.y
+    fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+    fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+    fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+    lw r14, LIGHT1_Z                    # r14 = light1.z
+    fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+    fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+    fpadd.32 r13, r14, r13              # r13 = full ndotl for light 1
+    and r14, r14, 0                     # r14 = 0
+    fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+    sw_d r13, r1, 44                    # store_dram_word(result_addr_low + 44, ndotl) -> slot 2 offset 12
+    # light 2 -> slot 3
+    lw r13, LIGHT2_X                    # r13 = light2.x
+    fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+    fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+    lw r14, LIGHT2_Y                    # r14 = light2.y
+    fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+    fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+    fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+    lw r14, LIGHT2_Z                    # r14 = light2.z
+    fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+    fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+    fpadd.32 r13, r14, r13              # r13 = full ndotl for light 2
+    and r14, r14, 0                     # r14 = 0
+    fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+    sw_d r13, r1, 60                    # store_dram_word(result_addr_low + 60, ndotl) -> slot 3 offset 12
+    # spawn 3 shadow rays into spawned ray pool
+    lw r13, SPAWNED_RAY_POOL_HIGH       # r13 = self.new_ray_pool_high
+    setmembits r13                       # set_address_bits(new_ray_pool_high)
+    lw r13, SPAWNED_RAY_POOL_LOW        # r13 = new_ray_pool_low
+    add r13, r13, 8                     # r13 = new_ray_pool_low + 8 (point to count field)
+ENSURE_SPACE_RAY_POOL:
+    atomadd_d r11, r13, 3               # r11 = atomic_add_dram(count, 3) - reserve 3 slots
+    lw r9, MAX_RAYS_IN_RAY_POOL         # r9 = 260000
+    bgte r9, r11, ENOUGH_SPACE_IN_RAY_POOL, true  # if (cur_num_new_rays <= 260000) goto ENOUGH_SPACE
+    atomadd_d r15, r13, -3              # undo reservation: atomic_add_dram(count, -3)
+    beq r15, r15, ENSURE_SPACE_RAY_POOL, true     # goto ensure_space_ray_pool (spin)
+ENOUGH_SPACE_IN_RAY_POOL:
+    add r13, r13, -4                    # r13 = new_ray_pool_low + 4 (point to tail field)
+    atomadd_d r11, r13, 32             # r11 = atomic_add_dram(tail, 32) - claim first slot
+    lw r9, SPAWNED_RAY_POOL_MASK        # r9 = tail_mask
+    and r11, r9, r11                    # r11 = tail & mask
+    add r13, r11, r13                   # r13 = pool_base + tail_relative
+    add r13, r13, 8                     # r13 = slot_base (skip head+tail fields)
+    # wait for slot 0 to be free (active_ray byte at offset 31 must be 0)
+WAIT_FOR_SLOT_0_TO_OPEN:
+    lbu_d r11, r13, 31                  # r11 = load_dram_byte(slot_base + 31) - check if slot empty
+    bne r11, r14, WAIT_FOR_SLOT_0_TO_OPEN, false  # while (slot_base[31] != 0) spin
+    # store shadow ray 0 (light 0): origin = hit point, direction = light0 - hit
+    sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
+    sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
+    sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
+    lw r11, LIGHT0_X                    # r11 = light0.x
+    fpsub.32 r11, r11, r4               # r11 = light0.x - hit_x = sdx
+    sw_d r11, r13, 12                   # store_dram_word(slot_base + 12, sdx)
+    lw r11, LIGHT0_Y                    # r11 = light0.y
+    fpsub.32 r11, r11, r10              # r11 = light0.y - hit_y = sdy
+    sw_d r11, r13, 16                   # store_dram_word(slot_base + 16, sdy)
+    lw r11, LIGHT0_Z                    # r11 = light0.z
+    fpsub.32 r11, r11, r12              # r11 = light0.z - hit_z = sdz
+    sw_d r11, r13, 20                   # store_dram_word(slot_base + 20, sdz)
+    lw r11, r0, 52                      # r11 = pix_x | (pix_y << 16) packed
+    sw_d r11, r13, 24                   # store_dram_word(slot_base + 24, pix_xy)
+    add r9, r14, 1                      # r9 = 1 (light_id for light 0)
+    sb_d r9, r13, 29                    # store_dram_byte(slot_base + 29, light_id=1) (meta >> 8)
+    lb r11, r0, 60                      # r11 = ray->bounce_count
+    sb_d r11, r13, 28                   # store_dram_byte(slot_base + 28, bounce_count) (meta & 0xFF)
+    sb_d r9, r13, 31                    # store_dram_byte(slot_base + 31, 1) - mark slot as ready
+    # claim slot 1
+    lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
+    add r11, r11, 4                     # r11 = pool + 4 (tail field)
+    atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 1
+    add r11, r11, 8                     # r11 = pool + 12 (data start)
+    lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
+    and r9, r9, r13                     # r9 = tail & mask
+    add r13, r11, r9                    # r13 = slot_base for slot 1
+WAIT_FOR_SLOT_1_TO_OPEN:
+    lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+    bne r14, r11, WAIT_FOR_SLOT_1_TO_OPEN, false  # while (slot[31] != 0) spin
+    # store shadow ray 1 (light 1)
+    sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
+    sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
+    sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
+    lw r11, LIGHT1_X                    # r11 = light1.x
+    fpsub.32 r11, r11, r4               # r11 = light1.x - hit_x
+    sw_d r11, r13, 12                   # store sdx
+    lw r11, LIGHT1_Y                    # r11 = light1.y
+    fpsub.32 r11, r11, r10              # r11 = light1.y - hit_y
+    sw_d r11, r13, 16                   # store sdy
+    lw r11, LIGHT1_Z                    # r11 = light1.z
+    fpsub.32 r11, r11, r12              # r11 = light1.z - hit_z
+    sw_d r11, r13, 20                   # store sdz
+    lw r11, r0, 52                      # r11 = pix_xy
+    sw_d r11, r13, 24                   # store pix_xy
+    add r9, r14, 2                      # r9 = 2 (light_id for light 1)
+    sb_d r9, r13, 29                    # store light_id = 2
+    lb r11, r0, 60                      # r11 = bounce_count
+    sb_d r11, r13, 28                   # store bounce_count
+    add r9, r14, 1                      # r9 = 1 (ready marker)
+    sb_d r9, r13, 31                    # mark slot as ready
+    # claim slot 2
+    lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
+    add r11, r11, 4                     # r11 = pool + 4 (tail field)
+    atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 2
+    add r11, r11, 8                     # r11 = pool + 12
+    lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
+    and r9, r9, r13                     # r9 = tail & mask
+    add r13, r11, r9                    # r13 = slot_base for slot 2
+WAIT_FOR_SLOT_2_TO_OPEN:
+    lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+    bne r14, r11, WAIT_FOR_SLOT_2_TO_OPEN, false  # spin until slot empty
+    # store shadow ray 2 (light 2)
+    sw_d r4, r13, 0                     # store hit_x
+    sw_d r10, r13, 4                    # store hit_y
+    sw_d r12, r13, 8                    # store hit_z
+    lw r11, LIGHT2_X                    # r11 = light2.x
+    fpsub.32 r11, r11, r4               # r11 = light2.x - hit_x
+    sw_d r11, r13, 12                   # store sdx
+    lw r11, LIGHT2_Y                    # r11 = light2.y
+    fpsub.32 r11, r11, r10              # r11 = light2.y - hit_y
+    sw_d r11, r13, 16                   # store sdy
+    lw r11, LIGHT2_Z                    # r11 = light2.z
+    fpsub.32 r11, r11, r12              # r11 = light2.z - hit_z
+    sw_d r11, r13, 20                   # store sdz
+    lw r11, r0, 52                      # r11 = pix_xy
+    sw_d r11, r13, 24                   # store pix_xy
+    add r9, r14, 3                      # r9 = 3 (light_id for light 2)
+    sb_d r9, r13, 29                    # store light_id = 3
+    lb r11, r0, 60                      # r11 = bounce_count
+    sb_d r11, r13, 28                   # store bounce_count
+    add r9, r14, 1                      # r9 = 1 (ready marker)
+    sb_d r9, r13, 31                    # mark slot as ready
+    # if (ray->bounce_count > 2) { ray->active_ray = 0; goto ray_done; }
+    add r13, r14, 3                     # r13 = 3 (max bounce threshold + 1)
+    bne r13, r11, GENERATE_BOUNCE_RAY, true  # if bounce_count != 3 goto GENERATE_BOUNCE_RAY
+    sb r14, r0, 63                      # ray->active_ray = 0
+    beq r15, r15, ray_done, true        # goto ray_done
+
+GENERATE_BOUNCE_RAY:
+    # load 3 random floats from random table
+    lw r1, RANDOM_TABLE_HIGH            # r1 = self.random_table_addr_high
+    setmembits r1                        # set_address_bits(random_table_high)
+    lw r1, RANDOM_TABLE_LOW             # r1 = random_table_low
+    atomadd_d r2, r1, 16               # r2 = atomic_add_dram(random_table_low, 16) - advance index by 16 (not 12 as in C, TODO?)
+    lw r3, RANDOM_TABLE_MASK            # r3 = mask
+    and r2, r2, r3                      # r2 = index & mask
+    add r1, r1, 4                       # r1 = random_table_low + 4 (skip count field)
+    add r1, r1, r2                      # r1 = &random_table[index]
+    lw_d r2, r1, 0                      # r2 = random1 (raw bits)
+    lw_d r3, r1, 4                      # r3 = random2 (raw bits)
+    lw_d r6, r1, 8                      # r6 = random3 (raw bits)
+    # convert raw bits to float in [-0.5, 0.5):
+    # mask mantissa to [1.0, 2.0) then subtract 1.5
+    add r1, r14, 0x7F                   # r1 = 0x7F (exponent for 1.0)
+    sll r1, r1, 23                      # r1 = 0x3F800000 (and_mask: clears sign+exp, keeps mantissa)
+    lw r5, RANDOM_FLOAT_OR_MASK         # r5 = 0x3F800000 (or_mask: forces exponent to 127)
+    and r2, r1, r2                      # r2 &= and_mask (clear top bits)
+    and r3, r1, r3                      # r3 &= and_mask
+    and r6, r1, r6                      # r6 &= and_mask
+    or r2, r2, r5                       # r2 |= or_mask (force to [1.0, 2.0))
+    or r3, r3, r5                       # r3 |= or_mask
+    or r6, r6, r5                       # r6 |= or_mask
+    lw r1, ONE_POINT_FIVE               # r1 = 1.5f
+    fpsub.32 r2, r2, r1                 # random1 -= 1.5 -> [-0.5, 0.5)
+    fpsub.32 r3, r3, r1                 # random2 -= 1.5
+    fpsub.32 r6, r6, r1                 # random3 -= 1.5
+    # update ray fields for bounce
+    lb r5, r0, 60                       # r5 = ray->bounce_count
+    add r5, r5, 1                       # bounce_count += 1
+    sb r5, r0, 60                       # ray->bounce_count = bounce_count
+    sb r14, r0, 62                      # ray->ray_depth = 0
+    sw r14, r0, 44                      # ray->check_left = 0
+    sw r14, r0, 48                      # ray->check_right = 0
+    sw r14, r0, 40                      # ray->leaf_node_starting_point = 0 (will be set to 128 elsewhere TODO)
+    or r1, r1, 0xFFFF                   # r1 = 0xFFFFFFFF (no hit sentinel) NOTE: r1 still holds 1.5, this sign-extends
+    sw r1, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+    # update ray origin to hit point
+    sw r4, r0, 0                        # ray->ox = hit_x
+    sw r10, r0, 4                       # ray->oy = hit_y
+    sw r12, r0, 8                       # ray->oz = hit_z
+    # compute reflected direction: d' = d - 2*dot(d,n)*n
+    lw r9, r0, 32                       # r9 = norm_z (stored earlier at offset 32)
+    lw r4, r0, 12                       # r4 = ray->dx
+    lw r10, r0, 16                      # r10 = ray->dy
+    lw r12, r0, 20                      # r12 = ray->dz
+    fpmul.32 r1, r7, r4                 # r1 = norm_x * dx
+    fpmul.32 r5, r8, r10                # r5 = norm_y * dy
+    fpmul.32 r11, r9, r12              # r11 = norm_z * dz
+    fpadd.32 r1, r1, r5                 # r1 = norm_x*dx + norm_y*dy
+    fpadd.32 r1, r1, r11               # r1 = dot(d, n)
+    fpadd.32 r1, r1, r1                 # r1 = 2 * dot(d, n)
+    fpmul.32 r11, r1, r7               # r11 = 2*dot * norm_x
+    fpsub.32 r4, r4, r11               # r4 = dx - 2*dot*norm_x (reflected dx)
+    fpmul.32 r11, r1, r8               # r11 = 2*dot * norm_y
+    fpsub.32 r10, r10, r11             # r10 = dy - 2*dot*norm_y (reflected dy)
+    fpmul.32 r11, r1, r9               # r11 = 2*dot * norm_z
+    fpsub.32 r12, r12, r11             # r12 = dz - 2*dot*norm_z (reflected dz)
+    # apply roughness perturbation: bdx = reflected_d + random * roughness
+    lw r11, r0, 40                      # r11 = roughness (stored at offset 40 earlier)
+    fpmul.32 r2, r2, r11               # random1 *= roughness
+    fpmul.32 r3, r3, r11               # random2 *= roughness
+    fpmul.32 r6, r6, r11               # random3 *= roughness
+    fpadd.32 r4, r2, r4                 # bdx = reflected_dx + random1
+    fpadd.32 r10, r3, r10              # bdy = reflected_dy + random2
+    fpadd.32 r12, r6, r12              # bdz = reflected_dz + random3
+    # normalize bdx, bdy, bdz via inv_sqrt
+    fpmul.32 r1, r4, r4                 # r1 = bdx * bdx
+    fpmul.32 r2, r10, r10              # r2 = bdy * bdy
+    fmul.32 r3, r12, r12               # r3 = bdz * bdz
+    fpadd.32 r1, r1, r3                 # r1 = bdx^2 + bdz^2
+    fpadd.32 r1, r1, r2                 # r1 = len_sq = bdx^2 + bdy^2 + bdz^2
+    # save registers that INV_SQRT will clobber, set up call
+    add r5, r8, 0                       # r5 = norm_y (save before INV_SQRT clobbers r8)
+    add r6, r9, 0                       # r6 = norm_z (save before INV_SQRT clobbers r9)
+    add r2, r10, 0                      # r2 = bdy (save)
+    add r3, r12, 0                      # r3 = bdz (save)
+    add r8, r1, 0                       # r8 = len_sq (INV_SQRT input)
+    jmp r9, INV_SQRT                    # r8 = inv_sqrt(len_sq), returns in r8
+    # r8 now = inv_sqrt result
+    fpmul.32 r2, r2, r8                 # bdy *= inv_sqrt
+    fpmul.32 r3, r3, r8                 # bdz *= inv_sqrt
+    fpmul.32 r4, r4, r8                 # bdx *= inv_sqrt
+    # check flip: if dot(bd, n) < 0, flip to keep ray above surface
+    fpmul.32 r9, r7, r4                 # r9 = norm_x * bdx
+    fpmul.32 r10, r2, r5                # r10 = norm_y * bdy (r5=norm_y saved above)
+    fpmul.32 r11, r6, r3               # r11 = norm_z * bdz (r6=norm_z saved above)
+    fpadd.32 r9, r9, r10               # r9 = norm_x*bdx + norm_y*bdy
+    fpadd.32 r9, r9, r11               # r9 = check = dot(bd, n)
+    and r10, r10, 0                     # r10 = 0 (for comparison with 0.0)
+    fplt r11, r9, r10                   # r11 = (check < 0.0)
+    bne r10, r10, SKIP_FLIP, true       # if check >= 0 skip flip (NOTE: this branch condition seems inverted, should check r11)
+    # flip: bd -= 2*dot(bd,n)*n
+    fpadd.32 r9, r9, r9                 # r9 = 2 * check
+    fpmul.32 r10, r7, r9               # r10 = 2*check * norm_x
+    fpmul.32 r11, r5, r9               # r11 = 2*check * norm_y
+    fpmul.32 r12, r6, r9               # r12 = 2*check * norm_z
+    fpsub.32 r4, r4, r10               # bdx -= 2*check*norm_x
+    fpsub.32 r2, r2, r11               # bdy -= 2*check*norm_y
+    fpsub.32 r3, r3, r12               # bdz -= 2*check*norm_z
+SKIP_FLIP:
+    sw r4, r0, 12                       # ray->dx = bdx
+    sw r2, r0, 16                       # ray->dy = bdy
+    sw r3, r0, 20                       # ray->dz = bdz
+    lw r12, INFINITY                    # r12 = 0x7F7FFFFF (float_max)
+    sw r12, r0, 36                      # ray->t_max = float_max
+    # compute reciprocals for inv_dx, inv_dy, inv_dz
+    add r9, r4, 0                       # r9 = bdx (RECIPROCAL input)
+    jmp r10, RECIPROCAL                 # r9 = reciprocal(bdx)
+    sw r9, r0, 24                       # ray->inv_dx = reciprocal(bdx)
+    add r9, r2, 0                       # r9 = bdy
+    jmp r10, RECIPROCAL                 # r9 = reciprocal(bdy)
+    sw r9, r0, 28                       # ray->inv_dy = reciprocal(bdy)
+    add r9, r3, 0                       # r9 = bdz
+    jmp r10, RECIPROCAL                 # r9 = reciprocal(bdz)
+    sw r9, r0, 32                       # ray->inv_dz = reciprocal(bdz)
+    beq r15, r15, ray_done, true        # goto ray_done
+
+SHADOW_RAY:
+    sll r3, r2, 4                       # r3 = light_id << 4 (each shadow slot is 16 bytes)
+    add r1, r1, r3                      # r1 = result_addr_low + shadow * 16 (advance to correct shadow slot)
+    lw r4, r0, 56                       # r4 = ray->tri_index
+    or r13, r14, 0xFFFFFFFF             # r13 = 0xFFFFFFFF
+    beq r13, r4, SHADOW_RAY_MUST_BE_CALCULATED, true  # if (ray->tri_index == 0xFFFFFFFF) ray missed, calc lighting
+    # ray hit something - shadow is blocked, store 1.0 as len_sq sentinel
+    lw r4, ONE                          # r4 = 0x3F800000 = 1.0f
+    sw_d r4, r1, 12                     # store_dram_word(result_addr_low + 12, 1.0) - blocked sentinel
+    sb r14, r0, 63                      # ray->active_ray = 0
+    beq r15, r15, ray_done, true        # goto ray_done
+SHADOW_RAY_MUST_BE_CALCULATED:
+    # ray missed (unobstructed) - compute light contribution
+    lw_d r6, r1, 12                     # r6 = ndotl = load_dram_word(result_addr_low + 12)
+    add r2, r2, -1                      # shadow = light_id - 1 (0-indexed)
+    mul r2, r2, 24                      # shadow *= 24 (bytes per light struct)
+    add r2, r2, LIGHT0_X               # r2 = &light_array[shadow] (base of this light)
+    # load color (offsets 12,16,20 = r,g,b given our x,y,z,r,g,b layout)
+    lw r3, r2, 12                       # r3 = light_r
+    lw r4, r2, 16                       # r4 = light_g
+    lw r5, r2, 20                       # r5 = light_b
+    fpmul.32 r3, r3, r6                 # light_r *= ndotl
+    fpmul.32 r4, r4, r6                 # light_g *= ndotl
+    fpmul.32 r5, r5, r6                 # light_b *= ndotl
+    sw_d r3, r1, 0                      # store_dram_word(result_addr_low, light_r)
+    sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, light_g)
+    sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, light_b)
+    # compute squared distance from hit point to light position
+    lw r3, r2, 0                        # r3 = light_x (position, offset 0)
+    lw r4, r2, 4                        # r4 = light_y
+    lw r5, r2, 8                        # r5 = light_z
+    lw r6, r0, 0                        # r6 = ray->ox (hit point origin)
+    lw r7, r0, 4                        # r7 = ray->oy
+    lw r8, r0, 8                        # r8 = ray->oz
+    fpsub.32 r3, r3, r6                 # r3 = light_x - ox
+    fpsub.32 r4, r4, r7                 # r4 = light_y - oy
+    fpsub.32 r5, r5, r8                 # r5 = light_z - oz
+    fpmul.32 r3, r3, r3                 # r3 = (light_x - ox)^2
+    fpmul.32 r4, r4, r4                 # r4 = (light_y - oy)^2
+    fpmul.32 r5, r5, r5                 # r5 = (light_z - oz)^2
+    fpadd.32 r3, r3, r4                 # r3 = dx^2 + dy^2
+    fpadd.32 r3, r3, r5                 # r3 = len_sq = dx^2 + dy^2 + dz^2
+    sw_d r3, r1, 12                     # store_dram_word(result_addr_low + 12, len_sq)
+    sb r14, r0, 63                      # ray->active_ray = 0
+    beq r15, r15, ray_done, true        # goto ray_done
+
+RECIPROCAL:
+    lw r11, NEG_MAX                     # r11 = 0x80000000
+    and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
+    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
+    and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
+    srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
+    sub r13, r13, 254                   # r13 = new_exp = 254 - exp
+    srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
+    and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
+    lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
+    setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
+    sw r14, RECIPROCAL_STORAGE          # save old membits to RECIPROCAL_STORAGE
+    lw r14, DIV_TABLE_LOW               # r14 = div_table_low
+    add r14, r14, r9                    # r14 = &div_table[index]
+    lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+    sll r14, r13, 23                    # r14 = new_exp << 23
+    or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
+    sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
+    fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
+    lw r11, TWO                         # r11 = 2.0f
+    fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
+    fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
+    or r9, r9, r12                      # r9 |= sign (restore sign bit)
+    lw r14, RECIPROCAL_STORAGE          # r14 = saved old membits
+    setmembits r14, r14                 # restore membits
+    jmp r15, r10                        # return (result in r9)
+
+INV_SQRT:
+    srl r10, r8, 17                     # r10 = index = len_sq >> 17 (top 15 bits as table index)
+    lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
+    setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
+    lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
+    sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
+    add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
+    lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
+    lw r13, HALF                        # r13 = 0.5f
+    fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
+    lw r14, ONE_POINT_FIVE              # r14 = 1.5f
+    fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
+    fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
+    fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
+    fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
+    setmembits r11                      # restore old membits (r11 holds saved value)
+    jmp r9                              # return (result in r8)
 
 
+HALF:                    .data 0x3F000000
+TWO:                     .data 0x40000000
+RECIPROCAL_STORAGE:      .data -1
+NEG_MAX:                 .data 0x80000000
+ONE_POINT_FIVE:          .data 0x3FC00000
+RANDOM_FLOAT_OR_MASK:    .data 0x3FFFFFFF
+RANDOM_TABLE_MASK:       .data 0x0003FFF0
+MAX_RAYS_IN_RAY_POOL:    .data 260000
 FINISHED_PIXELS_HIGH:   .data -1
 FINISHED_PIXELS_LOW:    .data -1
 ONE:                    .data 0x3F800000
@@ -1116,7 +1604,24 @@ RAYS_PROCESSED: .data 0
 LAST_OBSERVED_CYCLE: .data 0
 PREVIOUSLY_IDLE: .data 0
 FLOAT_TO_BYTE_RGB_TABLE: .data(128) 0
-LIGHT_ARRAY: .data(18) 0
+LIGHT0_X: .data -1
+LIGHT0_Y: .data -1
+LIGHT0_Z: .data -1
+LIGHT0_R: .data -1
+LIGHT0_G: .data -1
+LIGHT0_B: .data -1
+LIGHT1_X: .data -1
+LIGHT1_Y: .data -1
+LIGHT1_Z: .data -1
+LIGHT1_R: .data -1
+LIGHT1_G: .data -1
+LIGHT1_B: .data -1
+LIGHT2_X: .data -1
+LIGHT2_Y: .data -1
+LIGHT2_Z: .data -1
+LIGHT2_R: .data -1
+LIGHT2_G: .data -1
+LIGHT2_B: .data -1
 ROOT_NODE_ADDRESS: .data 0
 //DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
 RAY_ARRAY: .data(256) 0

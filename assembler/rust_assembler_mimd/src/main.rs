@@ -292,8 +292,15 @@ fn assemble_instruction(
             }
         }
         39 => { // setmembits: setmembits rS1
-            if args.len() != 1 { panic!("setmembits expects: setmembits rS1"); }
-            set_sr1(&mut instr, parse_reg(args[0]));
+            if args.len() != 1 abd args.len() != 2 { panic!("setmembits expects: setmembits rS1 or rd, rs1"); }
+            if args.len() == 1{
+                set_sr1(&mut instr, parse_reg(args[0]));
+                set_dr(&mut instr, 15);
+            }
+            else{
+                set_sr1(&mut instr, parse_reg(args[1]));
+                set_dr(&mut instr, parse_reg(args[0]));
+            }
             return vec![instr];
         }
         23 => { // JMP
@@ -353,43 +360,29 @@ fn assemble_instruction(
         return vec![instr];
     }
 
-    if is_store_s {
-        if args.len() != 2 {
-            panic!("{} expects: {} rD, rBASE OR IMM16|label", op_name, op_name);
+    if is_store_s || is_store_d {
+        if args.len() != 2 && args.len() != 3 {
+            panic!("{} expects: {} rD, rBASE, IMM16|label OR rd, IMM16|label", op_name, op_name);
         }
-        let rs = parse_reg(args[0]);
+        let rd = parse_reg(args[0]);
         let (is_imm, base) = if args[1].starts_with('r') {
             (false, parse_reg(args[1]) as u16)
         } else {
             (true, parse_imm_or_label(args[1], labels))
         };
-        set_sr1(&mut instr, rs);
-
+        set_rd(&mut instr, rd);
         if is_imm{
             set_imm(&mut instr, base);
             set_imm1(&mut instr, 1);
         }
         else {
-            set_sr2(&mut instr, base as u32);
+            set_sr1(&mut instr, base);
+            set_imm(&mut instr, parse_imm_or_label(args[2], labels))
             set_imm1(&mut instr, 0);
         }
         return vec![instr];
     }
 
-    if is_store_d  {
-        // format: OP rSRC, rBASE, IMM16|label
-        // encoding: sr1=value, sr2=base
-        if args.len() != 2 {
-            panic!("{} expects: {} rSRC, rBASE", op_name, op_name);
-        }
-        let src = parse_reg(args[0]);
-        let base = parse_reg(args[1]);
-
-        set_sr1(&mut instr, src);
-        set_sr2(&mut instr, base);
-        set_imm1(&mut instr, 0);
-        return vec![instr];
-    }
 
     if is_atomicadd {
         // atomadd_d rDest, rBase, rSrc|IMM16
@@ -464,7 +457,7 @@ fn assemble_instruction(
 
         match opcode {
             // fpadd/fpmul/fpsub/fpminmax: rD, rS1, rS2
-            10 | 11 | 12 | 14 | 15 | 18 => {
+            10 | 11 | 12 | 14 | 15 => {
                 if args.len() != 3 {
                     panic!("{} expects: {}.(32|16|8) rD, rS1, rS2", op_name, op_name);
                 }
@@ -472,6 +465,16 @@ fn assemble_instruction(
                 set_sr1(&mut instr, reg(args[1]));
                 set_sr2(&mut instr, reg(args[2]));
                 set_imm1(&mut instr, 0);
+                return vec![instr];
+            }
+            18 => { // fpminmax: rD, rS1, rS2, isMax
+                if args.len() != 4 {
+                    panic!("{} expects: {}.(32|16|8) rD, rS1, rS2, isMax", op_name, op_name);
+                }
+                set_dr(&mut instr, reg(args[0]));
+                set_sr1(&mut instr, reg(args[1]));
+                set_sr2(&mut instr, reg(args[2]));
+                set_imm1(&mut instr, parse_bool(args[3]) as u32);
                 return vec![instr];
             }
 
