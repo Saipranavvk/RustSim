@@ -215,9 +215,9 @@ typedef struct
     uint32_t head_relative;
     uint32_t tail_relative;
     uint32_t count;
-    idle_queue_slot slots[8192];
     uint32_t parent_node_high;
-    uint32_t parent_node_low
+    uint32_t parent_node_low;
+    idle_queue_slot slots[8192];
 } idle_core_queue_dram;
 
 typedef struct

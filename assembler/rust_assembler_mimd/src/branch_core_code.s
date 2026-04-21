@@ -1679,7 +1679,7 @@ ADD_IDLE_CORE:
     atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
     add r4, r4, -4                          # r4 = &idle_queue.tail_relative
     atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
-    add r4, r4, 8                           # r4 = &idle_queue.slots (skip tail_relative + count)
+    add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
     and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
     add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
 IDLE_CORE_INSERT_SPINLOCK:
