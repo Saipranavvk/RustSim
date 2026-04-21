@@ -2903,20 +2903,23 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::SendFlit => {
-                        let mailbox_index = if instruction_to_execute.imm_1 != 0 {
-                            instruction_to_execute.imm_0
-                        }
-                        else {
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                        };
-                        let value_to_send = self.register_file
+                        let full_address = self.register_file
                             [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1];
-                        let destination_full = self.register_file
+                        let value_to_send = self.register_file
                             [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr];
 
+                        let mailbox_bits = (NUM_NOC_PIPES as u32).trailing_zeros();
+                        let mailbox_mask = (NUM_NOC_PIPES as u32) - 1;
+
+                        let (core_address, mailbox_index) = if instruction_to_execute.imm_1 != 0 {
+                            (full_address, instruction_to_execute.imm_0 as u32)
+                        } else {
+                            (full_address >> mailbox_bits, full_address & mailbox_mask)
+                        };
+
                         let outgoing_flit = Flit {
-                            destination_x: (destination_full % (CORES_IN_X * CORES_IN_X_STACK)as u32) as u16,
-                            destination_y: (destination_full / (CORES_IN_X * CORES_IN_X_STACK) as u32) as u16,
+                            destination_x: (core_address % (CORES_IN_X * CORES_IN_X_STACK) as u32) as u16,
+                            destination_y: (core_address / (CORES_IN_X * CORES_IN_X_STACK) as u32) as u16,
                             mailbox_id: mailbox_index as u16,
                             value_to_send,
                             cycle_to_read: self.cycle + 1,
@@ -2924,7 +2927,7 @@ impl Core {
                             origin_y: self.y_dim
                         };
                         self.flits_sent += 1;
-                        self.flit_sent_manhattan_distance_traversed += (outgoing_flit.origin_x as i64 - outgoing_flit.destination_x as i64).abs() as usize 
+                        self.flit_sent_manhattan_distance_traversed += (outgoing_flit.origin_x as i64 - outgoing_flit.destination_x as i64).abs() as usize
                             + (outgoing_flit.origin_y as i64 - outgoing_flit.destination_y as i64).abs() as usize;
                         if self.output_noc_send.is_full() {
                             switch_ctx = true;

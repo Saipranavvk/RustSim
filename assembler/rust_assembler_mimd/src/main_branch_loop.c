@@ -215,8 +215,9 @@ typedef struct
     uint32_t head_relative;
     uint32_t tail_relative;
     uint32_t count;
-    idle_queue_slot slots[256];
-    uint32_t parent_node;
+    idle_queue_slot slots[8192];
+    uint32_t parent_node_high;
+    uint32_t parent_node_low
 } idle_core_queue_dram;
 
 typedef struct
@@ -1724,7 +1725,6 @@ uint32_t REJECT_CHANGE = 14;
 //  Outputs:
 //    self->found_core_id : core_id of dequeued idle core, or 0xFFFF if none found
 //  ============================================================
-
 typedef struct
 {
     uint32_t high;
@@ -1732,6 +1732,34 @@ typedef struct
     uint16_t height;
     uint16_t _pad;
 } DFS_Entry;
+
+// typedef struct
+// {
+//     uint16_t core_id;
+//     uint16_t is_valid;
+// } idle_queue_slot;
+
+// typedef struct
+// {
+//     uint32_t head_relative;
+//     uint32_t tail_relative;
+//     uint32_t count;
+//     uint32_t parent_node_high;
+//     uint32_t parent_node_low
+//     idle_queue_slot slots[8192];
+// } idle_core_queue_dram;
+
+// typedef struct
+// {
+//     uint32_t parent_high;
+//     uint32_t parent_low;
+//     uint32_t left_high;
+//     uint32_t left_low;
+//     uint32_t right_high;
+//     uint32_t right_low;
+//     uint16_t is_left;
+//     uint16_t height;
+// } idle_queue_tree_node;
 
 // 5-level tree: max 2*height entries live at once, height <= 5, 12 bytes each
 DFS_Entry dfs_stack[12];
@@ -1744,23 +1772,27 @@ int32_t found_core_id = 0xFFFF;
 
 // ascend:
 uint16_t is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
-uint16_t height = load_dram_half(current + offsetof(idle_queue_tree_node, height));
+uint16_t height  = load_dram_half(current + offsetof(idle_queue_tree_node, height));
 
 uint32_t parent_high = load_dram_word(current + offsetof(idle_queue_tree_node, parent_high));
-uint32_t parent_low = load_dram_word(current + offsetof(idle_queue_tree_node, parent_low));
+uint32_t parent_low  = load_dram_word(current + offsetof(idle_queue_tree_node, parent_low));
 if (parent_high == 0xFFFFFFFF)
     goto search_done;
 
 set_address_bits(parent_high);
 uint32_t parent = parent_low;
 
-parent += 8;
-uint32_t sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, left_high));
-uint32_t sibling_low = load_dram_word(parent + offsetof(idle_queue_tree_node, left_low));
-
 // push_sibling:
-dfs_stack[dfs_top].high = sibling_high;
-dfs_stack[dfs_top].low = sibling_low;
+uint32_t sibling_high, sibling_low;
+if (is_left) {
+    sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, right_high));
+    sibling_low  = load_dram_word(parent + offsetof(idle_queue_tree_node, right_low));
+} else {
+    sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, left_high));
+    sibling_low  = load_dram_word(parent + offsetof(idle_queue_tree_node, left_low));
+}
+dfs_stack[dfs_top].high   = sibling_high;
+dfs_stack[dfs_top].low    = sibling_low;
 dfs_stack[dfs_top].height = height; // sibling is at same height as us
 dfs_top++;
 
@@ -1769,8 +1801,8 @@ if (dfs_top == 0)
     goto sibling_exhausted;
 dfs_top--;
 
-uint32_t dfs_node_high = dfs_stack[dfs_top].high;
-uint32_t dfs_node_low = dfs_stack[dfs_top].low;
+uint32_t dfs_node_high   = dfs_stack[dfs_top].high;
+uint32_t dfs_node_low    = dfs_stack[dfs_top].low;
 uint16_t dfs_node_height = dfs_stack[dfs_top].height;
 
 set_address_bits(dfs_node_high);
@@ -1782,16 +1814,16 @@ if (dfs_node_height == 0)
 uint16_t child_height = dfs_node_height - 1;
 
 uint32_t right_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_high));
-uint32_t right_low = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_low));
-dfs_stack[dfs_top].high = right_high;
-dfs_stack[dfs_top].low = right_low;
+uint32_t right_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_low));
+dfs_stack[dfs_top].high   = right_high;
+dfs_stack[dfs_top].low    = right_low;
 dfs_stack[dfs_top].height = child_height;
 dfs_top++;
 
 uint32_t left_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_high));
-uint32_t left_low = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_low));
-dfs_stack[dfs_top].high = left_high;
-dfs_stack[dfs_top].low = left_low;
+uint32_t left_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_low));
+dfs_stack[dfs_top].high   = left_high;
+dfs_stack[dfs_top].low    = left_low;
 dfs_stack[dfs_top].height = child_height;
 dfs_top++;
 
@@ -1813,10 +1845,10 @@ atomic_add_dram(count_addr, 1);
 goto dfs_loop;
 
 // claim_slot:
-uint32_t head_addr = dfs_node + offsetof(idle_core_queue_dram, head_relative);
+uint32_t head_addr     = dfs_node + offsetof(idle_core_queue_dram, head_relative);
 uint32_t head_relative = atomic_add_dram(head_addr, 4);
-head_relative = head_relative & 0x3FF;
-uint32_t slot_addr = dfs_node + offsetof(idle_core_queue_dram, slots) + head_relative;
+head_relative &= 0x3FF;
+uint32_t slot_addr  = dfs_node + offsetof(idle_core_queue_dram, slots) + head_relative;
 uint32_t valid_addr = slot_addr + offsetof(idle_queue_slot, is_valid);
 uint32_t coreid_addr = slot_addr + offsetof(idle_queue_slot, core_id);
 
@@ -2231,67 +2263,3 @@ vertex_copy_done:
     goto grab_from_tile;
     return;
 }
-
-// Eat_Ray_Interrupt:
-uint32_t is_odd_thread = self.thread_id & 1;
-is_odd_thread += 32;
-disable_interrupts(is_odd_thread);
-uint32_t is_value = nb_recv(is_odd_thread);
-if (is_value == 0)
-{
-    enable_interrupts(is_odd_thread);
-    return;
-}
-uint32_t value = blocking_recv(is_odd_thread);
-uint32_t node_id = value >> 17;
-uint32_t core_id = value & 0x0001FFFF;
-if (node_id != self.node_id)
-{
-    uint32_t value_to_send = wrong_core << 24;
-    value_to_send |= self.thread_id;
-    send_packet(value_to_send, core_id);
-    enable_interrupts(is_odd_thread);
-    return;
-}
-uint8_t flushing_queue = *(self.local_queue_flushing);
-if (flushing_queue == 1)
-{
-    goto reject_ray_interrupt;
-}
-uint32_t is_slot_empty = *(ray + 63);
-if (is_slot_empty == 0)
-{
-    uint32_t local_queue = ray;
-    goto receive_ray_data;
-}
-uint32_t local_queue = self.local_queue + 8; // skip head and tail
-is_odd_thread = self.thread_id & 1;
-is_odd_thread *= 1036;
-local_queue += is_odd_thread; // odd threads write to the receiver queue rather than sender queue
-uint32_t old_count = atomic_add(&local_queue.count, 1);
-if (old_count > 16)
-{
-    atomic_add(&local_queue.count, -1);
-    // reject_ray_interrupt:
-    uint32_t reject_ray_msg = reject_ray << 24;
-    reject_ray_msg |= self.thread_id;
-    send_flit(reject_ray_msg, core_id);
-    enable_interrupts(is_odd_thread);
-    return;
-}
-local_queue -= 4;
-uint32_t tail_relative = atomic_add(&local_queue, 64);
-tail_relative = tail_relative & 0x000003FF;
-local_queue += 8;
-local_queue += tail_relative;
-// receive_ray_data:
-uint32_t ray_ack_msg = ray_ack << 24 | self.thread_id;
-send_packet(ray_ack_msg, core_id);
-for (int i = 0; i < 16; i++)
-{
-    uint32_t ray_data = blocking_recv(self.thread_id);
-    *local_queue = ray_data;
-    local_queue += 4;
-}
-enable_interrupts(is_odd_thread);
-return;

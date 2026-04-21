@@ -60,7 +60,7 @@ fn opcode_table() -> HashMap<&'static str, u32> {
 
 /* ===================== HELPERS ===================== */
 
-fn is_alu(op: u32) -> bool { (0..=9).contains(&op)  || op == 49 || op == 50   }
+fn is_alu(op: u32) -> bool { (0..=9).contains(&op) || op == 50   }
 fn is_fp(op: u32) -> bool { (10..=18).contains(&op) }
 fn is_branch(op: u32) -> bool { (19..=22).contains(&op) || op == 53 || op == 54}
 
@@ -319,6 +319,20 @@ fn assemble_instruction(
         52 => { //getclk
             if args.len() != 1 { panic!("getclk expects: dr"); }
             set_dr(&mut instr, parse_reg(args[0]));
+            return vec![instr];
+        }
+        49 => { // sendflit: sendflit rd, rs1 or sendflit rd, rs1, imm
+            if args.len() != 2 && args.len() != 3 { panic!("sendflit expects: sendflit rd, rs1 or sendflit rd, rs1, imm"); }
+            if args.len() == 2 {
+                set_dr(&mut instr, parse_reg(args[0]));
+                set_sr1(&mut instr, parse_reg(args[1]));
+                set_imm1(&mut instr, 0);
+            } else {
+                set_dr(&mut instr, parse_reg(args[0]));
+                set_sr1(&mut instr, parse_reg(args[1]));
+                set_imm(&mut instr, parse_imm_or_label(args[2]));
+                set_imm1(&mut instr, 1);
+            }
             return vec![instr];
         }
         _ => {}

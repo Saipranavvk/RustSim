@@ -332,7 +332,8 @@ CHECK_INTERRUPT_MAILBOX:
     beq r12, r7, DONE_WITH_INTERRUPT, true
     block r12, r11                  # message
     srl r8, r12, 17                 # supposed_node_id
-    lw r9, ROOT_NODE_ID
+    lw r9, ROOT_NODE_ID             #WE NEED TO MODIFY THIS BECAUSE IT COULD BE EITHER ROOT_NODE_ID_SENDER
+    #OR ROOT_NODE_ID_RECEIVER. WHAT A PITA
     bne r8, r9, WRONG_CORE_SEND, true
 
     lw r8, LOCAL_QUEUE
@@ -896,8 +897,8 @@ SKIP_GRABBING_TILE_RAYS:
     lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
     lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
     lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
-    yield r8                             # yield()
     bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
+    yield r8                             # yield()
 
 # below is the final pass of the main loop, calculating the color of the final image
     getowner                             # get_thread_ownership()
@@ -1044,7 +1045,7 @@ BOUNCE_DONE: //Label not used lol
     bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
 
 INF_LOOP:
-    yield r15                            # yield()
+    yield r8                            # yield()
     beq r15, r15, INF_LOOP, true         # goto inf_loop
 
 AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
@@ -1530,9 +1531,295 @@ INV_SQRT:
     fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
     fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
     setmembits r11                      # restore old membits (r11 holds saved value)
-    jmp r9                              # return (result in r8)
+    jmp r15, r9                              # return (result in r8)
+
+EAT_RAY_INTERRUPT: #working with r6-r14
+    add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+    and r6, r15, 1                          # r6 = self.thread_id & 1 (is_odd_thread)
+    add r6, r6, 32                          # r6 = interrupt channel = 32 + is_odd_thread
+    intdis r6                               # disable_interrupts(channel)
+    nonblock r7                             # r7 = nb_recv(channel) (0 if no message waiting)
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
+    intena r6                               # enable_interrupts(channel) (nothing to do)
+    jmp r15, r4                             # return
+CONTINUE_WITH_EAT_RAY_INTERRUPT:
+    block r7                                # r7 = blocking_recv(channel) (full flit value)
+    lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
+    xor r10, r8, 0xFFFF                     # r10 = ~EAT_RAY_MASK (sign-extends, isolates node_id field)
+    and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
+    srl r13, r7, 17                         # r13 = node_id = flit >> 17
+    lw r9, ROOT_NODE_ID_SENDER              # r9 = self.node_id (sender side)
+    beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
+    lw r9, ROOT_NODE_ID_RECEIVER            # r9 = self.node_id (receiver side)
+    beq r13, r9, NODE_IDS_MATCH, true      # if node_id == receiver_node_id goto NODE_IDS_MATCH
+    add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
+    sll r10, r10, 24                        # r10 = wrong_core << 24
+    and r11, r10, 0xF                       # r11 = self.thread_id (low 4 bits)
+    and r12, r10, 0xF0                      # r12 = core_id high nibble
+    sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
+    add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
+    or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
+    sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
+    intena r6                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+NODE_IDS_MATCH:
+    lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
+    bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
+    lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
+    add r9, r0, 0                           # r9 = local_queue = ray base address
+    bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+    lw r10, ROOT_NODE_ID_SENDER             # r10 = sender node id
+    beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
+    lw r9, RECEIVER_RAY_QUEUE              # r9 = receiver ray queue base address
+    beq r15, r15, CHECK_IF_SPACE_IN_QUEUE, true  # unconditional goto CHECK_IF_SPACE_IN_QUEUE
+SENDER_QUEUE_EAT_RAY_INTERRUPT: 
+    lw r9, SENDER_RAY_QUEUE                # r9 = sender ray queue base address
+CHECK_IF_SPACE_IN_QUEUE:
+    add r9, r9, 8                           # r9 = &queue.count (skip head and tail fields)
+    atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
+    add r12, r14, 16                        # r12 = 16 (max queue entries)
+    bgte r12, r7, SPACE_IN_QUEUE, true     # if old_count <= 16 goto SPACE_IN_QUEUE
+    atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
+    add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
+    sll r7, r7, 24                          # r7 = reject_ray << 24
+    and r9, r8, 0xF0                        # r9 = core_id high nibble
+    sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+    and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+    add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+    or r9, r9, r8                           # r9 = destination flit
+    sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
+    intena r6                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+SPACE_IN_QUEUE:
+    add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
+    atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
+    and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
+    add r7, r9, r7                          # r7 = queue_base + tail_relative
+    add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
+RECEIVE_RAY_DATA:
+    add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
+    sll r9, r9, 24                          # r9 = ray_ack << 24
+    or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
+    and r10, r8, 0xF0                       # r10 = core_id high nibble
+    sll r10, r10, 2                         # r10 = high nibble shifted to channel position
+    and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+    add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+    or r10, r10, r8                         # r10 = destination flit
+    sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
+    and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
+    add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
+    block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
+    block r10, r8                           # r10 = ray_data[1]
+    block r11, r8                           # r11 = ray_data[2]
+    block r12, r8                           # r12 = ray_data[3]
+    sw r9, r7, 0                            # slot[0]  = ray_data[0]
+    sw r10, r7, 4                           # slot[4]  = ray_data[1]
+    sw r11, r7, 8                           # slot[8]  = ray_data[2]
+    sw r12, r7, 12                          # slot[12] = ray_data[3]
+    block r9, r8                            # r9  = ray_data[4]
+    block r10, r8                           # r10 = ray_data[5]
+    block r11, r8                           # r11 = ray_data[6]
+    block r12, r8                           # r12 = ray_data[7]
+    sw r9, r7, 16                           # slot[16] = ray_data[4]
+    sw r10, r7, 20                          # slot[20] = ray_data[5]
+    sw r11, r7, 24                          # slot[24] = ray_data[6]
+    sw r12, r7, 28                          # slot[28] = ray_data[7]
+    block r9, r8                            # r9  = ray_data[8]
+    block r10, r8                           # r10 = ray_data[9]
+    block r11, r8                           # r11 = ray_data[10]
+    block r12, r8                           # r12 = ray_data[11]
+    sw r9, r7, 32                           # slot[32] = ray_data[8]
+    sw r10, r7, 36                          # slot[36] = ray_data[9]
+    sw r11, r7, 40                          # slot[40] = ray_data[10]
+    sw r12, r7, 44                          # slot[44] = ray_data[11]
+    block r9, r8                            # r9  = ray_data[12]
+    block r10, r8                           # r10 = ray_data[13]
+    block r11, r8                           # r11 = ray_data[14]
+    block r12, r8                           # r12 = ray_data[15]
+    sw r9, r7, 48                           # slot[48] = ray_data[12]
+    sw r10, r7, 52                          # slot[52] = ray_data[13]
+    sw r11, r7, 56                          # slot[56] = ray_data[14]
+    sw r12, r7, 60                          # slot[60] = ray_data[15]
+    intena r6                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
 
 
+IS_IDLE_BRANCH:
+    getclk r3                               # r3 = current_cycle = get_cycle_count()
+    lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+    sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
+    bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
+    jmp r15, r2                             # return 0 (not enough time has passed)
+PASSED_BRANCH_WINDOW:
+    lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+    beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
+    jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+NOT_PREVIOUSLY_IDLE:
+    getclk r5                               # r5 = current_cycle (fresh timestamp)
+    sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+    lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+    sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+    sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
+    div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
+    lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
+    blte r4, r5, PUT_IDLE_SELF_ON_QUEUE, true # if ratio >= threshold goto PUT_IDLE_SELF_ON_QUEUE (busy enough)
+    jmp r15, r2                             # return 0 (not idle enough to enqueue)
+    add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE (unreachable, dead code)
+    atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1) (unreachable, dead code)
+    beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE (unreachable, dead code)
+    jmp r15, r2                             # return (unreachable, dead code)
+ADD_IDLE_CORE:
+    lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
+    setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
+    lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
+    add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
+    atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
+    add r4, r4, -4                          # r4 = &idle_queue.tail_relative
+    atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
+    add r4, r4, 8                           # r4 = &idle_queue.slots (skip tail_relative + count)
+    and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
+    add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
+IDLE_CORE_INSERT_SPINLOCK:
+    lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+    bne r14, r5, IDLE_CORE_INSERT_SPINLOCK  # spin until is_valid == 0 (slot is free)
+    srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
+    sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
+    add r5, r14, 1                          # r5 = 1
+    sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
+    jmp r15, r2                             # return
+
+SEARCH_FOR_IDLE_CORES: #There's no documentation of who uses this function
+#I am going to assume that r3 has a return address
+    and r14, r14, 0                     # r14 = 0 (zero register)
+    lw r5, IDLE_QUEUE_ADDRESS_HIGH      # r5 = self.idle_queue_address_high
+    sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
+    add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+    setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
+    lw r6, IDLE_QUEUE_ADDRESS_LOW       # r6 = current = self.idle_queue_address_low
+    or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
+    atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
+    add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
+    bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
+    atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
+    lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
+    lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
+    setmembits r7                       # set_address_bits(parent_node_high)
+ASCEND:
+    lh_d r9, r6, 24                     #r9 = is_left
+    lh_d r10, r6, 26                    #r10 = height
+    lw_d r11, r6, 0                     #r11 = parent_high
+    sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+    lw_d r12, r6, 4                     #r12 = parent_low
+    sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+    or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
+    beq r11, r13, SEARCH_DONE          # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
+    setmembits r11                      # set_address_bits(parent_high)
+PUSH_SIBLING:
+    beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
+    lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
+    lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
+    beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
+RIGHT_NODE:
+    lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
+    lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
+SKIP_RIGHT_NODE:
+    sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
+    sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
+    sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
+    add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
+DFS_LOOP:
+    add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+    beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
+    add r5, r5, -12                     # dfs_top-- (pop stack)
+    lw r4, r5, 0                        # r4 = dfs_stack[top].high
+    setmembits r4                       # set_address_bits(dfs_node_high)
+    lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
+    lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
+    beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
+    add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
+    lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
+    lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
+    sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
+    sw r12, r5, 4                       # dfs_stack[top].low = right_low
+    sh r13, r5, 8                       # dfs_stack[top].height = child_height
+    add r5, r5, 12                      # dfs_top++
+    lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
+    lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
+    sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
+    sw r12, r5, 4                       # dfs_stack[top].low = left_low
+    sh r13, r5, 8                       # dfs_stack[top].height = child_height
+    add r5, r5, 12                      # dfs_top++
+    beq r15, r15, DFS_LOOP, true       # unconditional goto DFS_LOOP
+TRY_DEQUEUE:
+    add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
+    atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
+    bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
+    atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
+    beq r15, r15, DFS_LOOP, true       # unconditional goto DFS_LOOP (try next node)
+CLAIM_SLOT:
+    add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
+    atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
+    and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
+    add r4, r4, r9                      # r4 = dfs_node + head_relative
+    add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
+SPINLOCK_VALID:
+    lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+    beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
+    lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
+    sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
+    beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
+SIBLING_EXHAUSTED:
+    lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+    setmembits r11                      # set_address_bits(parent_high)
+    lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+    beq r15, r15, ASCEND, true         # unconditional goto ASCEND
+SEARCH_DONE:
+    or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
+    beq r9, r8, RAY_DONE, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
+    sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
+    and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
+    add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
+    block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
+    srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
+    add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
+    bne r11, r10, RAY_DONE, false      # if response == REJECT_CHANGE goto RAY_DONE
+    add r10, r14, 1                     # r10 = 1
+    sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
+    and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
+    lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
+    beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
+    lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
+    lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
+    add r5, r12, r5                     # r5 = end address of code region
+TRANSFER_BRANCH_CODE_LOOP:
+    lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
+    sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
+    add r12, r12, 4                     # i += 4
+    beq r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
+TRANSFER_GEO:
+    lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
+    lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
+    add r5, r12, r5                     # r5 = end address of geometry region
+TRANSFER_BRANCH_GEO_LOOP:
+    lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
+    sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
+    add r12, r12, 4                     # i += 4
+    beq r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
+    beq r15, r15, RAY_DONE, true       # unconditional goto RAY_DONE
+
+BRANCH_START_OF_CODE:    .data -1
+BRANCH_NUM_INSTRUCTION_BYTES: .data -1
+BRANCH_START_OF_GEO:     .data -1
+BRANCH_SIZE_OF_GEO:      .data -1
+SAVED_BRANCH_HIGH:       .data -1
+SAVED_BRANCH_LOW:        .data -1
+SEARCH_FOR_IDLE_CORES_STORAGE: .data -1
+BRANCH_IDLE_THRESHOLD    .data -1
+IDLE_WINDOW:             .data 100000
+EAT_RAY_MASK:            .data 0x0001FFFF
 HALF:                    .data 0x3F000000
 TWO:                     .data 0x40000000
 RECIPROCAL_STORAGE:      .data -1
@@ -1554,7 +1841,8 @@ LOCAL_QUEUE:            .data 0
 LOCAL_QUEUE_FLUSHING:   .data 0
 LOCAL_RAY_QUEUE:        .data 0
 LOCAL_RAY_QUEUE_HEAD:   .data 0
-ROOT_NODE_ID:           .data 0
+ROOT_NODE_ID_SENDER:    .data -1
+ROoT_NODE_ID_RECEIVER:  .data -1
 LEAF_CORE_LOOKUP_TABLE: .data 0    
 IS_BRANCH_CORE: .data -1
 RAY_QUEUE_HIGH: .data -1
@@ -1632,3 +1920,4 @@ RAY_ARRAY: .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: .data(64) 0
 SENDER_RAY_QUEUE: .data(1036) 0
 RECEIVER_RAY_QUEUE: .data(1036) 0
+DFS_STACK: .data(256) 0
