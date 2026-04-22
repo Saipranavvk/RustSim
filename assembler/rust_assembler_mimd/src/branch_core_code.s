@@ -153,7 +153,7 @@ IS_INTERNAL_NODE:
     lhu r6, r1, 32                  # r6 = node->core_owner
     sendflit r6, r12, 32            # TODO confirm notation w/ Alex
 
-# uint32_t sent = 0;  -- r3 repurposed as sent after check_right is consumed
+# uint32_t sent = 0;
     and r3, r3, 0                   # r3 = sent = 0
 
 SEND_RAY_LOOP:
@@ -259,7 +259,7 @@ SKIP_BUMP:
     add r9, r9, r12                 # r9 = &core_slots[idx]
     lw_d r10, r9, 28                # r10 = core_to_cache (core_slots at +28 from lock field)
     sh r10, r1, 32                  # node->core_owner = core_to_cache
-    beq r15, r15, RELEASE_LOCK, true
+    beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
 
 NO_OWNER:
     # node->core_owner = 0xFFFF
@@ -273,7 +273,7 @@ NO_OWNER:
     lw_d r10, r9, -12               # r10 = cur_ray_count
     and r11, r11, 0
     add r11, r11, 200               # r11 = 200
-    blte r10, r11, RELEASE_LOCK, true   # if count <= 200 skip emergency
+    blte r10, r11, SKIP_EMERGENCY_ENQUEUE, true   # if count <= 200 skip emergency
 
     # atomic_add(queue_address_low + 16924, 1) to check if first to enqueue
     add r9, r9, 16924               # r9 = &on_emergency_idle_queue flag
@@ -316,9 +316,6 @@ ENSURE_EMERGENCY_SLOT_READY:
     sb_d r11, r9, 2                 # slot->is_valid = 1
 
 SKIP_EMERGENCY_ENQUEUE:
-    # fall through to RELEASE_LOCK
-
-RELEASE_LOCK:
     lw r9, r1, 36                   # r9 = queue_low_bit_addr
     add r9, r9, 20                  # r9 = &lock field
     atomadd_d r11, r9, -1           # release lock (decrement back)
@@ -406,6 +403,7 @@ NO_FLUSH:
     and r9, r12, 0xF                # r9 = dest mailbox + 16
     add r9, r9, 16
     sendflit r11, r14, r9           # send ack
+    beq r15, r15, DONE_WITH_INTERRUPT, true
 
 WRONG_CORE_SEND:
     and r9, r9, 0
@@ -610,6 +608,7 @@ CHECK_ODD_FOR_NO_RAYS:
 
 no_rays_available:
     # (continues in rest of main loop file)
+    
 lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_queue_flushing)
     and r14, r3, 0                       # r14 = 0
     bne r3, r14, INF_LOOP, false         # if (flushing_queue != 0) goto inf_loop
