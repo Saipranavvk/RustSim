@@ -1698,12 +1698,13 @@ NOT_PREVIOUSLY_IDLE:
     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-    blte r4, r5, PUT_IDLE_SELF_ON_QUEUE, true # if ratio >= threshold goto PUT_IDLE_SELF_ON_QUEUE (busy enough)
+    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
     jmp r15, r2                             # return 0 (not idle enough to enqueue)
-    add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE (unreachable, dead code)
-    atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1) (unreachable, dead code)
-    beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE (unreachable, dead code)
-    jmp r15, r2                             # return (unreachable, dead code)
+ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
+    add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
+    atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1)
+    beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE
+    jmp r15, r2                             # return 
 ADD_IDLE_CORE:
     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
