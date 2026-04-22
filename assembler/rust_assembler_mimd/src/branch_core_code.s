@@ -627,7 +627,7 @@ lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_que
     atomadd r5, r5, 1                    # uint32_t num_times_pulled = atomic_add(pulled_from_full_queue_address, 1)
     add r6, r14, 1                       # r6 = BRANCH_BUSY_THRESHOLD (1)
     blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false  # if (num_times_pulled <= BRANCH_BUSY_THRESHOLD) goto PULL_ELEM_FROM_DRAM_QUEUE
-    jmp r7, BRANCH_CORE_ASK_FOR_HELP    # branch_core_ask_for_help()
+    jmp r7, SEARCH_FOR_IDLE_CORES    # branch_core_ask_for_help()
 RESET_PULLED_FROM_FULL_QUEUE_CNT:
     sw r14, PULLED_FROM_FULL_QUEUE_CNT  # *(self->pulled_from_full_queue_address) = 0
 PULL_ELEM_FROM_DRAM_QUEUE:
@@ -861,6 +861,7 @@ SPAWN_FROM_TILE:
     bgt r3, r4, GET_NEW_TILE, false      # if (ray_num_from_tile > 255) goto get_new_tile
     add r2, r2, 28                       # tile_data_sram_address += 28 (point to rays_spawned counter)
     atomadd r15, r2, 1                   # atomic_add(tile_data_sram_address, 1) -- increment rays spawned
+    add r2, r2, -28                       # tile_data_sram_address -= 28 
     and r4, r3, 0xF                      # uint32_t intra_tile_x = ray_num_from_tile & 0xF
     srl r5, r3, 4                        # uint32_t intra_tile_y = ray_num_from_tile >> 4
     lhu r6, r2, 8                        # uint32_t inter_tile_x = *(self.tile_data_sram->tile_x_index)
@@ -885,7 +886,6 @@ SPAWN_FROM_TILE:
     lw r6, CAM_Y                         # float cam_cy = *(self.cam_y)
     sw r6, r0, 4                         # ray->oy = cam_y
     lw r7, CAM_INV_FOCAL                 # float cam_inv_f = *(self.cam_inv_f)
-    sw r7, r0, 8                         # ray->oz = cam_inv_f  -- differs: pseudocode stores cam_z, asm stores inv_focal here temporarily
     fsub.32 r8, r3, r5                   # float dx = fpix_x - cam_cx
     fsub.32 r9, r4, r6                   # float dy = fpix_y - cam_cy
     fpmul.32 r2, r8, r7                   # dx = dx * cam_inv_f
@@ -1369,13 +1369,13 @@ GENERATE_BOUNCE_RAY:
     # mask mantissa to [1.0, 2.0) then subtract 1.5
     add r1, r14, 0x7F                   # r1 = 0x7F (exponent for 1.0)
     sll r1, r1, 23                      # r1 = 0x3F800000 (and_mask: clears sign+exp, keeps mantissa)
-    lw r5, RANDOM_FLOAT_OR_MASK         # r5 = 0x3F800000 (or_mask: forces exponent to 127)
-    and r2, r1, r2                      # r2 &= and_mask (clear top bits)
-    and r3, r1, r3                      # r3 &= and_mask
-    and r6, r1, r6                      # r6 &= and_mask
-    or r2, r2, r5                       # r2 |= or_mask (force to [1.0, 2.0))
-    or r3, r3, r5                       # r3 |= or_mask
-    or r6, r6, r5                       # r6 |= or_mask
+    lw r5, RANDOM_FLOAT_AND_MASK         # r5 = 0x3F800000 (or_mask: forces exponent to 127)
+    or r2, r1, r2                      # r2 |= or_mask (clear top bits)
+    or r3, r1, r3                      # r3 |= or_mask
+    or r6, r1, r6                      # r6 |= or_mask
+    and r2, r2, r5                       # r2 &= and_mask (force to [1.0, 2.0))
+    and r3, r3, r5                       # r3 &= and_mask
+    and r6, r6, r5                       # r6 &= and_mask
     lw r1, ONE_POINT_FIVE               # r1 = 1.5f
     fpsub.32 r2, r2, r1                 # random1 -= 1.5 -> [-0.5, 0.5)
     fpsub.32 r3, r3, r1                 # random2 -= 1.5
@@ -1443,7 +1443,7 @@ GENERATE_BOUNCE_RAY:
     fpadd.32 r9, r9, r10               # r9 = norm_x*bdx + norm_y*bdy
     fpadd.32 r9, r9, r11               # r9 = check = dot(bd, n)
     and r10, r10, 0                     # r10 = 0 (for comparison with 0.0)
-    fplt r11, r9, r10                   # r11 = (check < 0.0)
+    fplt.32 r11, r9, r10                   # r11 = (check < 0.0)
     bne r11, r10, SKIP_FLIP, true       # if check >= 0 skip flip 
     # flip: bd -= 2*dot(bd,n)*n
     fpadd.32 r9, r9, r9                 # r9 = 2 * check
@@ -1579,7 +1579,6 @@ EAT_RAY_INTERRUPT: #working with r6-r14
 CONTINUE_WITH_EAT_RAY_INTERRUPT:
     block r7                                # r7 = blocking_recv(channel) (full flit value)
     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
-    xor r10, r8, 0xFFFF                     # r10 = ~EAT_RAY_MASK (sign-extends, isolates node_id field)
     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
     srl r13, r7, 17                         # r13 = node_id = flit >> 17
     lw r9, ROOT_NODE_ID_SENDER              # r9 = self.node_id (sender side)
@@ -1588,8 +1587,10 @@ CONTINUE_WITH_EAT_RAY_INTERRUPT:
     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == receiver_node_id goto NODE_IDS_MATCH
     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
     sll r10, r10, 24                        # r10 = wrong_core << 24
-    and r11, r10, 0xF                       # r11 = self.thread_id (low 4 bits)
-    and r12, r10, 0xF0                      # r12 = core_id high nibble
+    and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
+    and r12, r7, 0xFFF0                      # r12 = core_id high nibble
+    sll r12, r12, 15
+    srl r12, r12, 15
     sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
     add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
     or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
@@ -1698,7 +1699,7 @@ NOT_PREVIOUSLY_IDLE:
     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-    blte r5, r4, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
     jmp r15, r2                             # return 0 (not idle enough to enqueue)
 ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
     add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
@@ -1859,7 +1860,7 @@ TWO:                     .data 0x40000000
 RECIPROCAL_STORAGE:      .data -1
 NEG_MAX:                 .data 0x80000000
 ONE_POINT_FIVE:          .data 0x3FC00000
-RANDOM_FLOAT_OR_MASK:    .data 0x3FFFFFFF
+RANDOM_FLOAT_AND_MASK:    .data 0x3FFFFFFF
 RANDOM_TABLE_MASK:       .data 0x0003FFF0
 MAX_RAYS_IN_RAY_POOL:    .data 260000
 FINISHED_PIXELS_HIGH:   .data -1
