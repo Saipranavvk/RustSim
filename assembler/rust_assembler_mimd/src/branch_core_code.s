@@ -721,7 +721,7 @@ CHECK_SPAWNED_RAY_POOL:
     blte r3, r14, GRAB_FROM_TILE, true   # if (count <= 0) goto grab_from_tile
     add r2, r2, 8                        # spawned_ray_pool_low += 8
     atomadd_d r3, r2, -1                 # uint32_t old_cnt = atomic_add(spawned_ray_pool_low, -1)
-    blte r14, r3, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true  # if (old_cnt > 0) goto CONTINUE -- differs: pseudocode checks old_cnt <= 0 to undo
+    bgt r3, r14, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true  # if (old_cnt > 0) goto CONTINUE -- differs: pseudocode checks old_cnt <= 0 to undo
     atomadd_d r3, r2, 1                  # atomic_add(spawned_ray_pool_low, 1) -- undo decrement
     beq r15, r15, GRAB_FROM_TILE, true   # goto grab_from_tile
 CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL:
@@ -820,7 +820,7 @@ GET_NEW_TILE:
     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
     add r2, r2, 8                        # tile_pool_low += 8 (point to count field)
     atomadd_d r15, r2, 1                 # atomic_add_dram(tile_pool_low, 1) -- increment tile count
-    add r2, r2 -4                        # tile_pool_low -= 4 (point to tail field)
+    add r2, r2, -4                        # tile_pool_low -= 4 (point to tail field)
     atomadd_d r3, r2, 4                  # uint32_t bytes_relative_tail = atomic_add_dram(tile_pool_low, 4)
     add r4, r14, 255                     # r4 = 255
     sll r4, r4, 8                        # r4 = 255 << 8 = 0xFF00
@@ -893,7 +893,7 @@ SPAWN_FROM_TILE:
     lw r4, NEG_ONE                       # float dz = -1.0f
     fpmul.32 r5, r2, r2                   # float len_sq = dx * dx
     fpmul.32 r6, r3, r3                   # tmp = dy * dy
-    fpmul.32 r7, r4, r4)                  # tmp2 = dz * dz
+    fpmul.32 r7, r4, r4                   # tmp2 = dz * dz
     fpadd.32 r5, r5, r6                   # len_sq += tmp
     fpadd.32 r9, r5, r7                   # len_sq += tmp2  (r9 = full len_sq)
     add r6, r8, 0                        # r6 = dx (save for after INV_SQRT clobbers r8)  -- differs: pseudocode doesn't need this save
@@ -922,7 +922,7 @@ SPAWN_FROM_TILE:
     sw r12, r0, 56                       # ray->tri_index = 0xFFFFFFFF
     sb r13, r0, 63                       # ray->active_ray = 1
     lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
-    goto start_ray_traversal             # goto start_ray_traversal
+    beq r15, r15, start_ray_traversal, true   # goto start_ray_traversal
 SKIP_GRABBING_TILE_RAYS:
     yield r8                             # yield()
     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
@@ -977,7 +977,7 @@ BOUNCE_LOOP:
 SHADOW_LOOP:
     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
     or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
-    beq r9, r8, SHADOW_SKIP             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+    beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
     #TODO EVERY TIME I DO A JUMP I NEED TO RESET MEMBITS
     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
@@ -989,9 +989,9 @@ SHADOW_LOOP:
     lw r11, r4, 28                       # r11 = acc_r
     lw r12, r4, 32                       # r12 = acc_g
     lw r13, r4, 36                       # r13 = acc_b
-    fpmul.32 r11, r11, r7                 # acc_r *= lr  -- differs: pseudocode does acc_r += lr not *=
-    fpmul.32 r12, r12, r8                 # acc_g *= lg
-    fpmul.32 r13, r13, r10               # acc_b *= lb
+    fpadd.32 r11, r11, r7                 # acc_r += lr 
+    fpadd.32 r12, r12, r8                 # acc_g += lg
+    fpadd.32 r13, r13, r10               # acc_b += lb
     sw r11, r4, 28                       # store acc_r
     sw r12, r4, 32                       # store acc_g
     sw r13, r4, 36                       # store acc_b
@@ -1019,20 +1019,20 @@ SHADOW_SKIP:
     lw r13, r4, 0                        # r13 = carried_r
     fpmul.32 r13, r13, r9                 # carried_r *= sr
     fpmul.32 r13, r13, r12               # carried_r *= metallic
-    fpmul.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+    fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
     sw r6, r4, 0                         # store new carried_r
     lw r13, r4, 4                        # r13 = carried_g
     fpmul.32 r13, r13, r10               # carried_g *= sg
     fpmul.32 r13, r13, r12               # carried_g *= metallic
-    fpmul.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+    fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
     sw r7, r4, 4                         # store new carried_g
     lw r13, r4, 8                        # r13 = carried_b
     fpmul.32 r13, r13, r11               # carried_b *= sb
     fpmul.32 r13, r13, r12               # carried_b *= metallic
-    fpmul.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+    fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
     sw r8, r4, 8                         # store new carried_b
     add r2, r2, -1                       # bounce -= 1
-    bgte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
+    blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
 BOUNCE_DONE: //Label not used lol
     lw r13, ONE                          # r13 = 1.0f
     lw r10, r4, 0                        # r10 = carried_r
@@ -1180,7 +1180,7 @@ RAY_HIT_A_TRI_IN_COMPLETE: #r0 = ray, r1 = addr, r14 = 0
     sw_d r6, r1, 16                     # store_dram_word(result_addr_low + 16, tri_metallic) (note: skips offset 12 which is len_sq/tri_index union)
     lw r3, r0, 0                        # r3 = ray->ox //r3 = ox
     lw r4, r0, 12                       # r4 = ray->inv_dx
-    lw r5, 36                           # r5 = ray->t_max //r5 = tmax
+    lw r5, r0, 36                           # r5 = ray->t_max //r5 = tmax
     fpmul.32 r4, r4, r5                 # r4 = inv_dx * t_max... wait, this should be dx * t_max
     fpadd.32 r4, r4, r3                 # r4 = ox + dx * t_max = hit_x //r4 = hit_x
     lw r6, r0, 4                        # r6 = ray->oy //r6 = oy
@@ -1244,7 +1244,7 @@ RAY_HIT_A_TRI_IN_COMPLETE: #r0 = ray, r1 = addr, r14 = 0
 ENSURE_SPACE_RAY_POOL:
     atomadd_d r11, r13, 3               # r11 = atomic_add_dram(count, 3) - reserve 3 slots
     lw r9, MAX_RAYS_IN_RAY_POOL         # r9 = 260000
-    bgte r9, r11, ENOUGH_SPACE_IN_RAY_POOL, true  # if (cur_num_new_rays <= 260000) goto ENOUGH_SPACE
+    bgt r9, r11, ENOUGH_SPACE_IN_RAY_POOL, true  # if (cur_num_new_rays <= 260000) goto ENOUGH_SPACE
     atomadd_d r15, r13, -3              # undo reservation: atomic_add_dram(count, -3)
     beq r15, r15, ENSURE_SPACE_RAY_POOL, true     # goto ensure_space_ray_pool (spin)
 ENOUGH_SPACE_IN_RAY_POOL:
@@ -1422,7 +1422,7 @@ GENERATE_BOUNCE_RAY:
     # normalize bdx, bdy, bdz via inv_sqrt
     fpmul.32 r1, r4, r4                 # r1 = bdx * bdx
     fpmul.32 r2, r10, r10              # r2 = bdy * bdy
-    fmul.32 r3, r12, r12               # r3 = bdz * bdz
+    fpmul.32 r3, r12, r12               # r3 = bdz * bdz
     fpadd.32 r1, r1, r3                 # r1 = bdx^2 + bdz^2
     fpadd.32 r1, r1, r2                 # r1 = len_sq = bdx^2 + bdy^2 + bdz^2
     # save registers that INV_SQRT will clobber, set up call
@@ -1612,7 +1612,7 @@ CHECK_IF_SPACE_IN_QUEUE:
     add r9, r9, 8                           # r9 = &queue.count (skip head and tail fields)
     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
     add r12, r14, 16                        # r12 = 16 (max queue entries)
-    bgte r12, r7, SPACE_IN_QUEUE, true     # if old_count <= 16 goto SPACE_IN_QUEUE
+    bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
     sll r7, r7, 24                          # r7 = reject_ray << 24
@@ -1698,7 +1698,7 @@ NOT_PREVIOUSLY_IDLE:
     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+    blte r5, r4, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
     jmp r15, r2                             # return 0 (not idle enough to enqueue)
 ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
     add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
@@ -1749,7 +1749,7 @@ ASCEND:
     lw_d r12, r6, 4                     #r12 = parent_low
     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
-    beq r11, r13, SEARCH_DONE          # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
+    beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
     setmembits r11                      # set_address_bits(parent_high)
 PUSH_SIBLING:
     beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
@@ -1832,7 +1832,7 @@ TRANSFER_BRANCH_CODE_LOOP:
     lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
     sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
     add r12, r12, 4                     # i += 4
-    beq r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
+    bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
 TRANSFER_GEO:
     lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
     lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
@@ -1841,7 +1841,7 @@ TRANSFER_BRANCH_GEO_LOOP:
     lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
     add r12, r12, 4                     # i += 4
-    beq r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
+    bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
     beq r15, r15, RAY_DONE, true       # unconditional goto RAY_DONE
 
 BRANCH_START_OF_CODE:    .data -1
@@ -1851,7 +1851,7 @@ BRANCH_SIZE_OF_GEO:      .data -1
 SAVED_BRANCH_HIGH:       .data -1
 SAVED_BRANCH_LOW:        .data -1
 SEARCH_FOR_IDLE_CORES_STORAGE: .data -1
-BRANCH_IDLE_THRESHOLD    .data -1
+BRANCH_IDLE_THRESHOLD:    .data -1
 IDLE_WINDOW:             .data 100000
 EAT_RAY_MASK:            .data 0x0001FFFF
 HALF:                    .data 0x3F000000
@@ -1876,8 +1876,7 @@ LOCAL_QUEUE_FLUSHING:   .data 0
 LOCAL_RAY_QUEUE:        .data 0
 LOCAL_RAY_QUEUE_HEAD:   .data 0
 ROOT_NODE_ID_SENDER:    .data -1
-ROoT_NODE_ID_RECEIVER:  .data -1
-LEAF_CORE_LOOKUP_TABLE: .data 0    
+ROOT_NODE_ID_RECEIVER:  .data -1
 IS_BRANCH_CORE: .data -1
 RAY_QUEUE_HIGH: .data -1
 RAY_QUEUE_LOW: .data -1
@@ -1915,7 +1914,6 @@ CAM_CY: .data -1
 CAM_INV_FOCAL: .data -1
 RAY_SEND_PENDING: .data -1
 PULLED_FROM_FULL_QUEUE_CNT: .data -1
-FLUSHING_LOCAL_QUEUE: .data 0
 CORE_ID_TO_SWITCH_TO: .data -1
 TILE_DATA_COUNT: .data 0 #count
 TILE_IS_ACTIVE: .data 0 
