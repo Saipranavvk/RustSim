@@ -1876,7 +1876,6 @@ CONTINUE_WITH_SWITCH_ROLES_INTERRUPT:
     bne r14, r14, r4, true                             # return
 UNHANDLED_CORE:
     # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);
-    getowner                  # TODO ALex tf is this? Hi Sai this is alex it turns off all other threads
     add r10, r7, 0                      # r10 = switch_core_request
     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
@@ -1899,7 +1898,6 @@ UNHANDLED_CORE:
     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
     beq r15, r15, DONE_LOADING_CODE, true
 BRANCH_START_OF_CODE:
-
     lw, r11, branch_start_of_code   
     # r11 = starting_address
 DONE_LOADING_CODE:
