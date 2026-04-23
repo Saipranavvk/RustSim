@@ -1960,53 +1960,6 @@ struct leaf_geo_alloc_info
     uint32_t vertex_byte_count;
 };
 
-// // dram_nodes <- TODO ask alex bby about bvh download
-// // ASSUME according to previous convention:
-
-// void leaf_node_idx_vertex_allocator()
-// {
-//     set_address_bits(self.node_array_high);
-//     uint32_t dram_src = self.node_array_low + self.leaf_alloc.node_byte_offset;
-//     uint32_t sram_dst = self.sram_nodes;
-//     uint32_t words    = self.leaf_alloc.node_byte_count >> 2;
-//     uint32_t i = 0;
-// node_copy_loop:
-//     if (i >= words) goto node_copy_done;
-//     *(sram_dst) = load_dram_word(dram_src);
-//     dram_src += 4;
-//     sram_dst += 4;
-//     i += 1;
-//     goto node_copy_loop;
-// node_copy_done:
-
-//     set_address_bits(self.node_array_high); // assuming same high bits
-//     dram_src = self.index_array_low + self.leaf_alloc.index_byte_offset;
-//     words    = self.leaf_alloc.index_byte_count >> 2;
-//     i = 0;
-// index_copy_loop:
-//     if (i >= words) goto index_copy_done;
-//     *(sram_dst) = load_dram_word(dram_src);
-//     dram_src += 4;
-//     sram_dst += 4;
-//     i += 1;
-//     goto index_copy_loop;
-// index_copy_done:
-
-//     set_address_bits(self.vertex_array_high);
-//     dram_src = self.vertex_array_low + self.leaf_alloc.vertex_byte_offset;
-//     words    = self.leaf_alloc.vertex_byte_count >> 2;
-//     i = 0;
-// vertex_copy_loop:
-//     if (i >= words) goto vertex_copy_done;
-//     *(sram_dst) = load_dram_word(dram_src);
-//     dram_src += 4;
-//     sram_dst += 4;
-//     i += 1;
-//     goto vertex_copy_loop;
-// vertex_copy_done:
-
-//     return;
-// }
 
 // ============================================================
 // download_bvh_nodes

@@ -1845,6 +1845,106 @@ TRANSFER_BRANCH_GEO_LOOP:
     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
     beq r15, r15, RAY_DONE, true       # unconditional goto RAY_DONE
 
+SWITCH_ROLES_INTERRUPT:
+    add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+    and r6, r6, 0                          # r6 = self thread_id & 1 (is_odd_thread)
+    add r6, r6, 34                          # r6 = interrupt channel = 32 + is_odd_thread
+    intdis r6                               # disable_interrupts(34)
+    nonblock r7                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
+    intena r6                               # enable_interrupts(channel) (nothing to do)
+    bne r14, r14, r4, true                             # return
+CONTINUE_WITH_SWITCH_ROLES_INTERRUPT:
+    block r7                                # r7 = blocking_recv(channel) (full flit value)
+    # if (self.core_handled->previously_idle == 0)
+    lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
+    bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
+    #     send_flit(REJECT_CHANGE << 24, switch_core_request >> 4, switch_core_request & 0xF + 16);
+    lw r10, SWITCH_CORE_REQUEST             # r10 = switch_core_request
+    add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
+    sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
+    and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+    add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+    and r10, r10, 0xF0                  # r10 = core_id high nibble
+    sll r10, r10, 2                     # r10 = core_id high nibble shifted to channel position
+    or r10, r10, r12                    # r10 = destination flit
+    sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
+    # enable_interrupts(34);
+    # return;
+    intena r6                               # enable_interrupts(channel)
+    bne r14, r14, r4, true                             # return
+UNHANDLED_CORE:
+    # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);
+    lw r10, SWITCH_CORE_REQUEST             # r10 = switch_core_request
+    add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
+    sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
+    and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+    add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+    and r10, r10, 0xF0                  # r10 = core_id high nibble
+    sll r10, r10, 2                     # r10 = core_id high nibble shifted to channel position
+    or r10, r10, r12                    # r10 = destination flit
+    sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
+    # get_ownership();                  # TODO ALex tf is this?
+    # uint32_t type_of_core = blocking_recv(0);
+    block r10, r14                           # r10 = type_of_core = blocking_recv(0)
+    # if (type_of_core != self.is_branch_core)
+    lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
+    beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
+    #     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
+    and r11, r11, 0
+    add r11, r11, 1
+    beq r10, r11, leaf_start_of_code
+    lw r11, LEAF_START_OF_CODE             # r11 = leaf_start_of_code
+    bew r15, r15, DONE_LOADING_CODE, true
+    lw, r11, branch_start_of_code   
+    # r11 = starting_address
+DONE_LOADING_CODE:
+    and r12, r12, 0
+    add r12, r12, 17284                     # num_instructions
+    #    for (int i = 0; i < num_instructions; i += 4)
+    and r14, r14, 0             # 0
+    and r9, r9, 0               # i
+FOR_NUM_INSTRUCTIONS:
+    #         uint32_t instruction_to_recv = blocking_recv(0);
+    block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
+    #           *(starting_address + i) = instruction_to_recv;
+    sw r13, r11, r9                         # *(starting_address + i) = instruction_to_recv
+    add r9, r9, 4                           # i += 4
+    blt r9, r12, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
+CORE_TYPE_BRANCH:
+    # uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
+    and r11, r11, 0
+    add r11, r11, 1
+    and r12, r12, 0
+    bne r10, r11, leaf_start_of_geometry
+    lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
+    add r12, r12, 5678 * 4
+    beq r15, r15, DONE_LOADING_GEO, true
+    lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
+    add r12, r12, 8765 * 4
+DONE_LOADING_GEO:
+    # for (int i = 0; i < size_of_geo; i += 4)
+    and r14, r14, 0             # 0
+    and r9, r9, 0               # i
+FOR_SIZE_OF_GEO:
+    #     uint32_t word_to_transfer_of_geo = blocking_recv(0);
+    #     *(starting_address + i) = word_to_transfer_of_geo;
+    block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
+    sw r13, r11, r9                         # *(starting_address + i) = word_to_transfer_of_geo
+    add r9, r9, 4                           # i += 4
+    blt r9, r12, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
+    # self.is_branch_core = type_of_core;
+    sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
+    and r11, r11, 0
+    add r11, r11, 1
+    beq r10, r11, VERTEX_COPY_DONE, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
+    beq r15, r15, VERTEX_COPY_DONE_BUT_LEAF, true
+
+
+
+
+
 BRANCH_START_OF_CODE:    .data -1
 BRANCH_NUM_INSTRUCTION_BYTES: .data -1
 BRANCH_START_OF_GEO:     .data -1
@@ -1948,6 +2048,10 @@ LIGHT2_R: .data -1
 LIGHT2_G: .data -1
 LIGHT2_B: .data -1
 ROOT_NODE_ADDRESS: .data 0
+REGISTER_SPILL_1: .data(32) 0
+REGISTER_SPILL_2: .data(32) 0
+REGISTER_SPILL_3: .data(32) 0
+REGISTER_SPILL_4: .data(32) 0
 //DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
 RAY_ARRAY: .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: .data(64) 0
