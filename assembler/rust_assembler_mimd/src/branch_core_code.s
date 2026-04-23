@@ -1765,7 +1765,7 @@ SKIP_RIGHT_NODE:
     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
-DFS_LOOP:
+DFS_LOOP_CORE_SEARCH:
     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
     add r5, r5, -12                     # dfs_top-- (pop stack)
@@ -1787,13 +1787,13 @@ DFS_LOOP:
     sw r12, r5, 4                       # dfs_stack[top].low = left_low
     sh r13, r5, 8                       # dfs_stack[top].height = child_height
     add r5, r5, 12                      # dfs_top++
-    beq r15, r15, DFS_LOOP, true       # unconditional goto DFS_LOOP
+    beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
 TRY_DEQUEUE:
     add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
     atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
     bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
     atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
-    beq r15, r15, DFS_LOOP, true       # unconditional goto DFS_LOOP (try next node)
+    beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
 CLAIM_SLOT:
     add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
     atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
@@ -1912,9 +1912,10 @@ FOR_NUM_INSTRUCTIONS:
     #         uint32_t instruction_to_recv = blocking_recv(0);
     block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
     #           *(starting_address + i) = instruction_to_recv;
-    sw r13, r11, r9                         # *(starting_address + i) = instruction_to_recv
+    sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
+    add r11, r11, 4
     add r9, r9, 4                           # i += 4
-    blt r9, r12, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
+    bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
 CORE_TYPE_BRANCH:
     # uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
     and r11, r11, 0
