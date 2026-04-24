@@ -2141,10 +2141,10 @@ dfs_done:
     and r1, r1, 0
     add, r1, r1, 16924
     sll r1, r1, 1 
-    lw, r2, NODE_ARRAY_LOW
+    lw, r2, RAY_QUEUE_LOW
     add r1, r1, r2
-    lw r2, r1, 20
-    lw r3, r1, 24
+    lw r2, r1, 16
+    lw r3, r1, 20
     lw r1, r1, 0
     add r1, r1, r2              # r1 = dram_src
 
@@ -2171,7 +2171,7 @@ index_copy_done:
     and r1, r1, 0
     add, r1, r1, 16924
     sll r1, r1, 1 
-    lw, r2, NODE_ARRAY_LOW
+    lw, r2, RAY_QUEUE_LOW
     add r1, r1, r2
 
 
