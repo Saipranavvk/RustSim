@@ -557,7 +557,6 @@ ray_done:
     add r12, r12, 8
     atomadd r14, r12, -1            # decrement count
     and r13, r13, 0x7FF
-    add r12, r12, -8
     add r12, r12, r13               # queue_head + slot
     add r12, r12, 4
 
@@ -2138,7 +2137,7 @@ dfs_done:
     srl r3, r3, 2               # r3 = words
 
     add r4, r14, 0              # i = 0
-
+    lw r6, SRAM_NODE_ALLOC_PTR         # r6 = sram_dst (start of tile data in SRAM)
 index_copy_loop:
     bge r4, r3, index_copy_done, true
 
