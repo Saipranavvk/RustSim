@@ -151,7 +151,7 @@ triangle_intersect:
     lw r10, r7, 8
     fpsub.32 r8, r8, r12 #e2x
     fpsub.32 r9, r9, r13 #e2y
-    fpsub.32 r10, r10, r4 #e2z i have 11-14 now i think
+    fpsub.32 r10, r10, r14 #e2z i have 11-14 now i think
     sw r8, r4, 12
     sw r9, r4, 16
     sw r10, r4, 20
@@ -178,8 +178,6 @@ triangle_intersect:
     fpmac.32 r10, r14
     fpstoreaccum.32 r8
     beq r8, r12, TRIANGLE_INTERSECT_RETURN, false #I have 9, 10, and 12 available
-    sw r6, r4, 24
-    sw r7, r4, 28
     lw r6, r0, 0
     lw r7, r5, 0
     fpsub.32 r6, r6, r7
@@ -191,9 +189,9 @@ triangle_intersect:
     fpsub.32 r9, r9, r10
     and r10, r10, 0
     fpsetaccum.32 r10
-    fmac r6, r11 
-    fmac r7, r13
-    fmac r9, r14
+    fpmac.32 r6, r11 
+    fpmac.32 r7, r13
+    fpmac.32 r9, r14
     fpstoreaccum.32 r12
     sw r6, r4, 32
     sw r7, r4, 36
@@ -225,8 +223,8 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_1:
     fpmul.32 r14, r7, r11 #ty * e1z
     fpsub.32 r14, r14, r6 #qx
     lw r6, r4, 32 #tx
-    fpmul.32 r6, r6, r7 #tx * e1z
-    fpsub.32 r10, r10, r6 #qy
+    fpmul.32 r7, r6, r7 #tx * e1z
+    fpsub.32 r10, r10, r7 #qy
     fpmul.32 r9, r9, r6 #tx * e1y
     fpsub.32 r9, r9, r13 #qz
     and r11, r11, 0
@@ -235,20 +233,19 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_1:
     fpmac.32 r6, r14
     lw r6, r0, 16
     fpmac.32 r6, r10
-    lw r6, r0, 16
+    lw r6, r0, 20
     fpmac.32 r6, r9
-    fpstoreaccum r7 #r7 = v_unscaled
+    fpstoreaccum.32 r7 #r7 = v_unscaled
     fpadd.32 r12, r7, r12 #r12 = uv_sum
     fplt.32 r13, r11, r8 #r8 = det
-    sw r5, r4, 56
     beq r13, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_2, false
-    fplt.32 r5, r11, r7
+    fplt.32 r5, r7, r11
     fplt.32 r6, r8, r12
     or r5, r5, r6
     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
 TRIANGLE_INTERSECT_ELSE_BLOCK_2:
-    fplt.32 r5, r7, r11
+    fplt.32 r5, r11, r7
     fplt.32 r6, r12, r8
     or r5, r5, r6
     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
@@ -269,13 +266,13 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_2:
     fplt.32 r9, r11, r8
     beq r9, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_3, false
     fplt.32 r6, r5, r6
-    fplt.32 r7, r5, r7
+    fplt.32 r7, r7, r5
     or r6, r6, r7
     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
 TRIANGLE_INTERSECT_ELSE_BLOCK_3:
     fplt.32 r6, r6, r5
-    fplt.32 r7, r7, r5
+    fplt.32 r7, r5, r7
     or r6, r6, r7
     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
@@ -285,7 +282,7 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_3:
     fpmul.32 r5, r5, r9
     sw r5, r0, 36
     lw r6, r2, 0
-    sw r5, r0, 56
+    sw r6, r0, 56
     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
 
 
