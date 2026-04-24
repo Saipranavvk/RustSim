@@ -261,7 +261,7 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_2:
     fpmac.32 r5, r10
     lw r5, r4, 20
     fpmac.32 r5, r9
-    fpsetaccum.32 r5 #t_unscaled
+    fpstoreaccum.32 r5 #t_unscaled
     lw r6, EPSILON
     fpmul.32 r6, r6, r8 #tmin_scaled
     lw r7, r0, 36
