@@ -2127,6 +2127,7 @@ DO_RECURSE:
 
 dfs_done:
     # *(self.leaf_core_lookup_table + 256) = self->root_node;
+    and r14, r14, 0
     lw r10, ROOT_NODE_ID
     add r11, r14, LEAF_CORE_LOOKUP_TABLE
     add r11, r11, 256
@@ -2136,9 +2137,15 @@ dfs_done:
     lw r12, NODE_ARRAY_HIGH
     setmembits r13, r12
 
-    # dram_src = self.leaf_alloc.vertex_array_low + self.leaf_alloc.index_byte_offset;
-    lw r1, LEAF_ALLOC_VERTEX_ARRAY_LOW
-    lw r2, LEAF_ALLOC_INDEX_BYTE_OFFSET
+    # dram_src = self.leaf_alloc.index_array_low + self.leaf_alloc.index_byte_offset;
+    and r1, r1, 0
+    add, r1, r1, 16924
+    sll r1, r1, 1 
+    lw, r2, NODE_ARRAY_LOW
+    add r1, r1, r2
+    lw r2, r1, 20
+    lw r3, r1, 24
+    lw r1, r1, 0
     add r1, r1, r2              # r1 = dram_src
 
     # words = self.leaf_alloc.index_byte_count >> 2;
@@ -2160,14 +2167,20 @@ index_copy_loop:
     beq r15, r15, index_copy_loop, true
 
 index_copy_done:
+    and r1, r1, 0
+    add, r1, r1, 16924
+    sll r1, r1, 1 
+    lw, r2, NODE_ARRAY_LOW
+    add r1, r1, r2
+
 
     # dram_src = self.leaf_alloc.vertex_array_low + self.leaf_alloc.vertex_byte_offset;
-    lw r1, LEAF_ALLOC_VERTEX_ARRAY_LOW
-    lw r2, LEAF_ALLOC_VERTEX_BYTE_OFFSET
+    lw r2, 24
+    lw r3, 28
+    lw r1, 4
     add r1, r1, r2
 
     # words = self.leaf_alloc.vertex_byte_count >> 2;
-    lw r3, LEAF_ALLOC_VERTEX_BYTE_COUNT
     srl r3, r3, 2
 
     add r4, r14, 0              # i = 0
