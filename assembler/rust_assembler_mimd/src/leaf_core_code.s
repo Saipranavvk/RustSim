@@ -2,7 +2,10 @@
 
     lw r2, ROOT_NODE_ID
 
-
+triangle_intersect:
+    #void Triangle_Intersect(Triangle *tri, Ray *ray, Vertex *vertices)
+    # tri in r14, ray is in r0, verticies needs to be found
+    
 
 SRAM_ALLOC_COUNT:       .data 0
 SRAM_NODE_ALLOC_PTR:     .data 0
