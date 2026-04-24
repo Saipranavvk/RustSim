@@ -1884,8 +1884,9 @@ WAIT_FOR_FLUSH_READY:
     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-    and r10, r10, 0xF0                  # r10 = core_id high nibble
-    sll r10, r10, 2                     # r10 = core_id high nibble shifted to channel position
+    and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+    sll r10, r10, 8                     
+    srl r10, r10, 6
     or r10, r10, r12                    # r10 = destination flit
     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
     # enable_interrupts(34);
@@ -1899,8 +1900,9 @@ UNHANDLED_CORE:
     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-    and r10, r10, 0xF0                  # r10 = core_id high nibble
-    sll r10, r10, 2                     # r10 = core_id high nibble shifted to channel position
+    and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+    sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
+    srl r10, r10, 6
     or r10, r10, r12                    # r10 = destination flit
     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
     getowner                  # TODO ALex tf is this?
@@ -1910,8 +1912,7 @@ UNHANDLED_CORE:
     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
     #     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
-    and r11, r11, 0
-    add r11, r11, 1
+    add r11, r14, 1
     beq r10, r11, BRANCH_START_OF_CODE
     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
     beq r15, r15, DONE_LOADING_CODE, true
@@ -1934,8 +1935,7 @@ FOR_NUM_INSTRUCTIONS:
     bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
 CORE_TYPE_BRANCH:
     # uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
-    and r11, r11, 0
-    add r11, r11, 1
+    add r11, r14, 1
     and r12, r12, 0
     bne r10, r11, leaf_start_of_geometry
     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
@@ -1951,13 +1951,13 @@ FOR_SIZE_OF_GEO:
     #     uint32_t word_to_transfer_of_geo = blocking_recv(0);
     #     *(starting_address + i) = word_to_transfer_of_geo;
     block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
-    sw r13, r11, r9                         # *(starting_address + i) = word_to_transfer_of_geo
+    sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
     add r9, r9, 4                           # i += 4
+    add r11, r11, 4
     blt r9, r12, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
     # self.is_branch_core = type_of_core;
     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
-    and r11, r11, 0
-    add r11, r11, 1
+    add r11, r14, 1
     beq r10, r11, VERTEX_COPY_DONE, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
     beq r15, r15, VERTEX_COPY_DONE_BUT_LEAF, true
 
