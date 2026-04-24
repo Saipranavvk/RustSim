@@ -112,8 +112,8 @@ AABB_INTERSECT_RETURN:
 
     # if (node->tri_count == 0) <- ASSUME RAY -> TRI_INDEX
     lbu r6, r0, 56                  # TODO confirm offset
-    beq r6, r7, IS_INTERNAL_NODE, true
-    beq r15, r15, IS_LEAF_NODE, true
+    ; beq r6, r7, IS_INTERNAL_NODE, true
+    ; beq r15, r15, IS_LEAF_NODE, true
 
 IS_INTERNAL_NODE:
     # ray->ray_depth++
@@ -122,7 +122,7 @@ IS_INTERNAL_NODE:
     sb r5, r0, 62
 
     # if (node->core_owner != 0xFFFF)
-    lhu r6, r1, 27                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
+    lhu r6, r1, 30                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
     and r7, r7, 0
     add r7, r7, 0xFFFF
     beq r6, r7, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
@@ -150,7 +150,7 @@ IS_INTERNAL_NODE:
     or r12, r12, r10                # r12 = request_word
 
     # send_packet(request_word, node->core_owner, 32);
-    lhu r6, r1, 27                  # r6 = node->core_owner
+    lhu r6, r1, 30                  # r6 = node->core_owner
     sendflit r6, r12, 32            # TODO confirm notation w/ Alex
 
 # uint32_t sent = 0;
@@ -175,7 +175,7 @@ SEND_RAY_LOOP:
     bne r13, r11, REJECT_PATH, true
 
     # ACK path: for (i = 0; i < 16; i++) send_packet(ray[i], core_owner, mailbox)
-    lhu r6, r1, 32                  # r6 = node->core_owner
+    lhu r6, r1, 30                  # r6 = node->core_owner
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
     add r13, r0, 0                  # r13 = ray base ptr
     and r14, r14, 0                 # r14 = i = 0
@@ -441,40 +441,40 @@ TRAVERSE_OWN_CHILD:
     lhu r1, r1, 24                  # r1 = node->left_child
     beq r15, r15, start_ray_traversal, true
 
-IS_LEAF_NODE:
-    # bitfield = *(ray.check_left + node->is_right * 4)
-    lbu r6, r1, 31                  # node->is_right
-    sll r6, r6, 2
-    add r6, r0, r6
-    add r6, r6, 18
-    lw r8, r6, 0
+; IS_LEAF_NODE:
+;     # bitfield = *(ray.check_left + node->is_right * 4)
+;     lbu r6, r1, 26                  # node->is_right
+;     sll r6, r6, 2
+;     add r6, r0, r6
+;     add r6, r6, 18
+;     lw r8, r6, 0
 
-    lbu r5, r0, 59                  # ray->ray_depth
-    add r5, r5, -1
-    and r10, r10, 0
-    add r10, r10, 1
-    sll r10, r10, r5
-    or r8, r8, r10
-    sw r8, r6, 0
+;     lbu r5, r0, 62                  # ray->ray_depth
+;     add r5, r5, -1
+;     and r10, r10, 0
+;     add r10, r10, 1
+;     sll r10, r10, r5
+;     or r8, r8, r10
+;     sw r8, r6, 0
 
-    # tri loop
-    lhu r9, r1, 22                  # tri_start TODO confirm offset
-    lbu r10, r1, 30                 # tri_count
-    and r14, r14, 0
-TRI_LOOP:
-    beq r14, r10, TRI_LOOP_DONE, true
-    # Triangle_Intersect(tri_index=r9, ray=r0) -- call convention TBD
-    beq r15, r15, Triangle_Intersect, true
-TRI_INTERSECT_RETURN:
-    add r9, r9, 12
-    add r14, r14, 1
-    beq r15, r15, TRI_LOOP, true
-TRI_LOOP_DONE:
-    lbu r5, r0, 59
-    add r5, r5, -1
-    sb r5, r0, 59
-    lhu r1, r1, 28                  # node = node->parent
-    beq r15, r15, start_ray_traversal, true
+;     # tri loop
+;     lhu r9, r1, 22                  # tri_start TODO confirm offset
+;     lbu r10, r1, 30                 # tri_count
+;     and r14, r14, 0
+; TRI_LOOP:
+;     beq r14, r10, TRI_LOOP_DONE, true
+;     # Triangle_Intersect(tri_index=r9, ray=r0) -- call convention TBD
+;     beq r15, r15, Triangle_Intersect, true
+; TRI_INTERSECT_RETURN:
+;     add r9, r9, 12
+;     add r14, r14, 1
+;     beq r15, r15, TRI_LOOP, true
+; TRI_LOOP_DONE:
+;     lbu r5, r0, 59
+;     add r5, r5, -1
+;     sb r5, r0, 59
+;     lhu r1, r1, 28                  # node = node->parent
+;     beq r15, r15, start_ray_traversal, true
 
 AABB_MISS:
     lbu r5, r0, 59
