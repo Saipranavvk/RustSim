@@ -13,12 +13,12 @@ typedef struct
     float y_max;
     float z_min;
     float z_max;
-    uint16_t *left_child;  // 2 bytes - 0 if leaf
-    uint16_t *right_child; // 2 bytes - 0 if leaf
-    uint16_t *parent;      // 2 bytes
-    uint8_t is_right;      // 1 byte
-    uint8_t tri_count;     // 1 byte
-    uint16_t tri_start;             // 2 bytes - 
+    uint16_t *left_child;         // 2 bytes - 0 if leaf
+    uint16_t *right_child;        // 2 bytes - 0 if leaf
+    uint16_t *parent;             // 2 bytes
+    uint8_t is_right;             // 1 byte
+    uint8_t tri_count;            // 1 byte
+    uint16_t tri_start;           // 2 bytes -
     uint16_t core_owner;          // 2 bytes - the core that is currently responsible for this node (0xFFFF if no owner)
     uint32_t queue_low_bit_addr;  // 4 bytes - the address of the low bits of the ray queue for this node, used for sending rays to the owning core
     uint16_t queue_high_bit_addr; // 2 bytes - the address of the high bits of the ray queue for this node, used for sending rays to the owning core
@@ -151,18 +151,17 @@ typedef struct
     light[3];
 } light_array;
 
-typedef struct {
+typedef struct
+{
     uint32_t head;
     uint32_t tail;
     uint32_t count;
     node_slot slots[64];
-}  emergency_node_queue;
-
+} emergency_node_queue;
 
 const ray_ack = 5;
 const reject_ray = 7;
 const wrong_core = 8;
-
 
 // ============================================================================
 // LEAF CORE MAIN LOOP
@@ -193,12 +192,15 @@ if (left_bitfield_check != 0 && right_bitfield_check != 0)
 else if (left_bitfield_check == 0 && right_bitfield_check == 0)
 {
     int hit = AABB_Intersect(node, ray);
-    if (hit){
-        if (node->tri_count == 0){
+    if (hit)
+    {
+        if (node->tri_count == 0)
+        {
             // Internal node
             ray->ray_depth++;
-            if (node->core_owner != 0xFFFF) {
-                //send_ray_up:
+            if (node->core_owner != 0xFFFF)
+            {
+                // send_ray_up:
                 uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
                 atomic_add(ray_send_pending_addr, 1);
                 /*
@@ -291,34 +293,40 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                         {
                             atomic_add_dram(queue_address_low, -1);
                             is_there_a_writer = load_word_dram(queue_address_low);
-                            //ensure_no_writers_loop:
-                            if(is_there_a_writer < 0) {
+                            // ensure_no_writers_loop:
+                            if (is_there_a_writer < 0)
+                            {
                                 goto ensure_no_writers_loop;
                             }
-                            else{
+                            else
+                            {
                                 goto ensure_no_writers;
                             }
                         }
                         uint32_t core_owner_count = load_dram_word(queue_address_low + 4);
-                        if (core_owner_count == 0){
+                        if (core_owner_count == 0)
+                        {
                             node->core_owner = 0xFFFFFFFF;
-                            if (cur_ray_count > 200) {
+                            if (cur_ray_count > 200)
+                            {
                                 // need to throw the node_id into a queue for someone to pick up the geometry.
                                 uint32_t queue_address_high = node->queue_high_bit_addr;
                                 set_address_bits(queue_address_high);
                                 uint32_t queue_address_low = node->queue_low_bit_addr;
                                 queue_address_low += 16924;
                                 uint32_t is_first_to_enqueue_queue = atomic_add_dram(queue_address_low, 1);
-                                if(is_first_to_enqueue_queue != 0) {
+                                if (is_first_to_enqueue_queue != 0)
+                                {
                                     goto skip_adding_queue_to_emergency_queue;
                                 }
                                 uint32_t emergency_queue_high = self.emergency_queue_high;
                                 set_address_bits(emergency_queue_high);
                                 uint32_t emergency_queue_low = self.emergency_queue_low;
                                 emergency_queue_low += 8;
-                                //loop_emergency_queue_insertion:
+                                // loop_emergency_queue_insertion:
                                 uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
-                                if(old_cnt >= 64) {
+                                if (old_cnt >= 64)
+                                {
                                     atomic_add_dram(emergency_queue_low, -1);
                                     goto loop_emergency_queue_insertion;
                                 }
@@ -329,14 +337,16 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                                 emergency_queue_low += 8;
                                 // ensure_emergency_slot_ready:
                                 uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
-                                if(is_ready == 1) {
+                                if (is_ready == 1)
+                                {
                                     goto ensure_emergency_slot_ready;
                                 }
                                 store_dram_half(emergency_queue_low, node->node_id);
                                 store_dram_byte(emergency_queue_low + 2, 1);
                             }
                         }
-                        else{
+                        else
+                        {
                             uint32_t clock = get_clock();
                             uint16_t idx = self.core_id ^ clock;
                             uint16_t prev_idx = node->prev_index;
@@ -351,7 +361,7 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                             uint32_t core_to_cache = load_dram_word(queue_address_low + 28);
                             node->core_owner = core_to_cache;
                         }
-                        //skip_adding_queue_to_emergency_queue:
+                        // skip_adding_queue_to_emergency_queue:
                         queue_address_low = node->queue_low_bit_addr;
                         queue_address_low += 20;
                         atomic_add_dram(queue_address_low, -1);
@@ -425,6 +435,7 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
         }
         else
         {
+            // traverse own child
             // Leaf node — check triangles
             uint32_t bitfield = *(ray.check_left + node->is_right * 4);
             uint32_t or_value = 1 << (ray->ray_depth - 1);
@@ -438,7 +449,8 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                 tri_index = tri_index + 6;
 
                 // Shadow ray early termination: if we hit anything, we're done
-                if (ray->light_id != 0 && ray->tri_index != 0xFFFFFFFF) {
+                if (ray->light_id != 0 && ray->tri_index != 0xFFFFFFFF)
+                {
                     goto shadow_ray_occluded;
                 }
             }
@@ -538,7 +550,8 @@ if (local_ray_count > 0)
     goto start_ray_traversal;
 }
 uint8_t flushing_queue = *(self.local_queue_flushing);
-if(flushing_queue != 0) {
+if (flushing_queue != 0)
+{
     goto inf_loop;
 }
 // check_dram_queue:
@@ -549,13 +562,16 @@ set_address_bits(queue_address_high);
 int cur_ray_count = load_dram_word(queue_address_low + 8);
 if (cur_ray_count > 0)
 {
-    if(cur_ray_count >= 256){
+    if (cur_ray_count >= 256)
+    {
         uint32_t pulled_from_full_queue_address = self.pulled_from_full_queue_address;
         uint32_t num_times_pulled_from_full_queue = atomic_add(pulled_from_full_queue_address, 1);
-        if(num_times_pulled_from_full_queue > LEAF_BUSY_THRESHOLD){
+        if (num_times_pulled_from_full_queue > LEAF_BUSY_THRESHOLD)
+        {
             leaf_core_ask_for_help();
         }
-        else{
+        else
+        {
             *(self->pulled_from_full_queue_address) = 0;
         }
     }
@@ -591,12 +607,14 @@ uint32_t emergency_queue_high = self.emergency_queue_high;
 set_address_bits(emergency_queue_high);
 uint32_t emergency_queue_low = self.emergency_queue_low;
 uint32_t count = load_dram_word(emergency_queue_low + 8);
-if(count <= 0) {
+if (count <= 0)
+{
     goto check_done;
 }
 emergency_queue_low += 8;
 uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
-if(old_cnt <= 0) {
+if (old_cnt <= 0)
+{
     atomic_add_dram(emergency_queue_low, -1);
     goto check_done;
 }
@@ -607,7 +625,8 @@ emergency_queue_low += byte_index;
 emergency_queue_low += 12;
 // ensure_emergency_slot_ready:
 uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
-if(is_ready == 1) {
+if (is_ready == 1)
+{
     goto ensure_emergency_slot_ready;
 }
 uint32_t new_node_id = load_dram_half(emergency_queue_low);
@@ -791,11 +810,11 @@ int AABB_Intersect(AABB_Node *node, Ray *ray)
     return (tmin <= tmax) & (0.0 < tmax);
 }
 
-void Triangle_Intersect(Triangle *tri, Ray *ray, Vertex *vertices)
+void Triangle_Intersect(Index *idx, Ray *ray, Vertex *vertices)
 {
-    Vertex *v0 = &vertices[tri->v0[0]];
-    Vertex *v1 = &vertices[tri->v0[1]];
-    Vertex *v2 = &vertices[tri->v0[2]];
+    Vertex *v0 = &vertices[idx];
+    Vertex *v1 = &vertices[idx->v0[1]];
+    Vertex *v2 = &vertices[idx->v0[2]];
 
     float e1x = v1->x - v0->x;
     float e1y = v1->y - v0->y;
@@ -918,23 +937,18 @@ r0 = r0 * t;
 r0 |= sign;
 // r0 is returned
 
-
-
-
-
-
-
-
-//Eat_Ray_Interrupt:
+// Eat_Ray_Interrupt:
 disable_interrupts(32);
 uint32_t is_value = nb_recv(32);
-if (is_value == 0) {
+if (is_value == 0)
+{
     return;
 }
 uint32_t value = blocking_recv(32);
 uint32_t node_id = value >> 17;
 uint32_t core_id = value & 0x0001FFFF;
-if(node_id != self.node_id) {
+if (node_id != self.node_id)
+{
     uint32_t value_to_send = wrong_core << 24;
     value_to_send |= self.thread_id;
     send_packet(value_to_send, core_id);
@@ -942,11 +956,13 @@ if(node_id != self.node_id) {
     return;
 }
 uint8_t flushing_queue = *(self.local_queue_flushing);
-if(flushing_queue == 1){
+if (flushing_queue == 1)
+{
     goto reject_ray_interrupt;
 }
 uint32_t is_slot_empty = *(ray + 63);
-if(is_slot_empty == 0) {
+if (is_slot_empty == 0)
+{
     uint32_t local_queue = ray;
     goto receive_ray_data;
 }
@@ -955,7 +971,7 @@ uint32_t old_count = atomic_add(&local_queue.count, 1);
 if (old_count > 32)
 {
     atomic_add(&local_queue.count, -1);
-    //reject_ray_interrupt:
+    // reject_ray_interrupt:
     uint32_t reject_ray_msg = reject_ray << 24;
     reject_ray_msg |= self.thread_id;
     send_packet(reject_ray_msg, core_id);
@@ -967,10 +983,11 @@ uint32_t tail_relative = atomic_add(&local_queue, 64);
 tail_relative = tail_relative & 0x000007FF;
 local_queue += 8;
 local_queue += tail_relative;
-//receive_ray_data:
+// receive_ray_data:
 uint32_t ray_ack_msg = ray_ack << 24 | self.thread_id;
 send_packet(ray_ack_msg, core_id);
-for(int i = 0; i < 16; i++) {
+for (int i = 0; i < 16; i++)
+{
     uint32_t ray_data = blocking_recv(self.thread_id);
     *local_queue = ray_data;
     local_queue += 4;
@@ -978,30 +995,27 @@ for(int i = 0; i < 16; i++) {
 enable_interrupts(32);
 return;
 
-
-
-
-
 uint32_t ACCEPT_CHANGE = 13;
 uint32_t REJECT_CHANGE = 14;
 
-//search_for_idle_cores:
-// ============================================================
-// bottom_up_idle_core_search
-// ============================================================
-// Searches the idle_queue_tree starting at a known leaf queue,
-// ascending and searching sibling subtrees until an idle core
-// is found or the full tree is exhausted.
+// search_for_idle_cores:
+//  ============================================================
+//  bottom_up_idle_core_search
+//  ============================================================
+//  Searches the idle_queue_tree starting at a known leaf queue,
+//  ascending and searching sibling subtrees until an idle core
+//  is found or the full tree is exhausted.
 //
-// Inputs:
-//   self->idle_queue_address_high : high bits of current leaf idle_queue_tree_node
-//   self->idle_queue_address_low  : low bits of current leaf idle_queue_tree_node
+//  Inputs:
+//    self->idle_queue_address_high : high bits of current leaf idle_queue_tree_node
+//    self->idle_queue_address_low  : low bits of current leaf idle_queue_tree_node
 //
-// Outputs:
-//   self->found_core_id : core_id of dequeued idle core, or 0xFFFF if none found
-// ============================================================
+//  Outputs:
+//    self->found_core_id : core_id of dequeued idle core, or 0xFFFF if none found
+//  ============================================================
 
-typedef struct {
+typedef struct
+{
     uint32_t high;
     uint32_t low;
     uint16_t height;
@@ -1017,173 +1031,185 @@ set_address_bits(idle_queue_address_high);
 uint32_t current = self.idle_queue_address_low;
 int32_t found_core_id = 0xFFFF;
 
-//ascend:
-    uint16_t is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
-    uint16_t height  = load_dram_half(current + offsetof(idle_queue_tree_node, height));
+// ascend:
+uint16_t is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
+uint16_t height = load_dram_half(current + offsetof(idle_queue_tree_node, height));
 
-    uint32_t parent_high = load_dram_word(current + offsetof(idle_queue_tree_node, parent_high));
-    uint32_t parent_low  = load_dram_word(current + offsetof(idle_queue_tree_node, parent_low));
-    if (parent_high == 0xFFFFFFFF) goto search_done;
-
-    set_address_bits(parent_high);
-    uint32_t parent = parent_low;
-
-    parent += 8;
-    uint32_t sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, left_high));
-    uint32_t sibling_low  = load_dram_word(parent + offsetof(idle_queue_tree_node, left_low));
-
-//push_sibling:
-    dfs_stack[dfs_top].high   = sibling_high;
-    dfs_stack[dfs_top].low    = sibling_low;
-    dfs_stack[dfs_top].height = height; // sibling is at same height as us
-    dfs_top++;
-
-//dfs_loop:
-    if (dfs_top == 0) goto sibling_exhausted;
-    dfs_top--;
-
-    uint32_t dfs_node_high   = dfs_stack[dfs_top].high;
-    uint32_t dfs_node_low    = dfs_stack[dfs_top].low;
-    uint16_t dfs_node_height = dfs_stack[dfs_top].height;
-
-    set_address_bits(dfs_node_high);
-    uint32_t dfs_node = dfs_node_low;
-
-    if (dfs_node_height == 0) goto try_dequeue;
-
-    uint16_t child_height = dfs_node_height - 1;
-
-    uint32_t right_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_high));
-    uint32_t right_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_low));
-    dfs_stack[dfs_top].high   = right_high;
-    dfs_stack[dfs_top].low    = right_low;
-    dfs_stack[dfs_top].height = child_height;
-    dfs_top++;
-
-    uint32_t left_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_high));
-    uint32_t left_low  = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_low));
-    dfs_stack[dfs_top].high   = left_high;
-    dfs_stack[dfs_top].low    = left_low;
-    dfs_stack[dfs_top].height = child_height;
-    dfs_top++;
-
-    goto dfs_loop;
-
-//try_dequeue:
-    uint32_t count_addr = dfs_node + offsetof(idle_core_queue_dram, count);
-    uint32_t count = load_dram_word(count_addr);
-    if (count == 0) goto dfs_loop;
-
-    int32_t old_count = atomic_add_dram(count_addr, -1);
-    if (old_count <= 0) goto revert_count;
-    goto claim_slot;
-
-//revert_count:
-    atomic_add_dram(count_addr, 1);
-    goto dfs_loop;
-
-//claim_slot:
-    uint32_t head_addr = dfs_node + offsetof(idle_core_queue_dram, head_relative);
-    uint32_t head_relative = atomic_add_dram(head_addr, 4);
-    head_relative = head_relative & 0x3FF;
-    uint32_t slot_addr = dfs_node + offsetof(idle_core_queue_dram, slots) + head_relative;
-    uint32_t valid_addr = slot_addr + offsetof(idle_queue_slot, is_valid);
-    uint32_t coreid_addr = slot_addr + offsetof(idle_queue_slot, core_id);
-
-//spinlock_valid:
-    uint16_t is_valid = load_dram_half(valid_addr);
-    if (is_valid == 0) goto spinlock_valid;
-
-    uint16_t found_core = load_dram_half(coreid_addr);
-    store_dram_half(0, valid_addr);
-    found_core_id = found_core;
+uint32_t parent_high = load_dram_word(current + offsetof(idle_queue_tree_node, parent_high));
+uint32_t parent_low = load_dram_word(current + offsetof(idle_queue_tree_node, parent_low));
+if (parent_high == 0xFFFFFFFF)
     goto search_done;
 
-//sibling_exhausted:
-    set_address_bits(parent_high);
-    current = parent_low;
-    uint16_t parent_is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
-    is_left = parent_is_left;
-    goto ascend;
+set_address_bits(parent_high);
+uint32_t parent = parent_low;
 
-//search_done:
-if(found_core_id != 0xFFFF){
+parent += 8;
+uint32_t sibling_high = load_dram_word(parent + offsetof(idle_queue_tree_node, left_high));
+uint32_t sibling_low = load_dram_word(parent + offsetof(idle_queue_tree_node, left_low));
+
+// push_sibling:
+dfs_stack[dfs_top].high = sibling_high;
+dfs_stack[dfs_top].low = sibling_low;
+dfs_stack[dfs_top].height = height; // sibling is at same height as us
+dfs_top++;
+
+// dfs_loop:
+if (dfs_top == 0)
+    goto sibling_exhausted;
+dfs_top--;
+
+uint32_t dfs_node_high = dfs_stack[dfs_top].high;
+uint32_t dfs_node_low = dfs_stack[dfs_top].low;
+uint16_t dfs_node_height = dfs_stack[dfs_top].height;
+
+set_address_bits(dfs_node_high);
+uint32_t dfs_node = dfs_node_low;
+
+if (dfs_node_height == 0)
+    goto try_dequeue;
+
+uint16_t child_height = dfs_node_height - 1;
+
+uint32_t right_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_high));
+uint32_t right_low = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, right_low));
+dfs_stack[dfs_top].high = right_high;
+dfs_stack[dfs_top].low = right_low;
+dfs_stack[dfs_top].height = child_height;
+dfs_top++;
+
+uint32_t left_high = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_high));
+uint32_t left_low = load_dram_word(dfs_node + offsetof(idle_queue_tree_node, left_low));
+dfs_stack[dfs_top].high = left_high;
+dfs_stack[dfs_top].low = left_low;
+dfs_stack[dfs_top].height = child_height;
+dfs_top++;
+
+goto dfs_loop;
+
+// try_dequeue:
+uint32_t count_addr = dfs_node + offsetof(idle_core_queue_dram, count);
+uint32_t count = load_dram_word(count_addr);
+if (count == 0)
+    goto dfs_loop;
+
+int32_t old_count = atomic_add_dram(count_addr, -1);
+if (old_count <= 0)
+    goto revert_count;
+goto claim_slot;
+
+// revert_count:
+atomic_add_dram(count_addr, 1);
+goto dfs_loop;
+
+// claim_slot:
+uint32_t head_addr = dfs_node + offsetof(idle_core_queue_dram, head_relative);
+uint32_t head_relative = atomic_add_dram(head_addr, 4);
+head_relative = head_relative & 0x3FF;
+uint32_t slot_addr = dfs_node + offsetof(idle_core_queue_dram, slots) + head_relative;
+uint32_t valid_addr = slot_addr + offsetof(idle_queue_slot, is_valid);
+uint32_t coreid_addr = slot_addr + offsetof(idle_queue_slot, core_id);
+
+// spinlock_valid:
+uint16_t is_valid = load_dram_half(valid_addr);
+if (is_valid == 0)
+    goto spinlock_valid;
+
+uint16_t found_core = load_dram_half(coreid_addr);
+store_dram_half(0, valid_addr);
+found_core_id = found_core;
+goto search_done;
+
+// sibling_exhausted:
+set_address_bits(parent_high);
+current = parent_low;
+uint16_t parent_is_left = load_dram_half(current + offsetof(idle_queue_tree_node, is_left));
+is_left = parent_is_left;
+goto ascend;
+
+// search_done:
+if (found_core_id != 0xFFFF)
+{
     send_flit(self.thread_id, found_core_id, 34);
     uint32_t will_accept_change = blocking_recv(16 + self.thread_id);
-    if((will_accept_change >> 24) == REJECT_CHANGE){
+    if ((will_accept_change >> 24) == REJECT_CHANGE)
+    {
         goto ray_done;
     }
     send_flit(1, found_core_id, 0);
-    if((will_accept_change & 1) != self.is_branch_core) {
+    if ((will_accept_change & 1) != self.is_branch_core)
+    {
         uint32_t starting_address = branch_start_of_code;
         uint32_t num_instructions = 1234 * 4;
-        for(int i = 0; i < num_instructions; i += 4){
+        for (int i = 0; i < num_instructions; i += 4)
+        {
             uint32_t instruction_to_send = *(starting_address + i);
             send_flit(instruction_to_send, found_core_id, 0);
         }
     }
     uint32_t starting_address = branch_start_of_geometry;
     uint32_t size_of_geo = 5678 * 4;
-    for(int i = 0; i < size_of_geo; i += 4){
+    for (int i = 0; i < size_of_geo; i += 4)
+    {
         uint32_t word_to_transfer_of_geo = *(starting_address + i);
         send_flit(word_to_transfer_of_geo, found_core_id, 0);
     }
 }
 goto ray_done;
 
-
-
-
-
-
-//switch_roles_interrupt:
+// switch_roles_interrupt:
 disable_interrupts(34);
 uint32_t is_value = nb_recv(34);
-if (is_value == 0) {
+if (is_value == 0)
+{
     enable_interrupts(34);
     return;
 }
 uint32_t switch_core_request = blocking_recv(34);
-if(self.core_handled->previously_idle == 0){
+if (self.core_handled->previously_idle == 0)
+{
     send_flit(REJECT_CHANGE << 24, switch_core_request >> 4, switch_core_request & 0xF + 16);
     enable_interrupts(34);
     return;
 }
-send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);get_ownership();
+send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);
+get_ownership();
 uint32_t type_of_core = blocking_recv(0);
-if(type_of_core != self.is_branch_core){
+if (type_of_core != self.is_branch_core)
+{
     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
     uint32_t num_instructions = 4321 * 4;
-    for(int i = 0; i < num_instructions; i += 4){
+    for (int i = 0; i < num_instructions; i += 4)
+    {
         uint32_t instruction_to_recv = blocking_recv(0);
         *(starting_address + i) = instruction_to_recv;
     }
 }
 uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
 uint32_t size_of_geo = (type_of_core == 1) ? 5678 * 4 : 8765 * 4;
-for(int i = 0; i < size_of_geo; i += 4){
+for (int i = 0; i < size_of_geo; i += 4)
+{
     uint32_t word_to_transfer_of_geo = blocking_recv(0);
     *(starting_address + i) = word_to_transfer_of_geo;
 }
 self.is_branch_core = type_of_core;
-if(type_of_core == 1){
+if (type_of_core == 1)
+{
     goto dfs_done;
 }
 goto dfs_done_but_leaf;
 
-
-
-
-
-bool is_idle_leaf() {
+bool is_idle_leaf()
+{
     uint32_t current_cycle = get_cycle_count();
     uint32_t last_observed_cycle = self.core_handled->last_observed_cycle;
     uint32_t time_diff = current_cycle - last_observed_cycle;
-    if (time_diff < IDLE_WINDOW) {
-        return 0; 
+    if (time_diff < IDLE_WINDOW)
+    {
+        return 0;
     }
 
-    if(self.core_handled->previously_idle) {
+    if (self.core_handled->previously_idle)
+    {
         return 0;
     }
 
@@ -1193,7 +1219,8 @@ bool is_idle_leaf() {
     self.core_handled->last_observed_cycle = current_cycle;
     rays_processed <<= 16;
     uint32_t ratio = rays_processed / time_diff;
-    if (ratio >= IDLE_THRESHOLD) {
+    if (ratio >= IDLE_THRESHOLD)
+    {
         return 0;
     }
     add_idle_core();
@@ -1201,15 +1228,16 @@ bool is_idle_leaf() {
     return 1;
 }
 
-
-void add_idle_core() {
+void add_idle_core()
+{
     uint32_t idle_queue_address_high = self.idle_queue_address_high;
     set_address_bits(idle_queue_address_high);
     uint32_t idle_queue_address_low = self.idle_queue_address_low;
     idle_queue_address_low += 8;
 idle_core_insert_spinlock:
     uint32_t old_count = atomic_add_dram(idle_queue_address_low, 1);
-    if(old_count > 256){
+    if (old_count > 256)
+    {
         atomic_add_dram(idle_queue_address_low, -1);
         goto idle_core_insert_spinlock;
     }
@@ -1219,36 +1247,38 @@ idle_core_insert_spinlock:
     uint32_t slot_address = idle_queue_address_low + slot_index;
 wait_for_idle_queue_slot_to_open:
     uint32_t is_open = load_dram_half(slot_address + 10);
-    if(is_open != 0){
+    if (is_open != 0)
+    {
         goto wait_for_idle_queue_slot_to_open;
     }
     store_dram_half(self.core_id, slot_address + 8);
     store_dram_byte(1, slot_address + 10);
 }
 
-
-
-
 #define LOCK_DECREMENT 0x7FFFFFFF // some large value idk
 
 // Return 0 on failure, return 1 on success
 
-uint32_t remove_from_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
+uint32_t remove_from_ray_queue_dram(uint32_t q_high, uint32_t q_low)
+{
 
     set_address_bits(q_high);
 
     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
 
     uint32_t now_serving = load_dram_word(q_low + 16);
-    if (now_serving != my_ticket) {
+    if (now_serving != my_ticket)
+    {
         now_serving = load_dram_word(q_low + 16)
     }
     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
-    while (lock_val != -LOCK_DECREMENT) {
+    while (lock_val != -LOCK_DECREMENT)
+    {
         lock_val = load_dram_word(q_low + 20);
     }
     uint32_t owner_count = load_dram_word(q_low + 24);
-    if (owner_count <= 1) {
+    if (owner_count <= 1)
+    {
         atomic_add_dram(q_low + 20, LOCK_DECREMENT);
         atomic_add_dram(q_low + 16, 1);
         return 0;
@@ -1257,9 +1287,11 @@ uint32_t remove_from_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
     uint32_t slots_base = q_low + 28;
     uint32_t i = 0;
 find_our_slot_remove:
-    if (i >= owner_count) goto slot_not_found_remove;
+    if (i >= owner_count)
+        goto slot_not_found_remove;
     uint16_t slot_val = load_dram_half(slots_base + i * 2);
-    if (slot_val == self.core_id) goto found_our_slot_remove;
+    if (slot_val == self.core_id)
+        goto found_our_slot_remove;
     i += 1;
     goto find_our_slot_remove;
 
@@ -1268,7 +1300,7 @@ found_our_slot_remove:
     uint16_t last_val = load_dram_half(last_slot_addr);
     store_dram_half(slots_base + i * 2, last_val);
     store_dram_half(last_slot_addr, 0);
-    atomic_add_dram(q_low + 24, -1);  // decrement core_owner_count
+    atomic_add_dram(q_low + 24, -1); // decrement core_owner_count
     goto release_remove;
 
 slot_not_found_remove:
@@ -1279,38 +1311,37 @@ release_remove:
     return 1;
 }
 
-
 // Return 0 on failure, return 1 on success
 
-uint32_t add_to_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
+uint32_t add_to_ray_queue_dram(uint32_t q_high, uint32_t q_low)
+{
     set_address_bits(q_high);
     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
     uint32_t now_serving = load_dram_word(q_low + 16);
-    while (now_serving != my_ticket) {
+    while (now_serving != my_ticket)
+    {
         now_serving = load_dram_word(q_low + 16);
     }
     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
-    while (lock_val != -LOCK_DECREMENT) {
+    while (lock_val != -LOCK_DECREMENT)
+    {
         lock_val = load_dram_word(q_low + 20);
     }
 
     uint32_t owner_count = load_dram_word(q_low + 24);
-    if (owner_count >= 32) {
+    if (owner_count >= 32)
+    {
         atomic_add_dram(q_low + 20, LOCK_DECREMENT);
         atomic_add_dram(q_low + 16, 1);
         return 0;
     }
     uint32_t new_slot_addr = q_low + 28 + owner_count * 2;
-    store_dram_half(()new_slot_addr, self.core_id);
+    store_dram_half(() new_slot_addr, self.core_id);
     atomic_add_dram(q_low + 24, 1);
     atomic_add_dram(q_low + 20, LOCK_DECREMENT);
     atomic_add_dram(q_low + 16, 1);
     return 1;
 }
-
-
-
-
 
 // ============================================================
 // download_bvh_nodes
@@ -1329,12 +1360,13 @@ uint32_t add_to_ray_queue_dram(uint32_t q_high, uint32_t q_low) {
 //   sram_nodes populated with downloaded tree
 // ============================================================
 
-typedef struct {
+typedef struct
+{
     uint32_t dram_tri_byte_index;
-    uint16_t *parent_ptr;    // absolute SRAM pointer to parent node, 0 for root
-    uint16_t *parent_left;   // pointer to parent's left_child field (to patch)
-    uint16_t *parent_right;  // pointer to parent's right_child field (to patch)
-    uint16_t is_right;        // 1 if this node is the right child of parent
+    uint16_t *parent_ptr;   // absolute SRAM pointer to parent node, 0 for root
+    uint16_t *parent_left;  // pointer to parent's left_child field (to patch)
+    uint16_t *parent_right; // pointer to parent's right_child field (to patch)
+    uint16_t is_right;      // 1 if this node is the right child of parent
     uint32_t depth;
 } DFS_Entry;
 
@@ -1352,123 +1384,131 @@ set_address_bits(top_node_bits);
 *(dfs_stack - 4) = 0;
 *(dfs_stack - 2) = 0;
 uint32_t leaf_node_table_ptr = self.leaf_core_lookup_table;
-//dfs_loop:
-    if (stack_top == self.stack_top) {
-        goto dfs_done;
-    }
-    // -- pop --
-    stack_top-=16;
-    uint32_t dram_idx       = *(stack_top);
-    uint16_t *parent_ptr    = *(stack_top + 4);
-    uint16_t *patch_left    = *(stack_top + 6);
-    uint16_t *patch_right   = *(stack_top + 8);
-    uint16_t is_right        = *(stack_top + 10);
-    uint32_t depth           = *(stack_top + 12);
+// dfs_loop:
+if (stack_top == self.stack_top)
+{
+    goto dfs_done;
+}
+// -- pop --
+stack_top -= 16;
+uint32_t dram_idx = *(stack_top);
+uint16_t *parent_ptr = *(stack_top + 4);
+uint16_t *patch_left = *(stack_top + 6);
+uint16_t *patch_right = *(stack_top + 8);
+uint16_t is_right = *(stack_top + 10);
+uint32_t depth = *(stack_top + 12);
 
-    // -- allocate SRAM slot --
+// -- allocate SRAM slot --
 
-    uint32_t sram_slot_address = self.sram_node_base_address;
-    uint32_t node = atomic_add(sram_slot_address, 48);
-    // -- load DRAM node --
-    AABB_Node_DRAM *dram_node = &dram_nodes[dram_idx];
-    uint32_t bottom_node_bits = self.node_array_low;
-    bottom_node_bits += dram_idx * 48;
-    //THE FOLLOWING DRAM OFFSETS ARE NOT PERFECT - THE NODE STRUCTURE MUST BE BUILT SOON
-    // -- copy bounding box --
-    uint32_t x_min = load_dram_word(bottom_node_bits);
-    node->x_min = x_min;
-    uint32_t x_max = load_dram_word(bottom_node_bits + 4);
-    node->x_max = x_max;
-    uint32_t y_min = load_dram_word(bottom_node_bits + 8);
-    node->y_min = y_min;
-    uint32_t y_max = load_dram_word(bottom_node_bits + 12);
-    node->y_max = y_max;
-    uint32_t z_min = load_dram_word(bottom_node_bits + 16);
-    node->z_min = z_min;
-    uint32_t z_max = load_dram_word(bottom_node_bits + 20);
-    node->z_max = z_max;
+uint32_t sram_slot_address = self.sram_node_base_address;
+uint32_t node = atomic_add(sram_slot_address, 48);
+// -- load DRAM node --
+AABB_Node_DRAM *dram_node = &dram_nodes[dram_idx];
+uint32_t bottom_node_bits = self.node_array_low;
+bottom_node_bits += dram_idx * 48;
+// THE FOLLOWING DRAM OFFSETS ARE NOT PERFECT - THE NODE STRUCTURE MUST BE BUILT SOON
+//  -- copy bounding box --
+uint32_t x_min = load_dram_word(bottom_node_bits);
+node->x_min = x_min;
+uint32_t x_max = load_dram_word(bottom_node_bits + 4);
+node->x_max = x_max;
+uint32_t y_min = load_dram_word(bottom_node_bits + 8);
+node->y_min = y_min;
+uint32_t y_max = load_dram_word(bottom_node_bits + 12);
+node->y_max = y_max;
+uint32_t z_min = load_dram_word(bottom_node_bits + 16);
+node->z_min = z_min;
+uint32_t z_max = load_dram_word(bottom_node_bits + 20);
+node->z_max = z_max;
 
-    // -- copy metadata --
-    uint16_t core_owner = load_dram_half(bottom_node_bits + 30);
-    node->core_owner       = core_owner;
-    uint16_t queue_high_bit_addr = load_dram_half(bottom_node_bits + 40);
-    uint32_t queue_low_bit_addr = load_dram_word(bottom_node_bits + 32);
-    node->queue_low_bit_addr  = queue_low_bit_addr;
-    node->queue_high_bit_addr = queue_high_bit_addr;
-    uint32_t node_id = load_dram_word(bottom_node_bits + 48);
-    node->node_id          = node_id;
-    uint16_t all_ones = 0xFFFF;
-    node->prev_index       = all_ones;
-    node->is_right         = is_right;
+// -- copy metadata --
+uint16_t core_owner = load_dram_half(bottom_node_bits + 30);
+node->core_owner = core_owner;
+uint16_t queue_high_bit_addr = load_dram_half(bottom_node_bits + 40);
+uint32_t queue_low_bit_addr = load_dram_word(bottom_node_bits + 32);
+node->queue_low_bit_addr = queue_low_bit_addr;
+node->queue_high_bit_addr = queue_high_bit_addr;
+uint32_t node_id = load_dram_word(bottom_node_bits + 48);
+node->node_id = node_id;
+uint16_t all_ones = 0xFFFF;
+node->prev_index = all_ones;
+node->is_right = is_right;
 
-    // -- set parent pointer --
-    node->parent = parent_ptr;
+// -- set parent pointer --
+node->parent = parent_ptr;
 
-    // -- default children to 0 (leaf / foreign owner) --
-    node->left_child  = all_ones; // 0xFFFF indicates no child
-    node->right_child = all_ones; // 0xFFFF indicates no child
+// -- default children to 0 (leaf / foreign owner) --
+node->left_child = all_ones;  // 0xFFFF indicates no child
+node->right_child = all_ones; // 0xFFFF indicates no child
 
-    if(depth > 12 && core_owner != 0xFFFF){
-        *leaf_node_table_ptr = node;
-        leaf_node_table_ptr += 2;
-    }
+if (depth > 12 && core_owner != 0xFFFF)
+{
+    *leaf_node_table_ptr = node;
+    leaf_node_table_ptr += 2;
+}
 
-    // -- patch parent's child pointer to point to us --
-    if (parent_ptr != all_ones) goto patch_parent;
-    goto skip_patch;
+// -- patch parent's child pointer to point to us --
+if (parent_ptr != all_ones)
+    goto patch_parent;
+goto skip_patch;
 
-//patch_parent:
-    if (is_right == 1) goto patch_right_child;
-    *patch_left = node;
-    goto skip_patch;
+// patch_parent:
+if (is_right == 1)
+    goto patch_right_child;
+*patch_left = node;
+goto skip_patch;
 
-//patch_right_child:
-    *patch_right = node;
+// patch_right_child:
+*patch_right = node;
 
-//skip_patch:
-    // -- check if this node is our root --
-    uint16_t owner = dram_node->core_owner;
-    if (owner != self->core_id) goto check_recurse;
-    self->root_node = node;
+// skip_patch:
+//  -- check if this node is our root --
+uint16_t owner = dram_node->core_owner;
+if (owner != self->core_id)
+    goto check_recurse;
+self->root_node = node;
 
-//check_recurse:
-    // -- decide whether to recurse into children --
-    // recurse if: owner == 0xFFFF OR owner == self->core_id
-    if (owner == all_ones) {} goto do_recurse;
-    if (owner == self->core_id) {
-        self.node_id = node_id;
-        goto do_recurse;
-    }
-    // foreign owner: do not recurse, children stay 0
-    goto dfs_loop;
+// check_recurse:
+//  -- decide whether to recurse into children --
+//  recurse if: owner == 0xFFFF OR owner == self->core_id
+if (owner == all_ones)
+{
+}
+goto do_recurse;
+if (owner == self->core_id)
+{
+    self.node_id = node_id;
+    goto do_recurse;
+}
+// foreign owner: do not recurse, children stay 0
+goto dfs_loop;
 
-//do_recurse:
-    // -- push right child first (so left is processed first) --
-    uint32_t right_idx = load_dram_word(bottom_node_bits + 24);
-    uint32_t left_idx = load_dram_word(bottom_node_bits + 28);
-    *(stack_top + 0) = right_idx;
-    *(stack_top + 4) = node;
-    *(stack_top + 6) = &node->left_child;
-    *(stack_top + 8) = &node->right_child;
-    *(stack_top + 10) = 1;
-    *(stack_top + 12) = depth + 1;
+// do_recurse:
+//  -- push right child first (so left is processed first) --
+uint32_t right_idx = load_dram_word(bottom_node_bits + 24);
+uint32_t left_idx = load_dram_word(bottom_node_bits + 28);
+*(stack_top + 0) = right_idx;
+*(stack_top + 4) = node;
+*(stack_top + 6) = &node->left_child;
+*(stack_top + 8) = &node->right_child;
+*(stack_top + 10) = 1;
+*(stack_top + 12) = depth + 1;
 
+stack_top += 16;
 
-    stack_top += 16;
+// -- push left child --
+*(stack_top + 0) = left_idx;
+*(stack_top + 4) = node;
+*(stack_top + 6) = &node->left_child;
+*(stack_top + 8) = &node->right_child;
+*(stack_top + 10) = 0;
+*(stack_top + 12) = depth + 1;
+stack_top += 16;
 
-    // -- push left child --
-    *(stack_top + 0) = left_idx;
-    *(stack_top + 4) = node;
-    *(stack_top + 6) = &node->left_child;
-    *(stack_top + 8) = &node->right_child;
-    *(stack_top + 10) = 0;
-    *(stack_top + 12) = depth + 1;
-    stack_top += 16;
+goto dfs_loop;
 
-    goto dfs_loop;
-
-//dfs_done:
-*(self.leaf_core_lookup_table + 256) = self->root_node;  // offset 128*2 = 256
+// dfs_done:
+*(self.leaf_core_lookup_table + 256) = self->root_node; // offset 128*2 = 256
 uint32_t is_odd_thread = self.thread_id & 1;
 is_odd_thread += 32;
 enable_interrupts(is_odd_thread);
@@ -1480,7 +1520,8 @@ uint16_t queue_ptr_address = self.local_ray_queue_head;
 *(queue_ptr_address + 4) = 0;
 *(queue_ptr_address + 8) = 0;
 queue_ptr_address += 75;
-for(int i = 0; i < 16; i++) {
+for (int i = 0; i < 16; i++)
+{
     *(queue_ptr_address) = 0;
     queue_ptr_address += 64;
 }
@@ -1488,7 +1529,8 @@ for(int i = 0; i < 16; i++) {
 *(queue_ptr_address + 5) = 0;
 *(queue_ptr_address + 9) = 0;
 queue_ptr_address += 76;
-for(int i = 0; i < 16; i++) {
+for (int i = 0; i < 16; i++)
+{
     *(queue_ptr_address) = 0;
     queue_ptr_address += 64;
 }
