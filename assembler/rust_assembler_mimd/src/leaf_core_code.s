@@ -144,10 +144,12 @@ SEND_RAY_LOOP:
     bne r13, r11, REJECT_PATH, true
 
     # ACK path: for (i = 0; i < 16; i++) send_packet(ray[i], core_owner, mailbox)
-    and r9, r9, 0xFFC0                  # r6 = node->core_owner
+    srl r9, r12, 4
+    sll r9, r9, 19
+    srl r9, r9, 13    
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
-    add r9, r9, r11                  # r13 = ray base ptr
-    and r13, r0, 0                 # r14 = i = 0
+    or r9, r9, r11                  # r13 = ray base ptr
+    add r13, r0, 0                 # r14 = i = 0
     add r11, r7, 16
 RAY_SEND_LOOP:
     lw r7, r13, 0                   # r9 = ray word i
@@ -445,6 +447,29 @@ AABB_MISS:
     or r11, r13, r11
     sw r11, r10, 44
     lhu r1, r1, 28
+    beq r15, r15, START_SEARCHING, true
+    
+TRAVERSE_LEFT_OR_RIGHT:
+    or r10, r10, 0xFFFF
+    lbu r12, r0, 62
+    add r12, r12, 1
+    sll r10, r10, r12
+    xor r10, r10, 0xFFFF
+    lw r9, r0, 44
+    lw r13, r0, 48
+    and r9, r9, r10
+    and r13, r13, r10
+    sw r9, r0, 44
+    sw r13, r0, 48
+    and r12, r12, 0
+    beq r4, r12, SKIP_LEFT_BITFIELD_INCREMENT, false
+    add r12, r12, 2
+SKIP_LEFT_BITFIELD_INCREMENT:
+    add r1, r1, r12
+    lhu r1, r1, 24
+    lbu r10, r0, 62
+    add r10, r10, 1
+    sb r10, r0, 62
     beq r15, r15, START_SEARCHING, true
 
 SHADOW_RAY_OCCLUDED:
@@ -763,160 +788,169 @@ ENSURE_EMERGENCY_SLOT_READY_TWO:
     yield r8
 CHECK_DONE:
     # is_idle_leaf();
-    jmp is_idle_leaf, r14 # r14 is return address @ ALEX LOOK AT THIS
-    # uint32_t finished_ray_high = self.ray_result_addr_high;
-    lw r10, RAY_RESULT_HIGH # r10 = finished_ray_high
-    # set_address_bits(finished_ray_high);
-    setmembits r10
-    # uint32_t finished_ray_low = self.ray_result_addr_low;
-    lw r11, RAY_RESULT_LOW # r11 = finished_ray_low
-    # uint32_t rays_finished = load_dram_word(finished_ray_low);
-    lw_d r12, r11, 0       # r12 = rays_finished
-    # uint32_t max_rays = 1440 * 2560 * 4;
-    and r13, r13, 0
-    add r13, r13, 32768     # r13 = 32768 (2^15)
-    mul r13, r13, 450     # r13 = 32768 * 450 = 1440 * 2560 * 4
-    # if (rays_finished != max_rays)
-    # {
-    #     goto ray_done;
-    # }
-    bne r12, r13, ray_done, true
-    # get_thread_ownership();
-    getowner
-    # set_ctx(15);
-    setctx 15
-    # relinquish_ownership();
-    relinquish 1
-    # yield();
-    yield r8
-    # uint32_t pixel_addr_high = self.ray_result_addr_high;
-    lw r10, RAY_RESULT_HIGH # r10 = pixel_addr_high 
-    # set_address_bits(pixel_addr_high);
-    setmembits r10
-    # uint32_t pixel_addr_low = self.ray_result_addr_low;
-    lw r11, RAY_RESULT_LOW # r11 = pixel_addr_low
-    # uint32_t pix_index = self.core_id >> 4;
-    srl r12, r15, 8     # core_id is upper 4 bits of r15, r12 = core_id >> 4
-    # uint32_t thread_index = self.core_id & 0xF;
-    # pix_index *= 15;
-    mul r12, r12, 15    # pix_index *= 15
-    # pix_index += 15;
-    add r12, r12, 15    # pix_index += 15
-    # pix_index <<= 8;
-    sll r12, r12, 8     # pix_index <<= 8 
-    add r4, r12, 0        # r4 = pix_index, save for later use in loop **r4 CANNOT change; used FAR down the line
-    # uint32_t pix_increment = pix_index;
-    add r13, r12, 0        # r13 = pix_increment
+    jmp is_idle_leaf, r2 # r14 is return address @ ALEX LOOK AT THIS
+    yield r8                             # yield()
+    lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
+    setmembits r2                        # set_address_bits(finished_ray_high)
+    lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
+    lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
+    lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
+    bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
+    yield r8                             # yield()
+
+# below is the final pass of the main loop, calculating the color of the final image
+    getowner                             # get_thread_ownership()
+    setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
+    relinquish 1                         # relinquish_ownership(1)
+    yield r15                            # yield()
+    lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
+    setmembits r0                        # set_address_bits(pixel_addr_high)
+    lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
+    srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
+    and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
+    mul r1, r1, 15                       # pix_index *= 15
+    srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
+    add r0, r0, r1                       # pixel_addr_low += pix_increment
+    and r14, r14, 0                      # r14 = 0
+    and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
+
 LOOP_PIXEL:
-    # uint32_t pixel_addr_low = self.ray_result_addr_low;
-    lw r11, RAY_RESULT_LOW # r11 = pixel_addr_low
-    # pixel_addr_low += pix_increment;
-    add r11, r13, r11        # pixel_addr_low += pix_increment
-    # float carried_r = 0.0f;
-    and r5, r5, 0
-    # float carried_g = 0.0f;
-    and r6, r6, 0
-    # float carried_b = 0.0f;
-    and r7, r7, 0
-    # uint32_t bounce = NUM_BOUNCES - 1;
-    add r8, r7, NUM_BOUNCES - 1 # r10 = bounce = NUM_BOUNCES - 1
-    add r3, r3, r8              # r3 = bounce ** DO NOT CHSNGE USED FAR DOWN
+    add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
+    add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+    and r5, r15, 0xF                     # r5 = thread_index
+    sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
+    add r4, r4, r5                       # r4 = thread-local scratch base
+    sw r14, r4, 0                        # carried_r = 0.0f
+    sw r14, r4, 4                        # carried_g = 0.0f
+    sw r14, r4, 8                        # carried_b = 0.0f
 BOUNCE_LOOP:
-    # uint32_t bounce_addr = bounce;    # r8 = bounce_addr
-    # bounce_addr <<= 6;
-    sll r8, r8, 6         # bounce_addr = bounce << 6
-    # bounce_addr += pixel_addr_low;
-    add r8, r11, r8        # bounce_addr = pixel_addr_low + bounce_addr
-
-    # float sr = load_dram_word(bounce_addr);
-    lw_d r9, r8, 0           # r9 = sr
-    # float sg = load_dram_word(bounce_addr + 4);
-    lw_d r10, r8, 4          # r10 = sg
-    # float sb = load_dram_word(bounce_addr + 8);
-    lw_d r11, r8, 8          # r11 = sb
-    # float metallic = load_dram_word(bounce_addr + 12);
-    lw_d r12, r8, 12         # r12 = metallic
-    # float acc_r = 0.0f;
-    and r13, r13, 0
-    # float acc_g = 0.0f;
-    and r14, r14, 0
-    # float acc_b = 0.0f;
-    and r2, r2, 0   # r2 = acc_b
-
-    # uint32_t shadow_addr = bounce_addr + 16;
-    # uint32_t light = 0;
+    sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
+    add r5, r0, r5                       # bounce_addr += pixel_addr_low
+    lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
+    lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
+    lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
+    lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
+    sw r6, r4, 12                        # scratch->sr = sr
+    sw r7, r4, 16                        # scratch->sg = sg
+    sw r8, r4, 20                        # scratch->sb = sb
+    sw r9, r4, 24                        # scratch->metallic = metallic
+    sw r14, r4, 28                       # acc_r = 0.0f
+    sw r14, r4, 32                       # acc_g = 0.0f
+    sw r14, r4, 36                       # acc_b = 0.0f
+    add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
+    and r6, r6, 0                        # uint32_t light = 0
 SHADOW_LOOP:
-    # uint32_t len_sq = load_dram_word(shadow_addr + 12);
-    # if (len_sq != 0xFFFFFFFF)
-    #     goto shadow_skip;
-    # float lr = load_dram_word(shadow_addr);
-    # float lg = load_dram_word(shadow_addr + 4);
-    # float lb = load_dram_word(shadow_addr + 8);
-    # float atten = reciprocal(len_sq);
-    # lr *= atten;
-    # lg *= atten;
-    # lb *= atten;
-    # acc_r += lr;
-    # acc_g += lg;
-    # acc_b += lb;
-    # shadow_skip : shadow_addr += 16;
-    # light += 1;
-    # if (light < NUM_LIGHTS)
-    #     goto shadow_loop;
+    lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
+    or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
+    beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+    #TODO EVERY TIME I DO A JUMP I NEED TO RESET MEMBITS
+    jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
+    lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
+    lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
+    lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
+    fpmul.32 r7, r7, r9                   # lr *= atten
+    fpmul.32 r8, r8, r9                   # lg *= atten
+    fpmul.32 r10, r10, r9                 # lb *= atten
+    lw r11, r4, 28                       # r11 = acc_r
+    lw r12, r4, 32                       # r12 = acc_g
+    lw r13, r4, 36                       # r13 = acc_b
+    fpadd.32 r11, r11, r7                 # acc_r += lr 
+    fpadd.32 r12, r12, r8                 # acc_g += lg
+    fpadd.32 r13, r13, r10               # acc_b += lb
+    sw r11, r4, 28                       # store acc_r
+    sw r12, r4, 32                       # store acc_g
+    sw r13, r4, 36                       # store acc_b
+SHADOW_SKIP:
+    add r5, r5, 16                       # shadow_addr += 16 (next light slot)
+    add r6, r6, 1                        # light += 1
+    add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
+    bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
 
-    # float diffuse_r = acc_r * sr;
-    # float diffuse_g = acc_g * sg;
-    # float diffuse_b = acc_b * sb;
+    lw r6, r4, 28                        # r6 = acc_r
+    lw r7, r4, 32                        # r7 = acc_g
+    lw r8, r4, 36                        # r8 = acc_b
+    lw r9, r4, 12                        # r9 = sr
+    lw r10, r4, 16                       # r10 = sg
+    lw r11, r4, 20                       # r11 = sb
+    lw r12, r4, 24                       # r12 = metallic
+    lw r13, ONE                          # r13 = 1.0f
+    fsub r13, r13, r12                   # float inv_metallic = 1.0f - metallic
+    fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
+    fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
+    fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
+    fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
+    fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
+    fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
+    lw r13, r4, 0                        # r13 = carried_r
+    fpmul.32 r13, r13, r9                 # carried_r *= sr
+    fpmul.32 r13, r13, r12               # carried_r *= metallic
+    fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+    sw r6, r4, 0                         # store new carried_r
+    lw r13, r4, 4                        # r13 = carried_g
+    fpmul.32 r13, r13, r10               # carried_g *= sg
+    fpmul.32 r13, r13, r12               # carried_g *= metallic
+    fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+    sw r7, r4, 4                         # store new carried_g
+    lw r13, r4, 8                        # r13 = carried_b
+    fpmul.32 r13, r13, r11               # carried_b *= sb
+    fpmul.32 r13, r13, r12               # carried_b *= metallic
+    fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+    sw r8, r4, 8                         # store new carried_b
+    add r2, r2, -1                       # bounce -= 1
+    blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
+BOUNCE_DONE: //Label not used lol
+    lw r13, ONE                          # r13 = 1.0f
+    lw r10, r4, 0                        # r10 = carried_r
+    lw r11, r4, 4                        # r11 = carried_g
+    lw r12, r4, 8                        # r12 = carried_b
+    fpadd.32 r10, r10, r13               # carried_r += 1.0f
+    fpadd.32 r11, r11, r13               # carried_g += 1.0f
+    fpadd.32 r12, r12, r13               # carried_b += 1.0f
+    srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
+    srl r11, r11, 14                     # carried_g >>= 14
+    srl r12, r12, 14                     # carried_b >>= 14
+    and r10, r10, 0x1FF                  # carried_r &= 0x1FF
+    and r11, r11, 0x1FF                  # carried_g &= 0x1FF
+    and r12, r12, 0x1FF                  # carried_b &= 0x1FF
+    lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
+    lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
+    lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
+    lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
+    setmembits r13                       # set_address_bits(pixel_addr_high)
+    lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
+    srl r14, r15, 4                      # r14 = core_id >> 4
+    mul r14, r14, 15                     # r14 *= 15
+    and r9, r14, 0xF                     # r9 = thread_index
+    add r14, r9, r14                     # r14 += thread_index
+    sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
+    add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
+    mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
+    mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
+    add r13, r13, r9                     # pixel_addr_low += r9
+    sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
+    sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
+    sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
+    add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
+    mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
+    mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
+    add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
+    and r14, r14, 0                      # r14 = 0
+    add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
+    lw r13, FINISHED_PIXELS_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
+    setmembits r13                       # set_address_bits(finished_pixel_high)
+    lw r13, FINISHED_PIXELS_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
+    atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
+    bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
 
-    # carried_r *= sr;
-    # carried_g *= sg;
-    # carried_b *= sb;
-
-    # float one = 1.0f;
-    # float inv_metallic = one - metallic;
-    # diffuse_r *= inv_metallic;
-    # diffuse_g *= inv_metallic;
-    # diffuse_b *= inv_metallic;
-    # carried_r *= metallic;
-    # carried_g *= metallic;
-    # carried_b *= metallic;
-    # carried_r += diffuse_r;
-    # carried_g += diffuse_g;
-    # carried_b += diffuse_b;
-
-    # if (bounce == 0)
-    #     goto bounce_done;
-    # bounce -= 1;
-    # goto bounce_loop;
+INF_LOOP:
+    yield r8                            # yield()
+    beq r15, r15, INF_LOOP, true         # goto inf_loop
 
 
 
 
 
 
-    
-TRAVERSE_LEFT_OR_RIGHT:
-    or r10, r10, 0xFFFF
-    lbu r12, r0, 62
-    add r12, r12, 1
-    sll r10, r10, r12
-    xor r10, r10, 0xFFFF
-    lw r9, r0, 44
-    lw r13, r0, 48
-    and r9, r9, r10
-    and r13, r13, r10
-    sw r9, r0, 44
-    sw r13, r0, 48
-    and r12, r12, 0
-    beq r4, r12, SKIP_LEFT_BITFIELD_INCREMENT, false
-    add r12, r12, 2
-SKIP_LEFT_BITFIELD_INCREMENT:
-    add r1, r1, r12
-    lhu r1, r1, 24
-    lbu r10, r0, 62
-    add r10, r10, 1
-    sb r10, r0, 62
-    beq r15, r15, START_SEARCHING, true
 
 
 triangle_intersect: 
@@ -1144,6 +1178,110 @@ AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
 
 
 
+EAT_RAY_INTERRUPT: #working with r6-r14
+    add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+    intdis 32                               # disable_interrupts(channel)
+    nonblock r7, 32                             # r7 = nb_recv(channel) (0 if no message waiting)
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
+    intena 32                               # enable_interrupts(channel) (nothing to do)
+    jmp r15, r4                             # return
+CONTINUE_WITH_EAT_RAY_INTERRUPT:
+    block r7, 32                                # r7 = blocking_recv(channel) (full flit value)
+    lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
+    and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
+    srl r13, r7, 17                         # r13 = node_id = flit >> 17
+    lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
+    beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
+    add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
+    sll r10, r10, 24                        # r10 = wrong_core << 24
+    and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
+    and r12, r7, 0xFFF0                      # r12 = core_id high nibble
+    sll r12, r12, 15
+    srl r12, r12, 15
+    sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
+    add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
+    or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
+    sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
+    intena 32                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+NODE_IDS_MATCH:
+    lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
+    bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
+    lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
+    add r9, r0, 0                           # r9 = local_queue = ray base address
+    bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+    lw r9, RAY_QUEUE_CNT                # r9 = sender ray queue base address
+    atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
+    add r12, r14, 32                        # r12 = 16 (max queue entries)
+    bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
+    atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
+    add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
+    sll r7, r7, 24                          # r7 = reject_ray << 24
+    and r9, r8, 0xF0                        # r9 = core_id high nibble
+    sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+    and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+    add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+    or r9, r9, r8                           # r9 = destination flit
+    sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
+    intena 32                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+SPACE_IN_QUEUE:
+    add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
+    atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
+    and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
+    add r7, r9, r7                          # r7 = queue_base + tail_relative
+    add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
+RECEIVE_RAY_DATA:
+    add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
+    sll r9, r9, 24                          # r9 = ray_ack << 24
+    or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
+    and r10, r8, 0xF0                       # r10 = core_id high nibble
+    sll r10, r10, 2                         # r10 = high nibble shifted to channel position
+    and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+    add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+    or r10, r10, r8                         # r10 = destination flit
+    sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
+    and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
+    add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
+    block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
+    block r10, r8                           # r10 = ray_data[1]
+    block r11, r8                           # r11 = ray_data[2]
+    block r12, r8                           # r12 = ray_data[3]
+    sw r9, r7, 0                            # slot[0]  = ray_data[0]
+    sw r10, r7, 4                           # slot[4]  = ray_data[1]
+    sw r11, r7, 8                           # slot[8]  = ray_data[2]
+    sw r12, r7, 12                          # slot[12] = ray_data[3]
+    block r9, r8                            # r9  = ray_data[4]
+    block r10, r8                           # r10 = ray_data[5]
+    block r11, r8                           # r11 = ray_data[6]
+    block r12, r8                           # r12 = ray_data[7]
+    sw r9, r7, 16                           # slot[16] = ray_data[4]
+    sw r10, r7, 20                          # slot[20] = ray_data[5]
+    sw r11, r7, 24                          # slot[24] = ray_data[6]
+    sw r12, r7, 28                          # slot[28] = ray_data[7]
+    block r9, r8                            # r9  = ray_data[8]
+    block r10, r8                           # r10 = ray_data[9]
+    block r11, r8                           # r11 = ray_data[10]
+    block r12, r8                           # r12 = ray_data[11]
+    sw r9, r7, 32                           # slot[32] = ray_data[8]
+    sw r10, r7, 36                          # slot[36] = ray_data[9]
+    sw r11, r7, 40                          # slot[40] = ray_data[10]
+    sw r12, r7, 44                          # slot[44] = ray_data[11]
+    block r9, r8                            # r9  = ray_data[12]
+    block r10, r8                           # r10 = ray_data[13]
+    block r11, r8                           # r11 = ray_data[14]
+    block r12, r8                           # r12 = ray_data[15]
+    sw r9, r7, 48                           # slot[48] = ray_data[12]
+    sw r10, r7, 52                          # slot[52] = ray_data[13]
+    sw r11, r7, 56                          # slot[56] = ray_data[14]
+    sw r12, r7, 60                          # slot[60] = ray_data[15]
+    intena 32                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+
+
+
+
 VERTEX_ARRAY_BASE:       .data 0
 SRAM_ALLOC_COUNT:       .data 0
 SRAM_NODE_ALLOC_PTR:     .data 0
@@ -1178,8 +1316,6 @@ SPAWNED_RAY_POOL_MASK:  .data 0x007FFFFF
 RAY_SEND_PENDING_ADDR:  .data 0
 LOCAL_QUEUE:            .data 0
 LOCAL_QUEUE_FLUSHING:   .data 0
-ROOT_NODE_ID_SENDER:    .data -1
-ROOT_NODE_ID_RECEIVER:  .data -1
 IS_BRANCH_CORE: .data -1
 RAY_QUEUE_HIGH: .data -1
 RAY_QUEUE_LOW: .data -1

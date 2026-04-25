@@ -1586,13 +1586,13 @@ EAT_RAY_INTERRUPT: #working with r6-r14
     and r6, r15, 1                          # r6 = self.thread_id & 1 (is_odd_thread)
     add r6, r6, 32                          # r6 = interrupt channel = 32 + is_odd_thread
     intdis r6                               # disable_interrupts(channel)
-    nonblock r7                             # r7 = nb_recv(channel) (0 if no message waiting)
+    nonblock r7, r6                             # r7 = nb_recv(channel) (0 if no message waiting)
     and r14, r14, 0                         # r14 = 0 (zero register)
     bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
     intena r6                               # enable_interrupts(channel) (nothing to do)
     jmp r15, r4                             # return
 CONTINUE_WITH_EAT_RAY_INTERRUPT:
-    block r7                                # r7 = blocking_recv(channel) (full flit value)
+    block r7, r6                                # r7 = blocking_recv(channel) (full flit value)
     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
     srl r13, r7, 17                         # r13 = node_id = flit >> 17

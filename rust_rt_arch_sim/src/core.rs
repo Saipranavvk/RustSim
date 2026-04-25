@@ -757,7 +757,7 @@ impl Core {
             0x00018000,   //PC = 0x00000024,     line:     add r0, r0, 1 #24
             0x00148096,   //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
             0xDEADBEEF,   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
-        ];   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
+        ];
         let mut sram_array = [0u8; SRAM_SIZE];
         for i in 0..init_time_mem.len() {
             let word = init_time_mem[i];
