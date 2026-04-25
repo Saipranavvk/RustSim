@@ -744,18 +744,18 @@ impl Core {
         y_dim: u16,
         dram_top_bits: usize,
     ) -> Self {
-        let init_time_mem: [u32; 12] = [0x00008002,   //PC = 0x00000000
-                0x00000027,   //PC = 0x00000004
-                0x000000AC,   //PC = 0x00000008
-                0x00048100,   //PC = 0x0000000C
-                0x002C8180,   //PC = 0x00000010
-                0x0000122C,   //PC = 0x00000014
-                0x0003201A,   //PC = 0x00000018
-                0x00049100,   //PC = 0x0000001C
-                0x00049980,   //PC = 0x00000020
-                0x00018000,   //PC = 0x00000024
-                0x00148816,   //PC = 0x00000028
-                0xDEADBEEF];  //PC = 0x0000002C
+        let init_time_mem: [u32; 12] = [0x00008002,   //PC = 0x00000000,     line: and r0, r0, 0 #00
+            0x000007A7,   //PC = 0x00000004,     line: setmembits r0 #04
+            0x000000AC,   //PC = 0x00000008,     line: lw_d  r1, r0, 0      #08   
+            0x00048100,   //PC = 0x0000000C,     line: add r2, r0, 4     #0C
+            0x002C8180,   //PC = 0x00000010,     line: add r3, r0, done #10
+            0x0000122C,   //PC = 0x00000014,     line:     lw_d  r4, r2, 0 #14
+            0x00001A1A,   //PC = 0x00000018,     line:     sw  r4, r3, 0 #18
+            0x00049100,   //PC = 0x0000001C,     line:     add r2, r2, 4 #1C
+            0x00049980,   //PC = 0x00000020,     line:     add r3, r3, 4 #20
+            0x00018000,   //PC = 0x00000024,     line:     add r0, r0, 1 #24
+            0x00148816,   //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
+            0xDEADBEEF];   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
         let mut sram_array = [0u8; SRAM_SIZE];
         for i in 0..init_time_mem.len() {
             let word = init_time_mem[i];
@@ -921,7 +921,10 @@ impl Core {
         self.sram[*address as usize + 1] = ((half & 0xFF00) >> 8) as u8;
     }
     fn write_sram_word(&mut self, word: u32, address: &u16) {
-        assert!(*address & 0x3 == 0, "WORD NOT ALIGNED!");
+        if *address & 0x3 != 0 {
+            self.dump_instruction(&self.decoded_instruction.unwrap());
+            assert!(*address & 0x3 == 0, "WORD NOT ALIGNED!");
+        }
         self.sram[*address as usize] = (word & 0xFF) as u8;
         self.sram[*address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
         self.sram[*address as usize + 2] = ((word & 0xFF0000) >> 16) as u8;

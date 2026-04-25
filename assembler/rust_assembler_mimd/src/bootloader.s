@@ -9,10 +9,10 @@ add r3, r0, done #10
 
 loop:
     lw_d  r4, r2, 0 #14
-    sw  r4, r3 #18
+    sw  r4, r3, 0 #18
     add r2, r2, 4 #1C
     add r3, r3, 4 #20
     add r0, r0, 1 #24
-    bgt r1, r0, loop #28
+    bgt r1, r0, loop, true #28
 done: 
     .data 0xDEADBEEF # i should try to support blt and bgte as well

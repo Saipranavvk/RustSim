@@ -49,7 +49,7 @@ fn opcode_table() -> HashMap<&'static str, u32> {
         ("intena", 38),
         ("intdis", 55),
         ("setmembits", 39),
-        ("switchctx", 56)
+        ("switchctx", 56),
 
         ("lb_d", 40), ("lbu_d", 41), ("lh_d", 42), ("lhu_d", 43),
         ("lw_d", 44), ("sw_d", 45), ("sh_d", 46), ("sb_d", 47),
@@ -293,7 +293,7 @@ fn assemble_instruction(
             }
         }
         39 => { // setmembits: setmembits rS1
-            if args.len() != 1 abd args.len() != 2 { panic!("setmembits expects: setmembits rS1 or rd, rs1"); }
+            if args.len() != 1 && args.len() != 2 { panic!("setmembits expects: setmembits rS1 or rd, rs1"); }
             if args.len() == 1{
                 set_sr1(&mut instr, parse_reg(args[0]));
                 set_dr(&mut instr, 15);
@@ -331,7 +331,7 @@ fn assemble_instruction(
             } else {
                 set_dr(&mut instr, parse_reg(args[0]));
                 set_sr1(&mut instr, parse_reg(args[1]));
-                set_imm(&mut instr, parse_imm_or_label(args[2]));
+                set_imm(&mut instr, parse_imm_or_label(args[2], labels));
                 set_imm1(&mut instr, 1);
             }
             return vec![instr];
@@ -389,14 +389,14 @@ fn assemble_instruction(
         } else {
             (true, parse_imm_or_label(args[1], labels))
         };
-        set_rd(&mut instr, rd);
+        set_dr(&mut instr, rd);
         if is_imm{
             set_imm(&mut instr, base);
             set_imm1(&mut instr, 1);
         }
         else {
-            set_sr1(&mut instr, base);
-            set_imm(&mut instr, parse_imm_or_label(args[2], labels))
+            set_sr1(&mut instr, base as u32);
+            set_imm(&mut instr, parse_imm_or_label(args[2], labels));
             set_imm1(&mut instr, 0);
         }
         return vec![instr];
