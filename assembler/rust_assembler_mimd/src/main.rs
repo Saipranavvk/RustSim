@@ -247,7 +247,7 @@ fn assemble_instruction(
             if args.len() != 2 { panic!("{} expects: {} rD, MAILBOX", op_name, op_name); }
             set_dr(&mut instr, parse_reg(args[0]));
             if args[1].starts_with('r'){
-                set_sr2(&mut instr, parse_reg(args[1]));
+                set_sr1(&mut instr, parse_reg(args[1]));
                 set_imm1(&mut instr, 0);
             } else {
                 set_imm(&mut instr, parse_imm_or_label(args[1], labels));
@@ -266,7 +266,7 @@ fn assemble_instruction(
             return vec![instr];
         }
         37 => { // relinquish: relinquish bool
-            if args.len() > 0 { panic!("relinquish expects: relinquish bool"); }
+            if args.len() != 1 { panic!("relinquish expects: relinquish bool"); }
             set_imm1(&mut instr, if args[0].parse::<bool>().unwrap_or_else(|_| panic!("Invalid boolean '{}'", args[0])) {1} else {0});
             return vec![instr];
         }
@@ -432,8 +432,8 @@ fn assemble_instruction(
         if args.len() != 4 {
             panic!("{} expects: {} rS1, rS2, ABS_ADDR|label|0xHEX", op_name, op_name);
         }
-        set_sr1(&mut instr, parse_reg(args[0]));
-        set_dr(&mut instr, parse_reg(args[1])); // sr2 in dr slot
+        set_dr(&mut instr, parse_reg(args[0]));
+        set_sr1(&mut instr, parse_reg(args[1])); // sr2 in dr slot
         
         let addr = parse_imm_or_label(args[2], labels);
         set_imm(&mut instr, addr);

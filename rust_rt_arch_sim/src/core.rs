@@ -15,7 +15,7 @@ pub const DRAM_LATENCY_FAR: u64 = 300;
 pub const DRAM_LATENCY_CLOSE: u64 = 150;
 pub const REGS_PER_CONTEXT: usize = 16;
 pub const SRAM_SIZE: usize = 48 * 1024;
-pub const NUM_NOC_PIPES: usize = 32;
+pub const NUM_NOC_PIPES: usize = 64;
 pub const HIGH_CAPACITY_NOC_PIPE_CNT: usize = 32;
 pub const HIGH_CAPACITY_PIPE_SLOTS: usize = 4;
 pub const OUTPUT_NOC_FIFO_CAPACITY: usize = 1;
@@ -744,7 +744,8 @@ impl Core {
         y_dim: u16,
         dram_top_bits: usize,
     ) -> Self {
-        let init_time_mem: [u32; 12] = [0x00008002,   //PC = 0x00000000,     line: and r0, r0, 0 #00
+        let init_time_mem: [u32; 12] = [
+            0x00008002,   //PC = 0x00000000,     line: and r0, r0, 0 #00
             0x000007A7,   //PC = 0x00000004,     line: setmembits r0 #04
             0x000000AC,   //PC = 0x00000008,     line: lw_d  r1, r0, 0      #08   
             0x00048100,   //PC = 0x0000000C,     line: add r2, r0, 4     #0C
@@ -754,8 +755,9 @@ impl Core {
             0x00049100,   //PC = 0x0000001C,     line:     add r2, r2, 4 #1C
             0x00049980,   //PC = 0x00000020,     line:     add r3, r3, 4 #20
             0x00018000,   //PC = 0x00000024,     line:     add r0, r0, 1 #24
-            0x00148816,   //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
-            0xDEADBEEF];   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
+            0x00148096,   //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
+            0xDEADBEEF,   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
+        ];   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
         let mut sram_array = [0u8; SRAM_SIZE];
         for i in 0..init_time_mem.len() {
             let word = init_time_mem[i];
@@ -1588,7 +1590,16 @@ impl Core {
                 }
                 _ => panic!("INVALID NUMBER OF SOURCE REGISTERS"),
             }
-
+            if let Operation::StoreByte | Operation::StoreByteDram | Operation::StoreHalf
+                | Operation::StoreHalfDram | Operation::StoreWord | Operation::StoreWordDram
+                | Operation::BranchEq | Operation::BranchGT | Operation::BranchGTU
+                | Operation::BranchLTE | Operation::BranchLTEU | Operation::BranchNe = instruction_to_execute.operation {
+                let dr_ready = self.register_ready
+                        [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT];
+                if !dr_ready {
+                    switch_ctx = true;
+                }
+            }
             if let Operation::Div = instruction_to_execute.operation {
                 if !self.div_seq.is_empty() {
                     // println!("DIV BUSY RN BBY");
@@ -1599,23 +1610,26 @@ impl Core {
                 instruction_to_execute.pc == self.pc[self.context_in_progress],
                 "PC MISMATCH DURING EXECUTION"
             );
-            if DEBUG {
-                println!(
-                    "Core {} executing instruction x{:08X} ({:?}) at PC {:08X} in context {} at cycle {}, dr: {}, sr1: {}, is_imm: {}, sr2: {}, imm_val: {}",
-                    self.core_id,
-                    instruction_to_execute.raw_instruction,
-                    instruction_to_execute.operation,
-                    instruction_to_execute.pc,
-                    self.context_in_progress,
-                    self.cycle,
-                    instruction_to_execute.dr,
-                    instruction_to_execute.sr1,
-                    instruction_to_execute.imm_1,
-                    instruction_to_execute.sr2,
-                    instruction_to_execute.imm_0
-                );
-            }
+
             if !switch_ctx {
+                if DEBUG && self.core_id == 64 * 63 + 63 {
+                    println!(
+                        "Core {} executing instruction x{:08X} ({:?}) at PC {:08X} in context {} at cycle {}, dr: {}, sr1: {}, sr1_val: {}, is_imm: {}, sr2: {}, sr2_val: {},imm_val: {}",
+                        self.core_id,
+                        instruction_to_execute.raw_instruction,
+                        instruction_to_execute.operation,
+                        instruction_to_execute.pc,
+                        self.context_in_progress,
+                        self.cycle,
+                        instruction_to_execute.dr,
+                        instruction_to_execute.sr1,
+                        self.register_file[self.context_in_progress * CTX_CNT + instruction_to_execute.sr1],
+                        instruction_to_execute.imm_1,
+                        instruction_to_execute.sr2,
+                        self.register_file[self.context_in_progress * CTX_CNT + instruction_to_execute.sr2],
+                        instruction_to_execute.imm_0
+                    );
+                }
                 match instruction_to_execute.operation {
                     Operation::Add => {
                         let sr2_val = if instruction_to_execute.is_imm {
@@ -2156,9 +2170,6 @@ impl Core {
                         if instruction_to_execute.is_imm {
                             self.write_sram_word(word, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            if DEBUG {
-                                println!("WORD TO STORE CORE {}: 0x{:08X}/{}, cycle: {}", self.core_id, word, word as i32, self.cycle);
-                            }
                             let address = (self.register_file
                                 [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
                                 as u32 + instruction_to_execute.imm_0) as u16;
@@ -2214,9 +2225,6 @@ impl Core {
                             let old_val = self.read_sram_word(&(address as u16));
                             let new_val = old_val + self.register_file
                                 [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT];
-                            if DEBUG {
-                                println!("WORD TO STORE CORE {}: 0x{:08X}/{}, cycle: {}", self.core_id, new_val, new_val as i32, self.cycle);
-                            }
                             self.write_sram_word(new_val, &address);
                             self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = old_val;
                         }
@@ -2224,9 +2232,9 @@ impl Core {
                     }
                     Operation::BranchEq => {
                         if self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
                             == self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
+                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
                         {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2237,9 +2245,9 @@ impl Core {
                     }
                     Operation::BranchNe => {
                         if self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
                             != self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
+                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
                         {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2250,10 +2258,10 @@ impl Core {
                     }
                     Operation::BranchLTE => {
                         let is_lt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.sr1]
+                            + instruction_to_execute.dr]
                             as i32
                             <= self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr2]
+                                + instruction_to_execute.sr1]
                                 as i32;
                         if is_lt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
@@ -2265,10 +2273,10 @@ impl Core {
                     }
                     Operation::BranchGT => {
                         let is_gt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.sr1]
+                            + instruction_to_execute.dr]
                             as i32
                             > self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr2]
+                                + instruction_to_execute.sr1]
                                 as i32;
                         if is_gt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
@@ -2280,9 +2288,9 @@ impl Core {
                     }
                     Operation::BranchGTU => {
                         let is_gt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.sr1]
+                            + instruction_to_execute.dr]
                             > self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr2];
+                                + instruction_to_execute.sr1];
                         if is_gt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2293,9 +2301,9 @@ impl Core {
                     }
                     Operation::BranchLTEU => {
                         let is_lt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.sr1]
+                            + instruction_to_execute.dr]
                             <= self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr2];
+                                + instruction_to_execute.sr1];
                         if is_lt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2322,10 +2330,13 @@ impl Core {
                             instruction_to_execute.imm_0 as usize
                         } else {
                             self.register_file[
-                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2
-                            ] as usize
+                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1
+                            ]as usize & 0x3F 
                         };
-
+                        if fifo_idx >= NUM_NOC_PIPES {
+                            self.dump_instruction(&self.decoded_instruction.unwrap());
+                            panic!("BAD PIPE INDEX");
+                        }
                         if let Some(val) = self.noc_recv_fifo[fifo_idx].pop() {
                             self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = val;
                             self.pc[self.context_in_progress] += 4;
@@ -2338,8 +2349,8 @@ impl Core {
                             instruction_to_execute.imm_0 as usize
                         } else {
                             self.register_file[
-                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2
-                            ] as usize
+                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1
+                            ]as usize & 0x3F 
                         };
 
                         let fill = self.noc_recv_fifo[fifo_idx].len();
@@ -2422,17 +2433,22 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::RelinquishOwnership => {
+                        
+                        if self.ctx_ownership != self.context_in_progress as i8 {
+                            println!("BAD CORE: {}", self.core_id);
+                            self.dump_instruction(&self.decoded_instruction.unwrap());
+                            println!("self.context_in_progress: {}, self.ctx_ownership: {}", self.context_in_progress, self.ctx_ownership);
+                        }
                         assert!(
                             self.ctx_ownership == self.context_in_progress as i8,
                             "STUPID PROGRAMMER"
                         );
                         self.ctx_ownership = -1;
-                        switch_ctx = true;
+                        // switch_ctx = true;
                         self.pc[self.context_in_progress] += 4;
-                        let cur_pc = self.pc[self.context_in_progress];
                         if instruction_to_execute.imm_1 != 0 {
-                            for context in 0..REGS_PER_CONTEXT {
-                                self.pc[context] = cur_pc;
+                            for context in 0..CTX_CNT {
+                                self.pc[context] = self.pc[self.context_in_progress];
                             }
                         }
                     }
@@ -2913,13 +2929,13 @@ impl Core {
                         let value_to_send = self.register_file
                             [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr];
 
-                        let mailbox_bits = (NUM_NOC_PIPES as u32).trailing_zeros();
+                        // let mailbox_bits = (NUM_NOC_PIPES as u32).trailing_zeros();
                         let mailbox_mask = (NUM_NOC_PIPES as u32) - 1;
 
                         let (core_address, mailbox_index) = if instruction_to_execute.imm_1 != 0 {
                             (full_address, instruction_to_execute.imm_0 as u32)
                         } else {
-                            (full_address >> mailbox_bits, full_address & mailbox_mask)
+                            (full_address >> 6, full_address & mailbox_mask)
                         };
 
                         let outgoing_flit = Flit {

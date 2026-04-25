@@ -391,94 +391,102 @@ pub const MAT_C: [u16; 64*64] = [0xDB52, 0xDEBF, 0xDE8F, 0xDB7D, 0xD494, 0x5E0A,
 0x4C80, 0xDF6F, 0x5B6C, 0x5A21, 0xDFE3, 0x5391, 0xDE62, 0x569E, 0x57FC, 0xDB74, 0xD6C7, 0xD84C, 0xD9D3, 0xCDDB, 0x4CFD, 0x558C, 0xD9AE, 0x59C5, 0xD198, 0x606D, 0xDD27, 0x59F4, 0x6172, 0x5614, 0xD82F, 0xD149, 0xD76B, 0xDA98, 0x4DCF, 0x6014, 0xAD2A, 0xE0E6, 0x5755, 0x5EB4, 0xDB0D, 0xDCAB, 0x5B10, 0xD4F8, 0xE110, 0x5B26, 0xD5A5, 0xD9CB, 0xDF2E, 0xDD2D, 0x5971, 0x4BC5, 0xDC36, 0x61F7, 0xD5E4, 0x5C83, 0x60D4, 0xDB02, 0x61A0, 0x5D58, 0x501A, 0x5C45, 0xD447, 0x5166, 0x58CD, 0xDF97, 0xDC38, 0xD6CD, 0x595B, 0xD70A];
 
 pub fn get_init_vector() -> Vec<u32>{
-    let mut init_vector:[u32; 88]  = [0x0000006A,   //PC = 0x00000028,     line: .data 106
-        0x00108024,   //PC = 0x0000002C,     line: setctx 16
-        0x00000025,   //PC = 0x00000030,     line: relinquish
-        0x0000FF82,   //PC = 0x00000034,     line: and r15, r15, 0 #should have zero effect, just for testing purposes
-        0x00008002,   //PC = 0x00000038,     line: and r0, r0, 0
-        0x00100010,   //PC = 0x0000003C,     line: fpsetacc.16 r0
-        0x0000B302,   //PC = 0x00000040,     line: and r6, r6, 0
-        0x0000BB82,   //PC = 0x00000044,     line: and r7, r7, 0
-        0x0004BB80,   //PC = 0x00000048,     line: add r7, r7, 4
-        0x00000027,   //PC = 0x0000004C,     line: setmembits r0
-        0x43E88080,   //PC = 0x00000050,     line: add r1, r0, 17384
-        0x03E88000,   //PC = 0x00000054,     line: add r0, r0, 1000 #base address M1 = 1000
-        0x000FFF02,   //PC = 0x00000058,     line: and r14, r15, 0xF #r14 = tid
-        0x0004FE06,   //PC = 0x0000005C,     line: srl r12, r15, 4
-        0x003FE602,   //PC = 0x00000060,     line: and r12, r12, 0x3F #r12 = x
-        0x000AFE86,   //PC = 0x00000064,     line: srl r13, r15, 10 #4 + log2(64)
-        0x003FEE82,   //PC = 0x00000068,     line: and r13, r13, 0x3F #r13 = y
-        0x0080ED88,   //PC = 0x0000006C,     line: mul r11, r13, 128 #2 * 64
-        0x000B0000,   //PC = 0x00000070,     line: add r0, r0, r11
-        0x0002E588,   //PC = 0x00000074,     line: mul r11, r12, 2
-        0x000B0880,   //PC = 0x00000078,     line: add r1, r1, r11
-        0x0002F588,   //PC = 0x0000007C,     line: mul r11, r14, 2
-        0x000B0000,   //PC = 0x00000080,     line: add r0, r0, r11
-        0x0080F588,   //PC = 0x00000084,     line: mul r11, r14, 128 #2 * 64
-        0x000B0880,   //PC = 0x00000088,     line: add r1, r1, r11
-        0x0000DD82,   //PC = 0x0000008C,     line: and r11, r11, 0
-        0x009CDE14,   //PC = 0x00000090,     line: bne r11, r12, GET_X_FROM_MAILBOX, true
-        0x0000012B,   //PC = 0x00000094,     line: lhu_d r2, r0
-        0x00A0FF93,   //PC = 0x00000098,     line: beq r15, r15, DO_Y, true
-        0x000E0120,   //PC = 0x0000009C,     line: block r2, r14
-        0x00ACDE94,   //PC = 0x000000A0,     line: bne r11, r13, GET_Y_FROM_MAILBOX, true
-        0x000009AB,   //PC = 0x000000A4,     line: lhu_d r3, r1
-        0x00B4FF93,   //PC = 0x000000A8,     line: beq r15, r15, START_MUL, true
-        0x0010F500,   //PC = 0x000000AC,     line: add r10, r14, 16
-        0x000A01A0,   //PC = 0x000000B0,     line: block r3, r10
-        0x0013100D,   //PC = 0x000000B4,     line: fpmac.16 r2, r3 #ALEX DON'T EVEN NEED SECOND ACCUMULATE INSTRUCTION, JUST DO AN FMAC
-        0x0000DD82,   //PC = 0x000000B8,     line: and r11, r11, 0
-        0x003FDD80,   //PC = 0x000000BC,     line: add r11, r11, 63
-        0x00D06593,   //PC = 0x000000C0,     line: beq r12, r11, SKIP_SEND_X, false
-        0x0004FD06,   //PC = 0x000000C4,     line: srl r10, r15, 4
-        0x0001D500,   //PC = 0x000000C8,     line: add r10, r10, 1
-        0x000E1531,   //PC = 0x000000CC,     line: sendflit r10, r2, r14
-        0x00E46D93,   //PC = 0x000000D0,     line: beq r13, r11, SKIP_SEND_Y, false
-        0x0004FD06,   //PC = 0x000000D4,     line: srl r10, r15, 4
-        0x0040D500,   //PC = 0x000000D8,     line: add r10, r10, 64
-        0x0010F480,   //PC = 0x000000DC,     line: add r9, r14, 16
-        0x00091D31,   //PC = 0x000000E0,     line: sendflit r10, r3, r9 #value, core, mailbox
-        0x00208000,   //PC = 0x000000E4,     line: add r0, r0, 32 #threadcount * 2 (half)
-        0x08008880,   //PC = 0x000000E8,     line: add r1, r1, 2048 #threadcount * 2 (half) * 64
-        0x0001B300,   //PC = 0x000000EC,     line: add r6, r6, 1
-        0x008CBB16,   //PC = 0x000000F0,     line: bgt r7, r6, START_LOOP, true
-        0x0000CC82,   //PC = 0x000000F4,     line: and r9, r9, 0
-        0x0168CC80,   //PC = 0x000000F8,     line: add r9, r9, ACCUM
-        0x0002F408,   //PC = 0x000000FC,     line: mul r8, r14, 2
-        0x00084C80,   //PC = 0x00000100,     line: add r9, r9, r8
-        0x00100291,   //PC = 0x00000104,     line: fpstoreacc.16 r5
-        0x00092819,   //PC = 0x00000108,     line: sh r5, r9 #ALEX I NEED TO LOAD R5 USING GETACCUMULATE FOR FP32 FIRST
-        0x00000422,   //PC = 0x0000010C,     line: yield r8 #yield will not do interrupts since no interrupts were enabled
-        0x0000C402,   //PC = 0x00000110,     line: and r8, r8, 0
-        0x010CC714,   //PC = 0x00000114,     line: bne r8, r14, INF_LOOP, true
-        0x00000023,   //PC = 0x00000118,     line: getowner
-        0x00008002,   //PC = 0x0000011C,     line: and r0, r0, 0
-        0x00108080,   //PC = 0x00000120,     line: add r1, r0, 16
-        0x01688100,   //PC = 0x00000124,     line: add r2, r0, ACCUM
-        0x0000A202,   //PC = 0x00000128,     line: and r4, r4, 0
-        0x0002019E,   //PC = 0x0000012C,     line: lhu r3, r2
-        0x0013220A,   //PC = 0x00000130,     line: fpadd.16 r4, r4, r3 #ALEX THIS NEEDS TO BECOME AN FP16 ADD
-        0x00029100,   //PC = 0x00000134,     line: add r2, r2, 2 #size of a half
-        0x00018000,   //PC = 0x00000138,     line: add r0, r0, 1
-        0x012C8816,   //PC = 0x0000013C,     line: bgt r1, r0, LAST_LOOP, true
-        0x0004FF06,   //PC = 0x00000140,     line: srl r14, r15, 4
-        0x0002F708,   //PC = 0x00000144,     line: mul r14, r14, 2 #size of a half
-        0x0000EE82,   //PC = 0x00000148,     line: and r13, r13, 0
-        0x0100EE80,   //PC = 0x0000014C,     line: add r13, r13, 256
-        0x0100EE88,   //PC = 0x00000150,     line: mul r13, r13, 256
-        0x0100EE88,   //PC = 0x00000154,     line: mul r13, r13, 256
-        0x000E6E80,   //PC = 0x00000158,     line: add r13, r13, r14
-        0x000D202E,   //PC = 0x0000015C,     line: sh_d r4, r13
-        0x0001FF85,   //PC = 0x00000160,     line: sll r15, r15, 1
-        0x0160FF93,   //PC = 0x00000164,     line: beq r15, r15, TRUE_INF_LOOP, true
-        0x00000000,   //PC = 0x00000168,     line: .data 0
-        0x00000000,   //PC = 0x0000016C,     line: .data 0
-        0x00000000,   //PC = 0x00000170,     line: .data 0
-        0x00000000,   //PC = 0x00000174,     line: .data 0
-        0x00000000,   //PC = 0x00000178,     line: .data 0
-        0x00000000,   //PC = 0x0000017C,     line: .data 0
-        0x00000000,   //PC = 0x00000180,     line: .data 0
-        0x00000000];   //PC = 0x00000184,     line: .data 0
+    let mut init_vector:[u32; 94]  = [
+0x0000006E,   //PC = 0x00000028,     line: .data 110          # program size in bytes for loader
+0x00108024,   //PC = 0x0000002C,     line: setctx 16          # activate all 16 hardware contexts
+0x00008025,   //PC = 0x00000030,     line: relinquish true    # broadcast PC to all contexts and release ownership
+0x0000FF82,   //PC = 0x00000034,     line: and r15, r15, 0   # no-op (r15 is hardwired to global TID, can't be written)
+0x00008002,   //PC = 0x00000038,     line: and r0, r0, 0     # r0 = 0
+0x00100010,   //PC = 0x0000003C,     line: fpsetacc.16 r0    # clear FP16 accumulator to 0
+0x0000B302,   //PC = 0x00000040,     line: and r6, r6, 0     # r6 = 0 (loop counter)
+0x0000BB82,   //PC = 0x00000044,     line: and r7, r7, 0     # r7 = 0
+0x0004BB80,   //PC = 0x00000048,     line: add r7, r7, 4     # r7 = 4 (loop limit: 4 iterations of 16 threads = 64 dot product elements)
+0x000007A7,   //PC = 0x0000004C,     line: setmembits r0     # set DRAM stack selector to 0
+0x43E88080,   //PC = 0x00000050,     line: add r1, r0, 17384 # r1 = 17384 = base address of M2 in DRAM
+0x03E88000,   //PC = 0x00000054,     line: add r0, r0, 1000  # r0 = 1000 = base address of M1 in DRAM
+0x000FFF02,   //PC = 0x00000058,     line: and r14, r15, 0xF # r14 = r15 & 0xF = local thread ID (0-15)
+0x0004FE06,   //PC = 0x0000005C,     line: srl r12, r15, 4   # r12 = r15 >> 4
+0x003FE602,   //PC = 0x00000060,     line: and r12, r12, 0x3F # r12 = x coordinate of this core (0-63)
+0x000AFE86,   //PC = 0x00000064,     line: srl r13, r15, 10  # r13 = r15 >> 10 (skip 4 tid bits + 6 x bits)
+0x003FEE82,   //PC = 0x00000068,     line: and r13, r13, 0x3F # r13 = y coordinate of this core (0-63)
+0x0040EA08,   //PC = 0x0000006C,     line: mul r4, r13, 64   # r4 = y * 64
+0x000C2200,   //PC = 0x00000070,     line: add r4, r4, r12   # r4 = y*64 + x
+0x0001A200,   //PC = 0x00000074,     line: add r4, r4, 1     # r4 = y*64 + x+1 (right neighbor core index)
+0x0006A205,   //PC = 0x00000078,     line: sll r4, r4, 6     # r4 = core_index << 6 (make room for mailbox bits)
+0x000E2200,   //PC = 0x0000007C,     line: add r4, r4, r14   # r4 = (core_index << 6) | tid = full flit address for right neighbor
+0x0040EA88,   //PC = 0x00000080,     line: mul r5, r13, 64   # r5 = y * 64
+0x0040AA80,   //PC = 0x00000084,     line: add r5, r5, 64    # r5 = (y+1) * 64
+0x000C2A80,   //PC = 0x00000088,     line: add r5, r5, r12   # r5 = (y+1)*64 + x (down neighbor core index)
+0x0006AA85,   //PC = 0x0000008C,     line: sll r5, r5, 6     # r5 = core_index << 6
+0x0010F400,   //PC = 0x00000090,     line: add r8, r14, 16   # r8 = tid + 16 (mailbox offset for M2, avoids collision with M1 mailboxes)
+0x00082A80,   //PC = 0x00000094,     line: add r5, r5, r8    # r5 = (core_index << 6) | (tid+16) = full flit address for down neighbor
+0x0080ED88,   //PC = 0x00000098,     line: mul r11, r13, 128 # r11 = y * 128 (each row has 64 elements * 2 bytes = 128 bytes)
+0x000B0000,   //PC = 0x0000009C,     line: add r0, r0, r11   # r0 = M1 base + row offset (points to this core's row in M1)
+0x0002E588,   //PC = 0x000000A0,     line: mul r11, r12, 2   # r11 = x * 2 (each element is 2 bytes / fp16)
+0x000B0880,   //PC = 0x000000A4,     line: add r1, r1, r11   # r1 = M2 base + column offset (points to this core's column in M2)
+0x0002F588,   //PC = 0x000000A8,     line: mul r11, r14, 2   # r11 = tid * 2 (each thread reads a different fp16 element of M1 row)
+0x000B0000,   //PC = 0x000000AC,     line: add r0, r0, r11   # r0 = M1 address for this thread's first element
+0x0080F588,   //PC = 0x000000B0,     line: mul r11, r14, 128 # r11 = tid * 128 (each thread reads a different fp16 element of M2 column, stride=128 bytes per row)
+0x000B0880,   //PC = 0x000000B4,     line: add r1, r1, r11   # r1 = M2 address for this thread's first element
+0x0000DD82,   //PC = 0x000000B8,     line: and r11, r11, 0   # r11 = 0 (used as zero for comparisons below)
+0x00C8E594,   //PC = 0x000000BC,     line: bne r11, r12, GET_X_FROM_MAILBOX, true # if x != 0, receive M1 from left neighbor via NOC
+0x0000012B,   //PC = 0x000000C0,     line: lhu_d r2, r0, 0   # x == 0: load M1 element from DRAM into r2
+0x00CCFF93,   //PC = 0x000000C4,     line: beq r15, r15, DO_Y, true # unconditional jump to DO_Y (skip mailbox receive)
+0x00007120,   //PC = 0x000000C8,     line: block r2, r14     # x != 0: block until flit arrives in mailbox[tid], store value in r2
+0x00D8ED94,   //PC = 0x000000CC,     line: bne r11, r13, GET_Y_FROM_MAILBOX, true # if y != 0, receive M2 from upper neighbor via NOC
+0x000009AB,   //PC = 0x000000D0,     line: lhu_d r3, r1, 0   # y == 0: load M2 element from DRAM into r3
+0x00E0FF93,   //PC = 0x000000D4,     line: beq r15, r15, START_MUL, true # unconditional jump to START_MUL
+0x0010F500,   //PC = 0x000000D8,     line: add r10, r14, 16  # r10 = tid + 16 (mailbox index for M2 flits)
+0x000051A0,   //PC = 0x000000DC,     line: block r3, r10     # y != 0: block until flit arrives in mailbox[tid+16], store value in r3
+0x0013100D,   //PC = 0x000000E0,     line: fpmac.16 r2, r3   # accumulator += r2 * r3 (fp16 multiply-accumulate)
+0x0000DD82,   //PC = 0x000000E4,     line: and r11, r11, 0   # r11 = 0
+0x003FDD80,   //PC = 0x000000E8,     line: add r11, r11, 63  # r11 = 63 (used to check if we are the last core in x or y)
+0x00F45E13,   //PC = 0x000000EC,     line: beq r12, r11, SKIP_SEND_X, false # if x == 63, skip sending M1 right (no right neighbor)
+0x00002131,   //PC = 0x000000F0,     line: sendflit r2, r4  # send packed M1 value to right neighbor (address in r4)
+0x00FC5E93,   //PC = 0x000000F4,     line: beq r13, r11, SKIP_SEND_Y, false # if y == 63, skip sending M2 down (no down neighbor)
+0x000029B1,   //PC = 0x000000F8,     line: sendflit r3, r5  # send packed M2 value to down neighbor (address in r5)
+0x00208000,   //PC = 0x000000FC,     line: add r0, r0, 32    # advance M1 pointer by 16 threads * 2 bytes = 32 bytes (next set of elements)
+0x08008880,   //PC = 0x00000100,     line: add r1, r1, 2048  # advance M2 pointer by 16 threads * 128 bytes = 2048 bytes (next set of rows)
+0x0001B300,   //PC = 0x00000104,     line: add r6, r6, 1     # increment loop counter
+0x00B8B396,   //PC = 0x00000108,     line: bgt r7, r6, START_LOOP, true # if loop_limit > counter, repeat (4 iterations total)
+0x0000CC82,   //PC = 0x0000010C,     line: and r9, r9, 0     # r9 = 0
+0x0180CC80,   //PC = 0x00000110,     line: add r9, r9, ACCUM # r9 = address of ACCUM scratchpad
+0x0002F408,   //PC = 0x00000114,     line: mul r8, r14, 2    # r8 = tid * 2 (each thread stores one fp16 = 2 bytes)
+0x00084C80,   //PC = 0x00000118,     line: add r9, r9, r8    # r9 = address of this thread's slot in ACCUM
+0x00100291,   //PC = 0x0000011C,     line: fpstoreacc.16 r5  # r5 = fp16 accumulator value (NOTE: clobbers r5/down-neighbor address, but sends are done)
+0x00004A99,   //PC = 0x00000120,     line: sh r5, r9, 0      # store fp16 result to ACCUM[tid]
+0x00000422,   //PC = 0x00000124,     line: yield r8          # yield to next context
+0x0000C402,   //PC = 0x00000128,     line: and r8, r8, 0     # r8 = 0
+0x0124F414,   //PC = 0x0000012C,     line: bne r8, r14, INF_LOOP, true # if tid != 0, keep yielding (only thread 0 proceeds)
+0x00000023,   //PC = 0x00000130,     line: getowner          # thread 0 acquires exclusive ownership of the core
+0x00008002,   //PC = 0x00000134,     line: and r0, r0, 0     # r0 = 0 (loop counter)
+0x00108080,   //PC = 0x00000138,     line: add r1, r0, 16    # r1 = 16 (number of threads to reduce)
+0x01808100,   //PC = 0x0000013C,     line: add r2, r0, ACCUM # r2 = pointer to ACCUM scratchpad
+0x0000A202,   //PC = 0x00000140,     line: and r4, r4, 0     # r4 = 0 (accumulator for reduction)
+0x0000119E,   //PC = 0x00000144,     line: lhu r3, r2, 0     # r3 = load fp16 from ACCUM[r2]
+0x0013220A,   //PC = 0x00000148,     line: fpadd.16 r4, r4, r3 # r4 += r3 (fp16 add)
+0x00029100,   //PC = 0x0000014C,     line: add r2, r2, 2     # advance pointer by 2 bytes
+0x00018000,   //PC = 0x00000150,     line: add r0, r0, 1     # increment counter
+0x01448096,   //PC = 0x00000154,     line: bgt r1, r0, LAST_LOOP, true # if 16 > counter, continue
+0x0004FF06,   //PC = 0x00000158,     line: srl r14, r15, 4   # r14 = core x index (recompute since r14 was local tid)
+0x0002F708,   //PC = 0x0000015C,     line: mul r14, r14, 2   # r14 = x * 2 (byte offset for this core's output column)
+0x0000EE82,   //PC = 0x00000160,     line: and r13, r13, 0   # r13 = 0
+0x0100EE80,   //PC = 0x00000164,     line: add r13, r13, 256 # r13 = 256
+0x0100EE88,   //PC = 0x00000168,     line: mul r13, r13, 256 # r13 = 256*256 = 65536
+0x0100EE88,   //PC = 0x0000016C,     line: mul r13, r13, 256 # r13 = 256*256*256 = 16777216 (output matrix base address)
+0x000E6E80,   //PC = 0x00000170,     line: add r13, r13, r14 # r13 = output address for this core's result
+0x00006A2E,   //PC = 0x00000174,     line: sh_d r4, r13, 0   # store fp16 result to output DRAM address
+0x0001F705,   //PC = 0x00000178,     line: sll r14, r14, 1   # shift r14 (not r15, which is hardwired) to spin forever
+0x0178F713,   //PC = 0x0000017C,     line: beq r14, r14, TRUE_INF_LOOP, true # infinite loop
+0x00000000,   //PC = 0x00000180,     line: .data 0           # thread 0 accumulator slot
+0x00000000,   //PC = 0x00000184,     line: .data 0           # thread 1
+0x00000000,   //PC = 0x00000188,     line: .data 0           # thread 2
+0x00000000,   //PC = 0x0000018C,     line: .data 0           # thread 3
+0x00000000,   //PC = 0x00000190,     line: .data 0           # thread 4
+0x00000000,   //PC = 0x00000194,     line: .data 0           # thread 5
+0x00000000,   //PC = 0x00000198,     line: .data 0           # thread 6
+0x00000000,   //PC = 0x0000019C,     line: .data 0           # thread 7 (NOTE: only 8 slots = 16 bytes, but 16 threads need 32 bytes - possible bug)
+    ];
     init_vector[0] = init_vector.len() as u32 - 1;
     init_vector.to_vec()
 }
