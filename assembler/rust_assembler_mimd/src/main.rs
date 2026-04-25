@@ -266,7 +266,7 @@ fn assemble_instruction(
             return vec![instr];
         }
         37 => { // relinquish: relinquish bool
-            if args.len() > 1 { panic!("relinquish expects: relinquish bool"); }
+            if args.len() > 0 { panic!("relinquish expects: relinquish bool"); }
             set_imm1(&mut instr, if args[0].parse::<bool>().unwrap_or_else(|_| panic!("Invalid boolean '{}'", args[0])) {1} else {0});
             return vec![instr];
         }
