@@ -292,8 +292,8 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                         if (is_there_a_writer < 0)
                         {
                             atomic_add_dram(queue_address_low, -1);
-                            is_there_a_writer = load_word_dram(queue_address_low);
                             // ensure_no_writers_loop:
+                            is_there_a_writer = load_word_dram(queue_address_low);
                             if (is_there_a_writer < 0)
                             {
                                 goto ensure_no_writers_loop;

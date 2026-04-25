@@ -126,7 +126,7 @@ IS_INTERNAL_NODE:
     beq r6, r7, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
 
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
-    lw r8, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
+    lhu r8, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
 
     # atomic_add(ray_send_pending_addr, 1)
     atomadd r9, r8, 1               # r9 = clobber
@@ -179,6 +179,8 @@ SEND_RAY_LOOP:
     and r14, r14, 0                 # r14 = i = 0
 RAY_SEND_LOOP:
     lw r9, r13, 0                   # r9 = ray word i
+    and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+
     sendflit r6, r9, r11            # send word to core_owner on mailbox
     add r13, r13, 4                 # r13 += 4 (next word)
     add r14, r14, 1                 # i++
