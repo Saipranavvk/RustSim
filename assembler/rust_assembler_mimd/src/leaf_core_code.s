@@ -290,8 +290,122 @@ SKIP_EMERGENCY_ENQUEUE:
     and r3, r3, 0
     add r3, r3, 1                   # r3 = sent = 1
 
+CHECK_DATA_MAILBOX:
+    and r10, r15, 0xF               # r10 = thread_id
+    nonblock r12, r10               # r12 = nb_recv(thread_id) -- data_available
+    beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available
+
+    and r13, r0, 0                 # r13 = slot ptr (starts at 0 = invalid sentinel)
+    and r14, r14, 0                 # r14 = i = 0
+DATA_RECV_LOOP:
+    block r9, r10                   # r9 = ray_word from data mailbox
+    sw r9, r13, 0                   # *slot = ray_word
+    add r13, r13, 4                 # slot += 4
+    add r14, r14, 1                 # i++
+    and r11, r11, 0
+    add r11, r11, 16                # r11 = 16
+    bgt r11, r14, DATA_RECV_LOOP, true   # loop while i < 16
+
+
+    and r13, r13, 0
+    add r13, r13, -1            # r13 = slot = 0xFFFF sentinel (low 16; full 32 not possible in imm)
+
+CHECK_INTERRUPT_MAILBOX:        # TODO continue form here
+    and r11, r11, 0                 # r11 = thread_id & 1
+    add r11, r11, 32                # r11 = interrupt mailbox index
+    nonblock r12, r11               # r12 = nb_recv(interrupt mailbox)
+    beq r12, r7, DONE_WITH_INTERRUPT, true   # r7=0, nothing available
+    block r12, r11                  # r12 = message
+
+    srl r8, r12, 17                 # r8 = supposed_node_id (message >> 17)
+    lw r9, ROOT_NODE_ID             # r9 = self.root_node_id
+    bne r8, r9, WRONG_CORE_SEND, true   # node mismatch -> wrong core
+
+    lw r8, LOCAL_QUEUE              # r8 = self.local_queue
+    add r8, r8, 8                   # r8 = skip head and tail
+    and r9, r10, 1                  # r9 = thread_id & 1
+    and r11, r11, 0
+    add r11, r11, 1036              # r11 = 1036
+    mul r9, r9, r11                 # r9 = odd_thread * 1036
+    add r8, r8, r9                  # r8 = &local_queue for this thread parity
+    atomadd r9, r8, 1               # r9 = old_count
+    lw r11, LOCAL_QUEUE_FLUSHING   # r11 = flushing flag
+    and r14, r14, 0
+    add r14, r14, 16                # r14 = 16 (max queue)
+    bgt r9, r14, REJECT_INTERRUPT, true     # if old_count > 16 reject
+    beq r11, r7, NO_FLUSH, true     # r7=0; if not flushing proceed
+REJECT_INTERRUPT:
+    atomadd r9, r8, -1              # undo count increment
+    and r9, r9, 0
+    add r9, r9, 7                   # r9 = reject_ray = 7
+    sll r9, r9, 24                  # r9 = reject_ray << 24
+    srl r11, r12, 4                 # r11 = dest core (message >> 4 & 0x1FFF)
+    and r11, r11, 0x1FFF
+    and r14, r12, 0xF               # r14 = dest mailbox (message & 0xF + 16)
+    add r14, r14, 16
+    sll r11, r11, 6
+    or r11, r11, r14
+    sendflit r9, r11                # send reject
+    beq r15, r15, DONE_WITH_INTERRUPT, true
+
+NO_FLUSH:
+    add r8, r8, -4                  # r8 = &tail_relative field
+    atomadd r9, r8, 64              # r9 = old tail, advance by 64
+    and r9, r9, 0x3FF               # r9 = tail & 0x3FF (ring mask)
+    add r8, r8, 8                   # r8 = back to queue data base
+    add r8, r8, r9                  # r8 = slot = queue_base + tail_relative
+    # slot is now r8 -- send ack with our thread_id
+    and r14, r14, 0
+    add r14, r14, 5                 # r14 = ray_ack = 5
+    sll r14, r14, 24                # r14 = ray_ack << 24
+    and r10, r15, 0xF               # r10 = thread_id
+    or r14, r14, r10                # r14 = ray_ack << 24 | thread_id
+    srl r11, r12, 4                 # r11 = dest core
+    and r11, r11, 0x1FFF
+    and r9, r12, 0xF                # r9 = dest mailbox + 16
+    add r9, r9, 16
+    sll r11, r11, 6
+    or r11, r11, r14
+    sendflit r9, r11                # send reject
+    beq r15, r15, DONE_WITH_INTERRUPT, true
+
+WRONG_CORE_SEND:
+    and r9, r9, 0
+    add r9, r9, 8                   # r9 = wrong_core = 8
+    sll r9, r9, 24                  # r9 = wrong_core << 24
+    srl r11, r12, 4                 # r11 = dest core
+    and r11, r11, 0x1FFF
+    and r14, r12, 0xF               # r14 = dest mailbox + 16
+    add r14, r14, 16
+    sll r11, r11, 6
+    or r11, r11, r14
+    sendflit r9, r11                # send reject
+
+DONE_WITH_INTERRUPT:
+    # if (sent == 1 && slot == 0xFFFFFFFF) goto ray_done
+    # r3 = sent, check if sent == 1
+    and r11, r11, 0
+    add r11, r11, 1                 # r11 = 1
+    bne r3, r11, SEND_RAY_LOOP, true    # if sent != 1 keep looping
+    # check slot == 0xFFFFFFFF sentinel (r13 == 0xFFFF as 16-bit stand-in)
+    and r11, r11, 0
+    add r11, r11, 0xFFFF            # r11 = sentinel value
+    bne r13, r11, SEND_RAY_LOOP, true   # if slot not sentinel keep looping
+    beq r15, r15, DECREMENT_PENDING, true
+
+DECREMENT_PENDING:
+    and r10, r15, 0xF               # r10 = thread_id
+    and r11, r10, 1                 # r11 = thread_id & 1
+    add r11, r11, 32                # r11 = interrupt mailbox index
+    intdis r11                      # disable interrupts
+    lw r8, RAY_SEND_PENDING_ADDR    # r8 = &ray_send_pending
+    atomadd r9, r8, -1              # decrement pending count
+    beq r15, r15, ray_done, true
 
 TRAVERSE_OWN_CHILD:
+    # node = node->left_child
+    lhu r1, r1, 24                  # r1 = node->left_child
+    beq r15, r15, start_ray_traversal, true
 IS_LEAF_NODE:
     lbu r10, r1, 30
     sll r10, r10, 2
