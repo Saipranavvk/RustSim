@@ -551,7 +551,6 @@ if (local_ray_count > 0)
     ray->active_ray = 1;
     goto start_ray_traversal;
 }
-// NO_DRAM_RAYS:
 uint8_t flushing_queue = *(self.local_queue_flushing);
 if (flushing_queue != 0)
 {
@@ -628,11 +627,11 @@ uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
 byte_index &= 0x000000FF;
 emergency_queue_low += byte_index;
 emergency_queue_low += 12;
-// ensure_emergency_slot_ready:
+// ensure_emergency_slot_ready_2:
 uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
 if (is_ready == 1)
 {
-    goto ensure_emergency_slot_ready;
+    goto ensure_emergency_slot_ready_2;
 }
 uint32_t new_node_id = load_dram_half(emergency_queue_low);
 store_dram_byte(emergency_queue_low + 2, 0);

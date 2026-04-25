@@ -288,9 +288,9 @@ EMERGENCY_CLAIM_SLOT:
     add r9, r9, r10                 # r9 = &slots[tail]
     add r9, r9, 8                   # r9 = slot base (skip head+tail fields)
 
-ENSURE_EMERGENCY_SLOT_READY:
+ENSURE_EMERGENCY_SLOT_READY_TWO:
     lbu_d r11, r9, 2                # r11 = slot->is_valid
-    bne r11, r7, ENSURE_EMERGENCY_SLOT_READY, true  # spin while slot occupied (r7=0)
+    bne r11, r7, ENSURE_EMERGENCY_SLOT_READY_TWO, true  # spin while slot occupied (r7=0)
 
     # write node_id into slot and mark valid
     lw r11, r1, 44                  # r11 = node->node_id
@@ -691,7 +691,205 @@ WRITE_TO_RAY_IDX_LOOP_DONE:
     # goto start_ray_traversal;   
     beq r15, r15, START_RAY_TRAVERSAL, true 
 NO_DRAM_RAYS:
-    
+    # uint32_t emergency_queue_high = self.emergency_queue_high;
+    lw r10, EMERGENCY_QUEUE_HIGH # r10 = emergency_queue_high
+    # set_address_bits(emergency_queue_high);
+    setmembits r10
+    # uint32_t emergency_queue_low = self.emergency_queue_low;
+    lw r9, EMERGENCY_QUEUE_LOW # r9 = emergency_queue_low
+    # uint32_t count = load_dram_word(emergency_queue_low + 8);
+    add r9, r9, 8           # r9 = &count field
+    lw_d r11, r9, 0       # r11 = count
+    add r9, r9, -8
+    # if (count <= 0)
+    # {
+    #     goto check_done;
+    # }
+    and r7, r7, 0
+    blte r11, r7, CHECK_DONE, true
+    # emergency_queue_low += 8;
+    add r9, r9, 8
+    # uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1);
+    atomadd_d r11, r9, 1       # r11 = old_cnt, increment count
+    # if (old_cnt <= 0)
+    # {
+    #     atomic_add_dram(emergency_queue_low, -1);
+    #     goto check_done;
+    # }
+    and r7, r7, 0
+    bg r11, r7, EMERGANCY_QUEUE_CONTINUE, true
+    atomadd_d r11, r9, -1      # undo increment
+    beq r15, r15, CHECK_DONE, true
+EMERGANCY_QUEUE_CONTINUE:
+    # emergency_queue_low -= 8;
+    add r9, r9, -8
+    # uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4);
+    atomadd_d r10, r9, 4 
+    # byte_index &= 0x000000FF;
+    and r10, r10, 0xFF
+    # emergency_queue_low += byte_index;
+    add r9, r9, r10
+    # emergency_queue_low += 12;
+    add r9, r9, 12
+    # ensure_emergency_slot_ready:
+ENSURE_EMERGENCY_SLOT_READY_TWO:
+    # uint16_t is_ready = load_dram_byte(emergency_queue_low + 2);
+    add r10, r9, 2           # r10 = emergency_queue_low + 2
+    lbu_d r10, r10, 0          # r10 = is_ready
+    # if (is_ready == 1)
+    # {
+    #     goto ensure_emergency_slot_ready_TWO;
+    # }
+    and r7, r7, 0
+    add r7, r7, 1
+    beq r10, r7, ENSURE_EMERGENCY_SLOT_READY_TWO, true
+    # uint32_t new_node_id = load_dram_half(emergency_queue_low);
+    lw_d r11, r9, 0           # r11 = new_node_id (uint32 loaded from slot)
+    # store_dram_byte(emergency_queue_low + 2, 0);
+    add r10, r9, 2           # r10 = emergency_queue_low + 2
+    and r7, r7, 0
+    sb_d r7, r10, 0          # mark slot as occupied by writing 1 to is_ready
+    # *(self.local_queue_flushing) = 1;
+    lw r8, LOCAL_QUEUE_FLUSHING
+    add r7, r7, 1
+    sb r7, r8, 0           # set local_queue_flushing to 1 to indicate flushing
+    # *(self.local_queue_flushing + 4) = new_node_id;
+    add r8, r8, 4           # r8 = &local_queue_flushing + 4
+    sw r11, r8, 0          # store new_node_id to local_queue_flushing + 4
+    # goto switch_dram_queue;
+    beq r15, r15, SWITCH_DRAM_QUEUE, true
+
+    # yield();
+    yield r8
+CHECK_DONE:
+    # is_idle_leaf();
+    jmp is_idle_leaf, r14 # r14 is return address @ ALEX LOOK AT THIS
+    # uint32_t finished_ray_high = self.ray_result_addr_high;
+    lw r10, RAY_RESULT_HIGH # r10 = finished_ray_high
+    # set_address_bits(finished_ray_high);
+    setmembits r10
+    # uint32_t finished_ray_low = self.ray_result_addr_low;
+    lw r11, RAY_RESULT_LOW # r11 = finished_ray_low
+    # uint32_t rays_finished = load_dram_word(finished_ray_low);
+    lw_d r12, r11, 0       # r12 = rays_finished
+    # uint32_t max_rays = 1440 * 2560 * 4;
+    and r13, r13, 0
+    add r13, r13, 32768     # r13 = 32768 (2^15)
+    mul r13, r13, 450     # r13 = 32768 * 450 = 1440 * 2560 * 4
+    # if (rays_finished != max_rays)
+    # {
+    #     goto ray_done;
+    # }
+    bne r12, r13, ray_done, true
+    # get_thread_ownership();
+    getowner
+    # set_ctx(15);
+    setctx 15
+    # relinquish_ownership();
+    relinquish 1
+    # yield();
+    yield r8
+    # uint32_t pixel_addr_high = self.ray_result_addr_high;
+    lw r10, RAY_RESULT_HIGH # r10 = pixel_addr_high 
+    # set_address_bits(pixel_addr_high);
+    setmembits r10
+    # uint32_t pixel_addr_low = self.ray_result_addr_low;
+    lw r11, RAY_RESULT_LOW # r11 = pixel_addr_low
+    # uint32_t pix_index = self.core_id >> 4;
+    srl r12, r15, 8     # core_id is upper 4 bits of r15, r12 = core_id >> 4
+    # uint32_t thread_index = self.core_id & 0xF;
+    # pix_index *= 15;
+    mul r12, r12, 15    # pix_index *= 15
+    # pix_index += 15;
+    add r12, r12, 15    # pix_index += 15
+    # pix_index <<= 8;
+    sll r12, r12, 8     # pix_index <<= 8 
+    add r4, r12, 0        # r4 = pix_index, save for later use in loop **r4 CANNOT change; used FAR down the line
+    # uint32_t pix_increment = pix_index;
+    add r13, r12, 0        # r13 = pix_increment
+LOOP_PIXEL:
+    # uint32_t pixel_addr_low = self.ray_result_addr_low;
+    lw r11, RAY_RESULT_LOW # r11 = pixel_addr_low
+    # pixel_addr_low += pix_increment;
+    add r11, r13, r11        # pixel_addr_low += pix_increment
+    # float carried_r = 0.0f;
+    and r5, r5, 0
+    # float carried_g = 0.0f;
+    and r6, r6, 0
+    # float carried_b = 0.0f;
+    and r7, r7, 0
+    # uint32_t bounce = NUM_BOUNCES - 1;
+    add r8, r7, NUM_BOUNCES - 1 # r10 = bounce = NUM_BOUNCES - 1
+    add r3, r3, r8              # r3 = bounce ** DO NOT CHSNGE USED FAR DOWN
+BOUNCE_LOOP:
+    # uint32_t bounce_addr = bounce;    # r8 = bounce_addr
+    # bounce_addr <<= 6;
+    sll r8, r8, 6         # bounce_addr = bounce << 6
+    # bounce_addr += pixel_addr_low;
+    add r8, r11, r8        # bounce_addr = pixel_addr_low + bounce_addr
+
+    # float sr = load_dram_word(bounce_addr);
+    lw_d r9, r8, 0           # r9 = sr
+    # float sg = load_dram_word(bounce_addr + 4);
+    lw_d r10, r8, 4          # r10 = sg
+    # float sb = load_dram_word(bounce_addr + 8);
+    lw_d r11, r8, 8          # r11 = sb
+    # float metallic = load_dram_word(bounce_addr + 12);
+    lw_d r12, r8, 12         # r12 = metallic
+    # float acc_r = 0.0f;
+    and r13, r13, 0
+    # float acc_g = 0.0f;
+    and r14, r14, 0
+    # float acc_b = 0.0f;
+    and r2, r2, 0   # r2 = acc_b
+
+    # uint32_t shadow_addr = bounce_addr + 16;
+    # uint32_t light = 0;
+SHADOW_LOOP:
+    # uint32_t len_sq = load_dram_word(shadow_addr + 12);
+    # if (len_sq != 0xFFFFFFFF)
+    #     goto shadow_skip;
+    # float lr = load_dram_word(shadow_addr);
+    # float lg = load_dram_word(shadow_addr + 4);
+    # float lb = load_dram_word(shadow_addr + 8);
+    # float atten = reciprocal(len_sq);
+    # lr *= atten;
+    # lg *= atten;
+    # lb *= atten;
+    # acc_r += lr;
+    # acc_g += lg;
+    # acc_b += lb;
+    # shadow_skip : shadow_addr += 16;
+    # light += 1;
+    # if (light < NUM_LIGHTS)
+    #     goto shadow_loop;
+
+    # float diffuse_r = acc_r * sr;
+    # float diffuse_g = acc_g * sg;
+    # float diffuse_b = acc_b * sb;
+
+    # carried_r *= sr;
+    # carried_g *= sg;
+    # carried_b *= sb;
+
+    # float one = 1.0f;
+    # float inv_metallic = one - metallic;
+    # diffuse_r *= inv_metallic;
+    # diffuse_g *= inv_metallic;
+    # diffuse_b *= inv_metallic;
+    # carried_r *= metallic;
+    # carried_g *= metallic;
+    # carried_b *= metallic;
+    # carried_r += diffuse_r;
+    # carried_g += diffuse_g;
+    # carried_b += diffuse_b;
+
+    # if (bounce == 0)
+    #     goto bounce_done;
+    # bounce -= 1;
+    # goto bounce_loop;
+
+
 
 
 
