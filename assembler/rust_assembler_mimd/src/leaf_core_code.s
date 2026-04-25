@@ -691,6 +691,7 @@ WRITE_TO_RAY_IDX_LOOP_DONE:
     # goto start_ray_traversal;   
     beq r15, r15, START_RAY_TRAVERSAL, true 
 NO_DRAM_RAYS:
+    
 
 
 
