@@ -304,13 +304,166 @@ SKIP_EMERGENCY_ENQUEUE:
     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
     and r3, r3, 0
     add r3, r3, 1                   # r3 = sent = 1
-
-
+CHECK_DATA_MAILBOX:
+    and r10, r15, 0xF               # r10 = thread_id
+    nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
+    and r7, r7, 0
+    beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available.
+    block r11, r10
+    sw r11, r4, 0
+    block r11, r10
+    sw r11, r4, 4
+    block r11, r10
+    sw r11, r4, 8
+    block r11, r10
+    sw r11, r4, 12
+    block r11, r10
+    sw r11, r4, 16
+    block r11, r10
+    sw r11, r4, 20
+    block r11, r10
+    sw r11, r4, 24
+    block r11, r10
+    sw r11, r4, 28
+    block r11, r10
+    sw r11, r4, 32
+    block r11, r10
+    sw r11, r4, 36
+    block r11, r10
+    sw r11, r4, 40
+    block r11, r10
+    sw r11, r4, 44
+    block r11, r10
+    sw r11, r4, 48
+    block r11, r10
+    sw r11, r4, 52
+    block r11, r10
+    sw r11, r4, 56
+    block r11, r10
+    sw r11, r4, 60
+    add r11, r7, 1
+    sb r11, r4, 63
+CHECK_INTERRUPT_MAILBOX:
+    nonblock r11, 32
+    beq r11, r7, SKIP_INTERRUPT_MAILBOX, true
+    block r11, 32
+    srl r12, r11, 17
+    lw r6, ROOT_NODE_ID
+    beq r12, r6, CORRECT_NODE_ID, true
+SEND_REJECT_RAY_MSG:
+    add r12, r7, 8
+    srl r13, r11, 4
+    sll r13, r13, 19
+    srl r13, r13, 13
+    and r11, r11, 0xF
+    or r13, r13, r11
+    sendflit r12, r13
+    beq r15, r15, SKIP_INTERRUPT_MAILBOX, true
+CORRECT_NODE_ID:
+    lbu r10, r0, 63
+    bne r10, r7, NO_ROOM_IN_RAY_SLOT, true
+    add r4, r0, 0
+    beq r15, r15, SEND_ACK_PACKET, true
+NO_ROOM_IN_RAY_SLOT:
+    add r10, r7, RAY_QUEUE_CNT
+    atomadd r5, r10, 1
+    add r6, r7, 31
+    blte r6, r5, SPACE_IN_QUEUE, true
+    atomadd r15, r10, -1
+    beq r15, r15, SEND_REJECT_RAY_MSG, true
+SPACE_IN_QUEUE:
+    add r10, r10, -4
+    atomadd r6, r10, 64
+    and r6, r6, 0x7FF
+    add r10, r10, r6
+    add r4, r10, 8
+SEND_ACK_PACKET:
+    add r12, r7, 5
+    srl r13, r11, 4
+    sll r13, r13, 19
+    srl r13, r13, 13
+    and r11, r11, 0xF
+    or r13, r13, r11
+    or r12, r12, r15
+    sendflit r12, r13
+SKIP_INTERRUPT_MAILBOX:
+    or r12, r12, 0xFFFF
+    bne r12, r4, send_ray_loop, false
+    beq r3, r7, send_ray_loop, false
+    intena 32
+    add r3, r7, RAY_SEND_PENDING 
+    atomadd r15, r3, -1
+    beq r15, r15, ray_done, true
 TRAVERSE_OWN_CHILD:
+    # node = node->left_child
+    lhu r1, r1, 24                  # r1 = node->left_child
+    beq r15, r15, START_SEARCHING, true
 IS_LEAF_NODE:
-    
-
+    lbu r10, r1, 30
+    sll r10, r10, 2
+    add r10, r10, r0
+    lw r11, r10, 44
+    lbu r12, r0, 62
+    add r13, r7, 1
+    add r12, r12, -1
+    sw r12, r0, 62
+    sll r13, r13, r12
+    or r11, r13, r11
+    sw r11, r10, 44
+    lhu r2, r0, 32
+    lbu r3, r0, 31
+TRIANGLE_INTERSECT_LOOP:
+    beq r15, r15, triangle_intersect, true
+TRIANGLE_INTERSECT_RETURN:
+    lbu r5, r0, 61
+    and r4, r4, 0
+    lw r6, r0, 56
+    beq r4, r5, SHADOW_RAY_NOT_OCCLUDED, true
+    or r5, r5, 0xFFFF
+    beq r5, r6, SHADOW_RAY_NOT_OCCLUDED, true
+    beq r15, r15, SHADOW_RAY_OCCLUDED, true
+SHADOW_RAY_NOT_OCCLUDED:
+    add r2, r2, 12
+    add r3, r3, -1
+    bne r4, r3, TRIANGLE_INTERSECT_LOOP, true
+    lhu r1, r1, 28
+    beq r15, r15, START_SEARCHING, true
+AABB_MISS:
+    lbu r10, r1, 30
+    sll r10, r10, 2
+    add r10, r10, r0
+    lw r11, r10, 44
+    lbu r12, r0, 62
+    add r13, r7, 1
+    add r12, r12, -1
+    sw r12, r0, 62
+    sll r13, r13, r12
+    or r11, r13, r11
+    sw r11, r10, 44
+    lhu r1, r1, 28
+    beq r15, r15, START_SEARCHING, true
 TRAVERSE_LEFT_OR_RIGHT:
+    or r10, r10, 0xFFFF
+    lbu r12, r0, 62
+    add r12, r12, 1
+    sll r10, r10, r12
+    xor r10, r10, 0xFFFF
+    lw r9, r0, 44
+    lw r13, r0, 48
+    and r9, r9, r10
+    and r13, r13, r10
+    sw r9, r0, 44
+    sw r13, r0, 48
+    and r12, r12, 0
+    beq r4, r12, SKIP_LEFT_BITFIELD_INCREMENT, false
+    add r12, r12, 2
+SKIP_LEFT_BITFIELD_INCREMENT:
+    add r1, r1, r12
+    lhu r1, r1, 24
+    lbu r10, r0, 62
+    add r10, r10, 1
+    sb r10, r0, 62
+    beq r15, r15, START_SEARCHING, true
 
 
 triangle_intersect: 
@@ -572,8 +725,6 @@ SPAWNED_RAY_POOL_MASK:  .data 0x007FFFFF
 RAY_SEND_PENDING_ADDR:  .data 0
 LOCAL_QUEUE:            .data 0
 LOCAL_QUEUE_FLUSHING:   .data 0
-LOCAL_RAY_QUEUE:        .data 0
-LOCAL_RAY_QUEUE_HEAD:   .data 0
 ROOT_NODE_ID_SENDER:    .data -1
 ROOT_NODE_ID_RECEIVER:  .data -1
 IS_BRANCH_CORE: .data -1
@@ -649,7 +800,9 @@ ROOT_NODE_ADDRESS: .data 0
 //DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
 RAY_ARRAY: .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: .data(64) 0
-SENDER_RAY_QUEUE: .data(1036) 0
-RECEIVER_RAY_QUEUE: .data(1036) 0
+RAY_QUEUE_HEAD: .data 0
+RAY_QUEUE_TAIL: .data 0
+RAY_QUEUE_CNT: .data 0
+RAY_QUEUE_ENTRIES: .data(515) 0
 DFS_STACK: .data(256) 0
 RAY_TRIANGLE_REG_SPILL: .data(256) 0
