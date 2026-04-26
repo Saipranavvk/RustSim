@@ -213,11 +213,17 @@ fn assemble_instruction(
         if v.is_empty() {
             panic!(".data requires a value");
         }
-        let word = if let Some(hex) = v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
+        let (negate, v_stripped) = if let Some(rest) = v.strip_prefix('-') {
+            (true, rest)
+        } else {
+            (false, v)
+        };
+        let mag = if let Some(hex) = v_stripped.strip_prefix("0x").or_else(|| v_stripped.strip_prefix("0X")) {
             u32::from_str_radix(hex.trim(), 16).expect("Bad .data hex value")
         } else {
-            v.parse::<u32>().expect("Bad .data value")
+            v_stripped.parse::<u32>().expect("Bad .data value")
         };
+        let word = if negate { mag.wrapping_neg() } else { mag };
         return vec![word; repeat];
     }
 
@@ -291,6 +297,7 @@ fn assemble_instruction(
                 set_sr2(&mut instr, base as u32);
                 set_imm1(&mut instr, 0);
             }
+            return vec![instr];
         }
         39 => { // setmembits: setmembits rS1
             if args.len() != 1 && args.len() != 2 { panic!("setmembits expects: setmembits rS1 or rd, rs1"); }

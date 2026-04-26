@@ -1,9 +1,8 @@
-.org IDK //TODO
+.org 0x0028 //TODO
 
 # ***RAY is R0, NODE is R1, R15 is reserved for context info and others**
     # initialize_core();
-    beq r15, r15, initialize_core, true
-
+    beq r15, r15, download_bvh_tree, true
 start_ray_traversal:
     # yield();
     yield r8                        # r8 = scratch for yield
@@ -18,7 +17,7 @@ start_ray_traversal:
     and r5, r3, 1
     and r4, r4, r5                  # r4 = (check_left & 1) & (check_right & 1)
     and r5, r5, 0
-    bne r4, r5, complete_ray, true  # if both bits set goto complete_ray
+    bne r4, r5, COMPLETE_RAY, true  # if both bits set goto complete_ray
 
     # uint32_t left_bitfield_check = ray->check_left & (1 << ray->ray_depth) | node->left_child == 0;
     lbu r5, r0, 62                  # r5 = ray->ray_depth
@@ -59,7 +58,7 @@ RIGHT_BITFIELD_DONE:
 
     # if (ray->ray_depth == 0) goto complete_ray;
     lbu r5, r0, 62                  # r5 = ray->ray_depth
-    beq r5, r7, complete_ray, true
+    beq r5, r7, COMPLETE_RAY, true
 
     # TODO ASK ALEX ABOUT THIS
     # uint32_t bitfield = *(ray.check_left + node->is_right * 4);
@@ -87,7 +86,7 @@ RIGHT_BITFIELD_DONE:
 
     # if (node->parent == 0) goto complete_ray;
     lhu r6, r1, 28                  # r6 = node->parent
-    beq r6, r7, complete_ray, true  # r7 = 0
+    beq r6, r7, COMPLETE_RAY, true  # r7 = 0
 
     # node = node->parent;
     and r1, r1, 0
@@ -174,14 +173,16 @@ SEND_RAY_LOOP:
 
     # ACK path: for (i = 0; i < 16; i++) send_packet(ray[i], core_owner, mailbox)
     lhu r6, r1, 30                  # r6 = node->core_owner
+    srl r10, r12, 4
+    sll r10, r10, 19
+    srl r10, r10, 13
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+    or r10, r10, r11
     add r13, r0, 0                  # r13 = ray base ptr
     and r14, r14, 0                 # r14 = i = 0
 RAY_SEND_LOOP:
     lw r9, r13, 0                   # r9 = ray word i
-    and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
-
-    sendflit r6, r9, r11            # send word to core_owner on mailbox
+    sendflit r9, r10            # send word to core_owner on mailbox
     add r13, r13, 4                 # r13 += 4 (next word)
     add r14, r14, 1                 # i++
     and r11, r11, 0
@@ -513,12 +514,10 @@ TRAVERSE_LEFT_OR_RIGHT:
     # clear bits below current depth in check_left and check_right
     lbu r5, r0, 59
     add r5, r5, 1
-    and r8, r8, 0
-    add r8, r8, 0xFFFFFFFF
+    or r8, r8, 0xFFFF
     sll r8, r8, r5                  # mask = 0xFFFFFFFF << (ray_depth+1)... TODO: need NOT
     # workaround: xor with all-ones to get ~mask
-    and r11, r11, 0
-    add r11, r11, 0xFFFFFFFF
+    or r11, r11, 0xFFFF
     xor r8, r8, r11                 # r8 = zero_out_subtree
     lw r2, r0, 18
     and r2, r2, r8
@@ -532,8 +531,8 @@ TRAVERSE_LEFT_OR_RIGHT:
     beq r4, r7, USE_LEFT, true      # r4=left_bitfield_check, r7=0
     add r6, r6, 2                   # offset by 2 if left already visited -> use right
 USE_LEFT:
-    add r6, r6, 24                  # base offset of left_child in AABB_Node
-    lhu r1, r1, r6
+    add r1, r1, r6
+    lhu r1, r1, 24
 
     lbu r5, r0, 59
     add r5, r5, 1
@@ -711,9 +710,9 @@ EMERGENCY_SWITCH_BEGIN:
     and r4, r4, 0xFF                     # byte_index &= 0x000000FF
     add r3, r3, r4                       # emergency_queue_low += byte_index
     add r3, r3, 12                       # emergency_queue_low += 12
-ENSURE_EMERGENCY_SLOT_READY:
+ENSURE_EMERGENCY_SLOT_READY_TWO:
     lhu_d r4, r3, 2                      # uint16_t is_ready = load_dram_byte(emergency_queue_low + 2)
-    beq r4, r14, ENSURE_EMERGENCY_SLOT_READY, false  # if (is_ready == 0) goto ENSURE_EMERGENCY_SLOT_READY
+    beq r4, r14, ENSURE_EMERGENCY_SLOT_READY_TWO, false  # if (is_ready == 0) goto ENSURE_EMERGENCY_SLOT_READY
     lhu_d r4, r3, 0                      # uint32_t new_node_id = load_dram_half(emergency_queue_low)
     add r5, r14, 1                       # r5 = 1
     sh_d r5, r3, 0                       # store_dram_byte(emergency_queue_low + 2, 0) -- mark slot consumed; differs: pseudocode writes to +2 but asm writes to +0
@@ -791,7 +790,7 @@ ENSURE_RAY_POOL_SLOT_READY:
     add r9, r7, 0                        # r9 = ray->dz
     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(ray->dz)
     sw r9, r0, 32                        # store ray->inv_dz
-    AND R14, R14, 0                      # r14 = 0
+    and r14, r14, 0                      # r14 = 0
     blte r14, r4, IS_NOT_SHADOW, false   # if (light_id == 0) goto IS_NOT_SHADOW  -- differs: pseudocode checks is_shadow != 0
     add r9, r8, 0                        # r9 = inv_len (for shadow ray t_max = 1/|d| = distance to light)
     jmp r10, RECIPROCAL                  # ray->t_max = reciprocal(inv_len)
@@ -800,7 +799,7 @@ IS_NOT_SHADOW:
     lw r2, INFINITY                      # r2 = 0x7F800000
     sw r2, r0, 36                        # ray->t_max = INFINITY
 FINISH_SETTING_OTHER_RAY_FIELDS:
-    AND R14, R14, 0                      # r14 = 0
+    and r14, r14, 0                      # r14 = 0
     sw r14, r0, 44                       # ray->check_left = 0
     sw r14, r0, 48                       # ray->check_right = 0
     add r13, r14, -1                     # r13 = 0xFFFFFFFF
@@ -834,6 +833,8 @@ GET_NEW_TILE:
     lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
     add r4, r14, 255                     # r4 = 255
     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
+    #SAI PLEASE WRITE HERE
+SKIP_RETURNING_TILE: 
     add r2, r2, 8                        # tile_pool_low += 8 (point to count field)
     atomadd_d r15, r2, 1                 # atomic_add_dram(tile_pool_low, 1) -- increment tile count
     add r2, r2, -4                        # tile_pool_low -= 4 (point to tail field)
@@ -868,7 +869,7 @@ WAIT_FOR_TILE_SLOT_TO_OPEN:
     sw r14, RAYS_FORWARDED_OUT_FROM_TILE # self.tile_data_sram->rays_forwarded_out_from_tile = 0
     sw r14, RAYS_SPAWNED_FROM_TILE       # self.tile_data_sram->rays_spawned_from_tile = 0
     setctx 16                            # set_ctx(16)
-    relinquish 0                         # relinquish_ownership(0)
+    relinquish false                         # relinquish_ownership(0)
 SPAWN_FROM_TILE:
     AND r14, r14, 0                      # r14 = 0
     add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
@@ -1940,10 +1941,10 @@ RETURN_FROM_CORE_DRAM_QUEUE:
     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
     #     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
     add r11, r14, 1
-    beq r10, r11, BRANCH_START_OF_CODE, true
+    beq r10, r11, EAT_BRANCH_START_OF_CODE, true
     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
     beq r15, r15, DONE_LOADING_CODE, true
-BRANCH_START_OF_CODE:
+EAT_BRANCH_START_OF_CODE:
     lw r11, branch_start_of_code   
     # r11 = starting_address
 DONE_LOADING_CODE:
@@ -2409,10 +2410,10 @@ SWITCH_DRAM_QUEUE:
     add r9, r14, LOCAL_QUEUE_FLUSHING
     atomadd r15, r9, 1
     add r10, r14, 16 
-WAIT_FOR_FLUSH_READY:
+WAIT_FOR_FLUSH_READY_TWO:
     lw r9, LOCAL_QUEUE_FLUSHING
     switchctx
-    beq r10, r9, WAIT_FOR_FLUSH_READY, true
+    beq r10, r9, WAIT_FOR_FLUSH_READY_TWO, true
     # ;     set_address_bits(q_high);
 
     setmembits r2
@@ -2539,121 +2540,234 @@ LOCKING_BULLSHIT_INSERT_EMERGENCY:
 
 
 
-VERTEX_ARRAY_BASE:       .data 0
-SRAM_ALLOC_COUNT:       .data 0
-SRAM_NODE_ALLOC_PTR:     .data 0
-NODE_ARRAY_TOP:         .data 0
-ROOT_NODE_ID:           .data 0
-BRANCH_START_OF_CODE:    .data -1
-BRANCH_NUM_INSTRUCTION_BYTES: .data -1
-BRANCH_START_OF_GEO:     .data -1
-BRANCH_SIZE_OF_GEO:      .data -1
-SAVED_BRANCH_HIGH:       .data -1
-SAVED_BRANCH_LOW:        .data -1
-SEARCH_FOR_IDLE_CORES_STORAGE: .data -1
-BRANCH_IDLE_THRESHOLD:    .data -1
-IDLE_WINDOW:             .data 100000
-EAT_RAY_MASK:            .data 0x0001FFFF
-HALF:                    .data 0x3F000000
-TWO:                     .data 0x40000000
-RECIPROCAL_STORAGE:      .data -1
-NEG_MAX:                 .data 0x80000000
-ONE_POINT_FIVE:          .data 0x3FC00000
-RANDOM_FLOAT_AND_MASK:    .data 0x3FFFFFFF
-RANDOM_TABLE_MASK:       .data 0x0003FFF0
-MAX_RAYS_IN_RAY_POOL:    .data 260000
-FINISHED_PIXELS_HIGH:   .data -1
-FINISHED_PIXELS_LOW:    .data -1
-ONE:                    .data 0x3F800000
-MAX_RAYS:              .data 58982400
-EPSILON:                .data 0x38D1B717
-NEG_ONE:                .data 0xBF800000
-INFINITY:               .data 0x7F800000
-SPAWNED_RAY_POOL_MASK:  .data 0x007FFFFF
-RAY_SEND_PENDING_ADDR:  .data 0
-LOCAL_QUEUE:            .data 0
-LOCAL_QUEUE_FLUSHING:   .data 0
-LOCAL_RAY_QUEUE:        .data 0
-LOCAL_RAY_QUEUE_HEAD:   .data 0
-ROOT_NODE_ID_SENDER:    .data -1
-ROOT_NODE_ID_RECEIVER:  .data -1
-IS_BRANCH_CORE: .data -1
-RAY_QUEUE_HIGH: .data -1
-RAY_QUEUE_LOW: .data -1
-EMERGENCY_QUEUE_HIGH: .data -1
-EMERGENCY_QUEUE_LOW: .data -1
-SPAWNED_RAY_POOL_HIGH: .data -1
-SPAWNED_RAY_POOL_LOW: .data -1
-TILE_QUEUE_HIGH: .data -1
-TILE_QUEUE_LOW: .data -1
-RAY_RESULT_HIGH: .data -1
-RAY_RESULT_LOW: .data -1
-RAYS_COMPLETED_HIGH: .data -1
-RAYS_COMPLETED_LOW: .data -1
-FRAME_BUF_HIGH: .data -1
-FRAME_BUF_LOW: .data -1
-NODE_ARRAY_HIGH: .data -1
-NODE_ARRAY_LOW: .data -1
-TRIANGLE_ARRAY_HIGH: .data -1
-TRIANGLE_ARRAY_LOW: .data -1
-INT_TO_FLOAT_TABLE_HIGH: .data -1
-INT_TO_FLOAT_TABLE_LOW: .data -1
-DIV_TABLE_HIGH: .data -1
-DIV_TABLE_LOW: .data -1
-INV_SQRT_TABLE_HIGH: .data -1
+VERTEX_ARRAY_BASE:       
+.data 0
+SRAM_ALLOC_COUNT:       
+.data 0
+SRAM_NODE_ALLOC_PTR:     
+.data 0
+NODE_ARRAY_TOP:         
+.data 0
+ROOT_NODE_ID:           
+.data 0
+BRANCH_START_OF_CODE:    
+.data -1
+BRANCH_NUM_INSTRUCTION_BYTES: 
+.data -1
+BRANCH_START_OF_GEO:     
+.data -1
+BRANCH_SIZE_OF_GEO:      
+.data -1
+SAVED_BRANCH_HIGH:       
+.data -1
+SAVED_BRANCH_LOW:        
+.data -1
+SEARCH_FOR_IDLE_CORES_STORAGE: 
+.data -1
+BRANCH_IDLE_THRESHOLD:    
+.data -1
+IDLE_WINDOW:             
+.data 100000
+EAT_RAY_MASK:            
+.data 0x0001FFFF
+HALF:                    
+.data 0x3F000000
+TWO:                     
+.data 0x40000000
+RECIPROCAL_STORAGE:      
+.data -1
+NEG_MAX:                 
+.data 0x80000000
+ONE_POINT_FIVE:          
+.data 0x3FC00000
+RANDOM_FLOAT_AND_MASK:    
+.data 0x3FFFFFFF
+RANDOM_TABLE_MASK:       
+.data 0x0003FFF0
+MAX_RAYS_IN_RAY_POOL:    
+.data 260000
+FINISHED_PIXELS_HIGH:   
+.data -1
+FINISHED_PIXELS_LOW:    
+.data -1
+ONE:                    
+.data 0x3F800000
+MAX_RAYS:              
+.data 58982400
+EPSILON:                
+.data 0x38D1B717
+NEG_ONE:                
+.data 0xBF800000
+INFINITY:               
+.data 0x7F800000
+SPAWNED_RAY_POOL_MASK:  
+.data 0x007FFFFF
+RAY_SEND_PENDING_ADDR:  
+.data 0
+LOCAL_QUEUE:            
+.data 0
+LOCAL_QUEUE_FLUSHING:   
+.data 0
+LOCAL_RAY_QUEUE:        
+.data 0
+LOCAL_RAY_QUEUE_HEAD:   
+.data 0
+ROOT_NODE_ID_SENDER:    
+.data -1
+ROOT_NODE_ID_RECEIVER:  
+.data -1
+IS_BRANCH_CORE: 
+.data -1
+RAY_QUEUE_HIGH: 
+.data -1
+RAY_QUEUE_LOW: 
+.data -1
+EMERGENCY_QUEUE_HIGH: 
+.data -1
+EMERGENCY_QUEUE_LOW: 
+.data -1
+SPAWNED_RAY_POOL_HIGH: 
+.data -1
+SPAWNED_RAY_POOL_LOW: 
+.data -1
+TILE_QUEUE_HIGH: 
+.data -1
+TILE_QUEUE_LOW: 
+.data -1
+RAY_RESULT_HIGH: 
+.data -1
+RAY_RESULT_LOW: 
+.data -1
+RAYS_COMPLETED_HIGH: 
+.data -1
+RAYS_COMPLETED_LOW: 
+.data -1
+FRAME_BUF_HIGH: 
+.data -1
+FRAME_BUF_LOW: 
+.data -1
+NODE_ARRAY_HIGH: 
+.data -1
+NODE_ARRAY_LOW: 
+.data -1
+TRIANGLE_ARRAY_HIGH: 
+.data -1
+TRIANGLE_ARRAY_LOW: 
+.data -1
+INT_TO_FLOAT_TABLE_HIGH: 
+.data -1
+INT_TO_FLOAT_TABLE_LOW: 
+.data -1
+DIV_TABLE_HIGH: 
+.data -1
+DIV_TABLE_LOW: 
+.data -1
+INV_SQRT_TABLE_HIGH: 
+.data -1
 INV_SQRT_TABLE_LOW: .data -1
-IDLE_QUEUE_HIGH: .data -1
-IDLE_QUEUE_LOW: .data -1
-RANDOM_TABLE_HIGH: .data -1
-RANDOM_TABLE_LOW: .data -1
-CAM_X: .data -1
-CAM_Y: .data -1
-CAM_Z: .data -1
-CAM_CX: .data -1
-CAM_CY: .data -1
-CAM_INV_FOCAL: .data -1
-RAY_SEND_PENDING: .data -1
-PULLED_FROM_FULL_QUEUE_CNT: .data -1
-CORE_ID_TO_SWITCH_TO: .data -1
-TILE_DATA_COUNT: .data 0 #count
-TILE_IS_ACTIVE: .data 0 
-TILE_INTER_INDEX: .data 0 #tile_x_index/tile_y_index
-TILE_CUR_RAY_SPAWNED:.data 0 #cur_ray_spawned_from_tile[16] in bytes
+IDLE_QUEUE_HIGH: 
+.data -1
+IDLE_QUEUE_LOW: 
+.data -1
+RANDOM_TABLE_HIGH: 
+.data -1
+RANDOM_TABLE_LOW: 
+.data -1
+CAM_X: 
+.data -1
+CAM_Y: 
+.data -1
+CAM_Z: 
+.data -1
+CAM_CX:
+.data -1
+CAM_CY: 
+.data -1
+CAM_INV_FOCAL: 
+.data -1
+RAY_SEND_PENDING: 
+.data -1
+PULLED_FROM_FULL_QUEUE_CNT: 
+.data -1
+CORE_ID_TO_SWITCH_TO: 
+.data -1
+TILE_DATA_COUNT: 
+.data 0 #count
+TILE_IS_ACTIVE: 
+.data 0 
+TILE_INTER_INDEX: 
+.data 0 #tile_x_index/tile_y_index
+TILE_CUR_RAY_SPAWNED:
+.data 0 #cur_ray_spawned_from_tile[16] in bytes
 .data 0 
 .data 0 
 .data 0
-RAYS_SPAWNED_FROM_TILE: .data 0 #rays_spawned_from_tile
-RAYS_FORWARDED_OUT_FROM_TILE: .data 0 #rays_forwarded_out_from_tile
-RAYS_PROCESSED: .data 0
-LAST_OBSERVED_CYCLE: .data 0
-PREVIOUSLY_IDLE: .data 0
-FLOAT_TO_BYTE_RGB_TABLE: .data(128) 0
-LIGHT0_X: .data -1
-LIGHT0_Y: .data -1
-LIGHT0_Z: .data -1
-LIGHT0_R: .data -1
-LIGHT0_G: .data -1
-LIGHT0_B: .data -1
-LIGHT1_X: .data -1
-LIGHT1_Y: .data -1
-LIGHT1_Z: .data -1
-LIGHT1_R: .data -1
-LIGHT1_G: .data -1
-LIGHT1_B: .data -1
-LIGHT2_X: .data -1
-LIGHT2_Y: .data -1
-LIGHT2_Z: .data -1
-LIGHT2_R: .data -1
-LIGHT2_G: .data -1
-LIGHT2_B: .data -1
-ROOT_NODE_ADDRESS: .data 0
-REGISTER_SPILL_1: .data(32) 0
-REGISTER_SPILL_2: .data(32) 0
-REGISTER_SPILL_3: .data(32) 0
-REGISTER_SPILL_4: .data(32) 0
+RAYS_SPAWNED_FROM_TILE: 
+.data 0 #rays_spawned_from_tile
+RAYS_FORWARDED_OUT_FROM_TILE: 
+.data 0 #rays_forwarded_out_from_tile
+RAYS_PROCESSED: 
+.data 0
+LAST_OBSERVED_CYCLE: 
+.data 0
+PREVIOUSLY_IDLE: 
+.data 0
+FLOAT_TO_BYTE_RGB_TABLE: 
+.data(128) 0
+LIGHT0_X: 
+.data -1
+LIGHT0_Y: 
+.data -1
+LIGHT0_Z: 
+.data -1
+LIGHT0_R: 
+.data -1
+LIGHT0_G: 
+.data -1
+LIGHT0_B: 
+.data -1
+LIGHT1_X: 
+.data -1
+LIGHT1_Y: 
+.data -1
+LIGHT1_Z: 
+.data -1
+LIGHT1_R: 
+.data -1
+LIGHT1_G: 
+.data -1
+LIGHT1_B: 
+.data -1
+LIGHT2_X: 
+.data -1
+LIGHT2_Y: 
+.data -1
+LIGHT2_Z: 
+.data -1
+LIGHT2_R: 
+.data -1
+LIGHT2_G: 
+.data -1
+LIGHT2_B: 
+.data -1
+ROOT_NODE_ADDRESS: 
+.data 0
+REGISTER_SPILL_1: 
+.data(32) 0
+REGISTER_SPILL_2: 
+.data(32) 0
+REGISTER_SPILL_3: 
+.data(32) 0
+REGISTER_SPILL_4: 
+.data(32) 0
 //DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
-RAY_ARRAY: .data(256) 0
-LEAF_CORE_LOOKUP_TABLE: .data(64) 0
-SENDER_RAY_QUEUE: .data(1036) 0
-RECEIVER_RAY_QUEUE: .data(1036) 0
-DFS_STACK: .data(256) 0
+RAY_ARRAY: 
+.data(256) 0
+LEAF_CORE_LOOKUP_TABLE: 
+.data(64) 0
+SENDER_RAY_QUEUE: 
+.data(1036) 0
+RECEIVER_RAY_QUEUE: 
+.data(1036) 0
+DFS_STACK: 
+.data(256) 0
