@@ -149,14 +149,41 @@ SEND_RAY_LOOP:
     srl r9, r9, 13    
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
     or r9, r9, r11                  # r13 = ray base ptr
-    add r13, r0, 0                 # r14 = i = 0
-    add r11, r7, 16
-RAY_SEND_LOOP:
-    lw r7, r13, 0                   # r9 = ray word i
-    sendflit r7, r9            # send word to core_owner on mailbox
-    add r13, r13, 4                 # r13 += 4 (next word)
-    add r11, r11, -1
-    bne r11, r7, RAY_SEND_LOOP, true   # loop while i < 16
+
+    lw r7, r0, 0
+    sendflit r7, r9
+    lw r7, r0, 4
+    sendflit r7, r9
+    lw r7, r0, 8
+    sendflit r7, r9
+    lw r7, r0, 12
+    sendflit r7, r9
+    lw r7, r0, 16
+    sendflit r7, r9
+    lw r7, r0, 20
+    sendflit r7, r9
+    lw r7, r0, 24
+    sendflit r7, r9
+    lw r7, r0, 28
+    sendflit r7, r9
+    lw r7, r0, 32
+    sendflit r7, r9
+    lw r7, r0, 36
+    sendflit r7, r9
+    lw r7, LEAF_CORE_INDEX_FOR_BRANCH
+    sendflit r7, r9
+    lw r7, r0, 44
+    sendflit r7, r9
+    lw r7, r0, 48
+    sendflit r7, r9
+    lw r7, r0, 52
+    sendflit r7, r9
+    lw r7, r0, 56
+    sendflit r7, r9
+    lw r7, r0, 60   
+    sendflit r7, r9
+
+
     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
     and r3, r3, 0
     add r3, r3, 1                   # r3 = sent = 1
@@ -182,41 +209,43 @@ THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE:
     add r9, r9, r10               # r11 = write_addr = slot base + tail offset
 
 WAIT_FOR_SLOT_TO_OPEN:
-    lbu_d r10, r11, 63              # r10 = slot[63] (valid byte)
+    lbu_d r10, r9, 63              # r10 = slot[63] (valid byte)
     bne r10, r7, WAIT_FOR_SLOT_TO_OPEN, true   # spin while slot occupied (r7=0)
 RAY_DRAM_WRITE_LOOP:
     lw r10, r0, 0                  # r10 = ray word i
-    sw_d r10, r11, 0                # write to DRAM slot
+    sw_d r10, r9, 0                # write to DRAM slot
     lw r10, r0, 4                  # r10 = ray word i
-    sw_d r10, r11, 4                # write to DRAM slot
+    sw_d r10, r9, 4                # write to DRAM slot
     lw r10, r0, 8                  # r10 = ray word i
-    sw_d r10, r11, 8                # write to DRAM slot
+    sw_d r10, r9, 8                # write to DRAM slot
     lw r10, r0, 12                  # r10 = ray word i
-    sw_d r10, r11, 12                # write to DRAM slot
+    sw_d r10, r9, 12                # write to DRAM slot
     lw r10, r0, 16                  # r10 = ray word i
-    sw_d r10, r11, 16                # write to DRAM slot
+    sw_d r10, r9, 16                # write to DRAM slot
     lw r10, r0, 20                  # r10 = ray word i
-    sw_d r10, r11, 20                # write to DRAM slot
+    sw_d r10, r9, 20                # write to DRAM slot
     lw r10, r0, 24                  # r10 = ray word i
-    sw_d r10, r11, 24                # write to DRAM slot
+    sw_d r10, r9, 24                # write to DRAM slot
     lw r10, r0, 28                  # r10 = ray word i
-    sw_d r10, r11, 28                # write to DRAM slot
+    sw_d r10, r9, 28                # write to DRAM slot
     lw r10, r0, 32                  # r10 = ray word i
-    sw_d r10, r11, 32                # write to DRAM slot
+    sw_d r10, r9, 32                # write to DRAM slot
     lw r10, r0, 36                  # r10 = ray word i
-    sw_d r10, r11, 36                # write to DRAM slot
+    sw_d r10, r9, 36                # write to DRAM slot
     lw r10, r0, 40                  # r10 = ray word i
-    sw_d r10, r11, 40                # write to DRAM slot
+    sw_d r10, r9, 40                # write to DRAM slot
     lw r10, r0, 44                  # r10 = ray word i
-    sw_d r10, r11, 44                # write to DRAM slot
+    sw_d r10, r9, 44                # write to DRAM slot
     lw r10, r0, 48                  # r10 = ray word i
-    sw_d r10, r11, 48                # write to DRAM slot
+    sw_d r10, r9, 48                # write to DRAM slot
     lw r10, r0, 52                  # r10 = ray word i
-    sw_d r10, r11, 52                # write to DRAM slot
+    sw_d r10, r9, 52                # write to DRAM slot
     lw r10, r0, 56                  # r10 = ray word i
-    sw_d r10, r11, 56                # write to DRAM slot
+    sw_d r10, r9, 56                # write to DRAM slot
     lw r10, r0, 60                  # r10 = ray word i
-    sw_d r10, r11, 60                # write to DRAM slot
+    sw_d r10, r9, 60                # write to DRAM slot
+    and r14, r14, 0
+    sb r14, r0, 63
 
     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
     add r9, r9, 20                  # r9 = &lock field (offset 20 from queue base)
@@ -788,7 +817,7 @@ ENSURE_EMERGENCY_SLOT_READY_TWO:
     yield r8
 CHECK_DONE:
     # is_idle_leaf();
-    jmp is_idle_leaf, r2 # r14 is return address @ ALEX LOOK AT THIS
+    jmp is_idle_leaf, r2 # r2 is return address @ ALEX LOOK AT THIS
     yield r8                             # yield()
     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
     setmembits r2                        # set_address_bits(finished_ray_high)
@@ -947,16 +976,64 @@ INF_LOOP:
     beq r15, r15, INF_LOOP, true         # goto inf_loop
 
 
+is_idle_leaf:
+    getclk r3                               # r3 = current_cycle = get_cycle_count()
+    lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+    sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
+    bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
+    jmp r15, r2                             # return 0 (not enough time has passed)
+PASSED_BRANCH_WINDOW:
+    lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+    beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
+    jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+NOT_PREVIOUSLY_IDLE:
+    getclk r5                               # r5 = current_cycle (fresh timestamp)
+    sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+    lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+    sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+    sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
+    div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
+    lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
+    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+    jmp r15, r2                             # return 0 (not idle enough to enqueue)
+ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
+    lw r3, ADD_IDLE_CORE
+    jmp r14, r3
+    and r3, r3, 0
+    add r3, r3, 1
+    sw r2, PREVIOUSLY_IDLE    
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    add r14, r14, 1
+    jmp r15, r2                             # return 0 (already marked idle, nothing to do)
 
-
-
+ADD_IDLE_CORE:                              # ALEX AI CODE <-
+    lw r6, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
+    setmembits r6, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
+    lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
+    add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
+    atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
+    add r4, r4, -4                          # r4 = &idle_queue.tail_relative
+    atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
+    add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
+    and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
+    add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
+IDLE_CORE_INSERT_SPINLOCK:
+    lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+    bne r14, r5, IDLE_CORE_INSERT_SPINLOCK  # spin until is_valid == 0 (slot is free)
+    srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
+    sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
+    add r5, r14, 1                          # r5 = 1
+    sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
+    jmp r15, r3                             # return    
 
 
 
 triangle_intersect: 
     #void Triangle_Intersect(Triangle *tri, Ray *ray, Vertex *vertices)
     # tri in r2 = index ptr, ray is in r0, i won't touch r3 or r2 or r1. 
-    lw r13, VERTEX_ARRAY_BASE                   # r13 = Vertex * vertices
+    lw r13, INDEX_ARRAY_BASE                   # r13 = Vertex * vertices
     and r14, r14, 0
     add r4, r14, RAY_TRIANGLE_REG_SPILL
     and r5, r15, 0xF
@@ -966,7 +1043,7 @@ triangle_intersect:
     lhu r5, r8, 4
     lhu r6, r8, 6
     lhu r7, r8, 8
-    lw r8, TRIANGLE_ARRAY_BASE
+    lw r8, VERTEX_ARRAY_BASE
     add r5, r5, r8 #v0
     add r6, r6, r8 #V1
     add r7, r7, r8 #V2
@@ -1122,6 +1199,52 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_3:
     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
 
 
+RECIPROCAL:
+    lw r11, NEG_MAX                     # r11 = 0x80000000
+    and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
+    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
+    and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
+    srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
+    sub r13, r13, 254                   # r13 = new_exp = 254 - exp
+    srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
+    and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
+    lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
+    setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
+    sw r14, RECIPROCAL_STORAGE          # save old membits to RECIPROCAL_STORAGE
+    lw r14, DIV_TABLE_LOW               # r14 = div_table_low
+    add r14, r14, r9                    # r14 = &div_table[index]
+    lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+    sll r14, r13, 23                    # r14 = new_exp << 23
+    or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
+    sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
+    fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
+    lw r11, TWO                         # r11 = 2.0f
+    fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
+    fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
+    or r9, r9, r12                      # r9 |= sign (restore sign bit)
+    lw r14, RECIPROCAL_STORAGE          # r14 = saved old membits
+    setmembits r14, r14                 # restore membits
+    jmp r15, r10                        # return (result in r9)
+
+INV_SQRT:
+    srl r10, r8, 17                     # r10 = index = len_sq >> 17 (top 15 bits as table index)
+    lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
+    setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
+    lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
+    sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
+    add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
+    lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
+    lw r13, HALF                        # r13 = 0.5f
+    fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
+    lw r14, ONE_POINT_FIVE              # r14 = 1.5f
+    fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
+    fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
+    fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
+    fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
+    setmembits r11                      # restore old membits (r11 holds saved value)
+    jmp r15, r9                              # return (result in r8)    
+
+
 
 AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
     lw r2, r1, 0                        
@@ -1193,6 +1316,7 @@ CONTINUE_WITH_EAT_RAY_INTERRUPT:
     srl r13, r7, 17                         # r13 = node_id = flit >> 17
     lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
+reject_ray_interrupt:
     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
     sll r10, r10, 24                        # r10 = wrong_core << 24
     and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
@@ -1282,7 +1406,609 @@ RECEIVE_RAY_DATA:
 
 
 
+
+download_bvh_tree:
+    # NOTE:
+    # The current C snippet has two real problems:
+    #   1) the root push in the C is inconsistent with the stack growth direction
+    #   2) the recurse logic has an unconditional goto that makes the owner checks bogus
+    # This assembly follows the intended behavior, not those broken lines literally.
+
+    and r14, r14, 0                          # r14 = 0
+
+    # *(self.sram_alloc_count) = self.node_array_top;
+    lw r11, NODE_ARRAY_TOP
+    sw r11, SRAM_ALLOC_COUNT
+
+    # set_address_bits(self.node_array_high);
+    lw r12, NODE_ARRAY_HIGH
+    setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
+
+    # stack_top = DFS_STACK;
+    add r2, r14, DFS_STACK                   # r2 = stack_top
+
+    # -- push root onto stack --
+    sw r14, r2, 0                            # dram_idx = 0
+    add r11, r14, 0xFFFF
+    sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
+    sh r14, r2, 6                            # patch_left = 0
+    sh r14, r2, 8                            # patch_right = 0
+    sh r14, r2, 10                           # is_right = 0
+    sw r14, r2, 12                           # depth = 0
+    add r2, r2, 16                           # stack_top++
+
+dfs_loop:
+    # if (stack_top == DFS_STACK) goto dfs_done;
+    add r11, r14, DFS_STACK
+    beq r2, r11, dfs_done, true
+
+    add r2, r2, -16
+    lw r4, r2, 0                             # dram_idx
+    lhu r5, r2, 4                            # parent_ptr
+    lhu r6, r2, 6                            # patch_left
+    lhu r7, r2, 8                            # patch_right
+    lhu r8, r2, 10                           # is_right
+    lw r9, r2, 12                            # depth
+
+    lw r10, SRAM_NODE_ALLOC_PTR              # address of alloc pointer / next free slot
+    atomadd r13, r10, 48                     # r13 = node = atomic_add(sram_slot_address, 48)
+
+    lw r12, NODE_ARRAY_LOW                   # r12 = bottom_node_bits base
+    sll r11, r4, 4                           # r11 = dram_idx * 16
+    sll r10, r4, 5                           # r10 = dram_idx * 32
+    add r12, r12, r11
+    add r12, r12, r10                        # r12 = bottom_node_bits + dram_idx * 48
+
+    # -- copy bounding box --
+    lw_d r10, r12, 0
+    sw r10, r13, 0
+    lw_d r10, r12, 4
+    sw r10, r13, 4
+    lw_d r10, r12, 8
+    sw r10, r13, 8
+    lw_d r10, r12, 12
+    sw r10, r13, 12
+    lw_d r10, r12, 16
+    sw r10, r13, 16
+    lw_d r10, r12, 20
+    sw r10, r13, 20
+
+    # -- copy metadata --
+    lhu_d r10, r12, 30
+    sh r10, r13, 30                          # core_owner
+    lhu_d r10, r12, 40
+    sh r10, r13, 40                          # queue_high_bit_addr
+    lw_d r10, r12, 36
+    sw r10, r13, 36                          # queue_low_bit_addr
+    lw_d r10, r12, 44
+    sw r10, r13, 44                          # node_id
+
+    add r11, r14, 0xFFFF
+    sh r11, r13, 42                          # prev_index = 0xFFFF
+    sb r8, r13, 32                           # is_right = is_right (byte field)
+
+    # -- set parent pointer --
+    sh r5, r13, 28                           # node->parent = parent_ptr
+
+    # -- default children to null --
+    sh r11, r13, 24                          # left_child = 0xFFFF
+    sh r11, r13, 26                          # right_child = 0xFFFF
+
+    # core_id = self.thread_id >> 4
+    srl r11, r15, 4
+
+    and r14, r14, 0
+    # if (parent_ptr != 0xFFFF) patch parent child pointer
+    add r12, r14, 0xFFFF
+    beq r5, r12, SKIP_PATCH, true
+    add r12, r14, 1
+    beq r8, r12, PATCH_RIGHT_CHILD, true
+    sh r13, r6, 0                            # *patch_left = node
+    beq r15, r15, SKIP_PATCH, true
+PATCH_RIGHT_CHILD:
+    sh r13, r7, 0                            # *patch_right = node
+SKIP_PATCH:
+
+    # if (owner == self->core_id) self->root_node = node;
+    lhu r10, r13, 30                         # owner = dram_node->core_owner
+    bne r10, r11, CHECK_RECURSE, true
+    sw r13, ROOT_NODE_ID
+CHECK_RECURSE:
+
+    # recurse if owner == 0xFFFF || owner == self->core_id
+    add r14, r14, 0xFFFF
+    beq r10, r14, DO_RECURSE, true
+    and r14, r14, 0
+    beq r10, r11, SET_NODE_ID, true
+    beq r15, r15, dfs_loop, true             # foreign owner: stop here
+SET_NODE_ID:
+    lw r10, r12, 44                        # node_id
+    sw r10, ROOT_NODE_ID                   # self.node_id = node_id from dram
+DO_RECURSE:
+    # -- push right child first (so left is processed first) --
+    and r14, r14, 0
+    lw_d r10, r12, 24                        # right_idx
+    lw_d r11, r12, 28                        # left_idx
+
+    add r12, r9, 1                           # child_depth = depth + 1
+
+    sw r10, r2, 0                            # right_idx
+    sh r13, r2, 4                            # parent = node
+    add r10, r13, 24
+    sh r10, r2, 6                            # patch_left = &node->left_child
+    add r10, r13, 26
+    sh r10, r2, 8                            # patch_right = &node->right_child
+    add r10, r14, 1
+    sh r10, r2, 10                           # is_right = 1
+    sw r12, r2, 12                           # depth + 1
+    add r2, r2, 16
+
+    # -- push left child --
+    sw r11, r2, 0                            # left_idx
+    sh r13, r2, 4
+    add r10, r13, 24
+    sh r10, r2, 6
+    add r10, r13, 26
+    sh r10, r2, 8
+    sh r14, r2, 10                           # is_right = 0
+    sw r12, r2, 12
+    add r2, r2, 16
+
+    beq r15, r15, dfs_loop, true
+
+dfs_done:
+    # *(self.leaf_core_lookup_table + 256) = self->root_node;
+    and r14, r14, 0
+    # set_address_bits(self.node_array_high);
+    lw r12, NODE_ARRAY_HIGH
+    setmembits r13, r12
+
+    # dram_src = self.leaf_alloc.index_array_low + self.leaf_alloc.index_byte_offset;
+    and r1, r1, 0
+    add r1, r1, 16924
+    sll r1, r1, 1 
+    lw r2, RAY_QUEUE_LOW
+    add r1, r1, r2
+    lw r2, r1, 16
+    lw r3, r1, 20
+    lw r1, r1, 0
+    add r1, r1, r2              # r1 = dram_src
+
+    # words = self.leaf_alloc.index_byte_count >> 2;
+    lw r3, LEAF_ALLOC_INDEX_BYTE_COUNT
+    srl r3, r3, 2               # r3 = words
+
+    add r4, r14, 0              # i = 0
+    lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
+    sw r6, INDEX_ARRAY_BASE         
+index_copy_loop:
+    blte r3, r4, index_copy_done, true
+
+    lw_d r5, r1, 0
+    sw r5, r6, 0                # *(sram_dst) = ...
+    
+    add r1, r1, 4               # dram_src += 4
+    add r6, r6, 4               # sram_dst += 4
+    add r4, r4, 1               # i++
+
+    beq r15, r15, index_copy_loop, true
+
+index_copy_done:
+    and r1, r1, 0
+    add r1, r1, 16924
+    sll r1, r1, 1 
+    lw r2, RAY_QUEUE_LOW
+    add r1, r1, r2
+
+
+    # dram_src = self.leaf_alloc.vertex_array_low + self.leaf_alloc.vertex_byte_offset;
+    lw r2, r1, 24
+    sw r2, VERTEX_ARRAY_BASE
+    lw r3, r1, 28
+    lw r1, r1, 4
+    add r1, r1, r2
+
+    # words = self.leaf_alloc.vertex_byte_count >> 2;
+    srl r3, r3, 2
+
+    add r4, r14, 0              # i = 0
+
+vertex_copy_loop:
+    blte r3, r4, vertex_copy_done, true
+
+    lw_d r5, r1, 0
+    sw r5, r6, 0
+
+    add r1, r1, 4
+    add r6, r6, 4
+    add r4, r4, 1
+
+    beq r15, r15, vertex_copy_loop, true
+
+vertex_copy_done:
+
+    # uint32_t is_odd_thread = self.thread_id & 1;
+
+
+    # queue_ptr_address = self.local_ray_queue_head;
+    lw r1, LOCAL_RAY_QUEUE_HEAD
+
+    sw r14, r1, 0
+    sw r14, r1, 4
+    sw r14, r1, 8
+
+    add r1, r1, 75
+
+    add r2, r14, 16
+queue_loop_1:
+    beq r2, r14, queue_loop_1_done, true
+    sw r14, r1, 0
+    add r1, r1, 64
+    add r2, r2, -1
+    beq r15, r15, queue_loop_1, true
+
+queue_loop_1_done:
+
+    sb r14, r1, 1
+    sb r14, r1, 5
+    sb r14, r1, 9
+
+    add r1, r1, 76
+
+    add r2, r14, 16
+queue_loop_2:
+    beq r2, r14, queue_loop_2_done, true
+    sw r14, r1, 0
+    add r1, r1, 64
+    add r2, r2, -1
+    beq r15, r15, queue_loop_2, true
+
+queue_loop_2_done:
+
+    # *(self.local_queue_flushing) = 0;
+    sw r14, LOCAL_QUEUE_FLUSHING
+
+    # *(self.tile_data_sram + 4) = 0;
+    lw r1, TILE_DATA_SRAM
+    sw r14, r1, 4
+
+    # *(self.ray_send_pending_addr) = 0;
+    sw r14, RAY_SEND_PENDING_ADDR
+
+
+    # ray_base = self.ray_array_base;
+    lw r1, RAY_ARRAY_BASE
+
+    # ray_array_index = self.thread_id << 6;
+    sll r2, r15, 6
+
+    # ray = ray_base + index
+    add r1, r1, r2
+
+    # *(ray + 63) = 0;
+    sb r14, r1, 63
+
+    # *(self.core_handled->previously_idle) = 0;
+    sw r14, PREVIOUSLY_IDLE
+
+    # *(self.core_handled->rays_processed) = 0;
+    sw r14, RAYS_PROCESSED
+
+    # *(self.core_handled->last_observed_cycle) = 0;
+    sw r14, LAST_OBSERVED_CYCLE
+
+    # *(self.ray_send_pending_addr) = 0;
+    sw r14, RAY_SEND_PENDING_ADDR
+
+    # *(local_queue_flushing) = 0;
+    sw r14, LOCAL_QUEUE_FLUSHING
+    intena 32
+    intena 34
+    intena 35
+    intena 36
+    relinquish true
+
+    beq r15, r15, ray_done, true
+
+
+
+
+IS_IDLE_LEAF:
+    getclk r3                               # r3 = current_cycle = get_cycle_count()
+    lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+    sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
+    bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
+    jmp r15, r2                             # return 0 (not enough time has passed)
+PASSED_BRANCH_WINDOW:
+    lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+    beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
+    jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+NOT_PREVIOUSLY_IDLE:
+    getclk r5                               # r5 = current_cycle (fresh timestamp)
+    sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+    lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+    sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+    sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
+    div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
+    lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
+    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+    jmp r15, r2                             # return 0 (not idle enough to enqueue)
+ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
+    add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
+    atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1)
+    beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE
+    jmp r15, r2                             # return 
+    
+ADD_IDLE_CORE:
+    lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
+    setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
+    lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
+    add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
+    atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
+    add r4, r4, -4                          # r4 = &idle_queue.tail_relative
+    atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
+    add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
+    and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
+    add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
+IDLE_CORE_INSERT_SPINLOCK:
+    lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+    bne r14, r5, IDLE_CORE_INSERT_SPINLOCK  # spin until is_valid == 0 (slot is free)
+    srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
+    sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
+    add r5, r14, 1                          # r5 = 1
+    sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
+    jmp r15, r2                             # return
+
+SEARCH_FOR_IDLE_CORES: #There's no documentation of who uses this function
+#I am going to assume that r3 has a return address
+    and r14, r14, 0                     # r14 = 0 (zero register)
+    lw r5, IDLE_QUEUE_ADDRESS_HIGH      # r5 = self.idle_queue_address_high
+    sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
+    add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+    setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
+    lw r6, IDLE_QUEUE_ADDRESS_LOW       # r6 = current = self.idle_queue_address_low
+    or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
+    atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
+    add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
+    bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
+    atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
+    lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
+    lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
+    setmembits r7                       # set_address_bits(parent_node_high)
+ASCEND:
+    lh_d r9, r6, 24                     #r9 = is_left
+    lh_d r10, r6, 26                    #r10 = height
+    lw_d r11, r6, 0                     #r11 = parent_high
+    sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+    lw_d r12, r6, 4                     #r12 = parent_low
+    sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+    or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
+    beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
+    setmembits r11                      # set_address_bits(parent_high)
+PUSH_SIBLING:
+    beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
+    lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
+    lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
+    beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
+RIGHT_NODE:
+    lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
+    lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
+SKIP_RIGHT_NODE:
+    sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
+    sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
+    sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
+    add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
+DFS_LOOP_CORE_SEARCH:
+    add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+    beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
+    add r5, r5, -12                     # dfs_top-- (pop stack)
+    lw r4, r5, 0                        # r4 = dfs_stack[top].high
+    setmembits r4                       # set_address_bits(dfs_node_high)
+    lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
+    lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
+    beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
+    add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
+    lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
+    lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
+    sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
+    sw r12, r5, 4                       # dfs_stack[top].low = right_low
+    sh r13, r5, 8                       # dfs_stack[top].height = child_height
+    add r5, r5, 12                      # dfs_top++
+    lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
+    lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
+    sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
+    sw r12, r5, 4                       # dfs_stack[top].low = left_low
+    sh r13, r5, 8                       # dfs_stack[top].height = child_height
+    add r5, r5, 12                      # dfs_top++
+    beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
+TRY_DEQUEUE:
+    add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
+    atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
+    bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
+    atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
+    beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
+CLAIM_SLOT:
+    add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
+    atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
+    and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
+    add r4, r4, r9                      # r4 = dfs_node + head_relative
+    add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
+SPINLOCK_VALID:
+    lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+    beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
+    lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
+    sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
+    beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
+SIBLING_EXHAUSTED:
+    lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+    setmembits r11                      # set_address_bits(parent_high)
+    lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+    beq r15, r15, ASCEND, true         # unconditional goto ASCEND
+SEARCH_DONE:
+    or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
+    beq r9, r8, RAY_DONE, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
+    sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
+    and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
+    add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
+    block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
+    srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
+    add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
+    bne r11, r10, RAY_DONE, false      # if response == REJECT_CHANGE goto RAY_DONE
+    add r10, r14, 1                     # r10 = 1
+    sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
+    and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
+    lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
+    beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
+    lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
+    lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
+    add r5, r12, r5                     # r5 = end address of code region
+TRANSFER_BRANCH_CODE_LOOP:
+    lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
+    sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
+    add r12, r12, 4                     # i += 4
+    bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
+TRANSFER_GEO:
+    lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
+    lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
+    add r5, r12, r5                     # r5 = end address of geometry region
+TRANSFER_BRANCH_GEO_LOOP:
+    lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
+    sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
+    add r12, r12, 4                     # i += 4
+    bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
+    beq r15, r15, RAY_DONE, true       # unconditional goto RAY_DONE
+
+
+
+REMOVE_FROM_RAY_QUEUE_DRAM:
+;     set_address_bits(q_high);
+    lw r2, RAY_QUEUE_HIGH   # r2 = q_high
+    lw r3, RAY_QUEUE_LOW    # r3 = q_low
+    setmembits r2
+;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+    add r4, r3, 12
+    atomadd_d r5, r4, 1
+REMOVE_TICKET_WAIT:
+;     uint32_t now_serving = load_dram_word(q_low + 16)
+;     if (now_serving != my_ticket) <- should be while
+;     {
+;         now_serving = load_dram_word(q_low + 16)
+;     }
+    lw_d r4, r3, 16
+    bne r4, r5, REMOVE_TICKET_WAIT, true
+
+LOCKING_BULLSHIT:
+;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+;     while (lock_val != -LOCK_DECREMENT)
+;     {
+;         lock_val = load_dram_word(q_low + 20);
+;     }
+    add r4, r3, 20
+    and r5, r5, 0
+    add r5, r5, 1
+    srl r5, r5, 1           # r5 = 0x7FFFFFFF
+    xor r5, r5, -1
+    atomadd_d r4, r4, r5
+    bne r5, r4, LOCKING_BULLSHIT, true
+
+;     uint32_t owner_count = load_dram_word(q_low + 24);
+;     if (owner_count <= 1)
+;     {
+;         atomic_add_dram(q_low + 20, LOCK_DECREMENT);
+;         atomic_add_dram(q_low + 16, 1);
+;         return 0;
+;     }
+    add r4, r3, 24
+    ld_w r4, r4, 0
+    and r5, r5, 0
+    add r5, r5, 1
+    bg r4, r5, continue_on_gandalf
+    and r5, r5, 0
+    add r5, r5, 1
+    srl r5, r5, 1           # r5 = 0x7FFFFFFF
+    add r4, r3, 20
+    atomadd_d r5, r4, r5
+    and r5, r5, 0
+    add r5, r5, 1
+    add r4, r4, -4
+    atomadd_d r5, r4, r5
+continue_on_gandalf:
+    # r4 = owner_count
+    # uint32_t slots_base = q_low + 28
+    add r6, r3, 28              # r6 = slots_base
+
+    # uint32_t i = 0
+    and r8, r8, 0               # r8 = i = 0
+
+    # core_id = r15 >> 4
+    srl r9, r15, 4              # r9 = core_id
+    and r9, r9, 0xFFF           # r9 = core_id masked
+
+find_our_slot_remove:
+    # if (i >= owner_count) goto slot_not_found_remove
+    bgt r8, r4, slot_not_found_remove, true     # i > owner_count
+    beq r8, r4, slot_not_found_remove, true     # i == owner_count
+    # slot_val = load_dram_half(slots_base + i * 2)
+    sll r10, r8, 1              # r10 = i * 2
+    add r10, r10, r6            # r10 = slots_base + i * 2
+    lhu_d r11, r10, 0           # r11 = slot_val
+
+    # if (slot_val == core_id) goto found_our_slot_remove
+    beq r11, r9, found_our_slot_remove, true
+
+    # i++
+    add r8, r8, 1
+    beq r15, r15, find_our_slot_remove, true
+
+found_our_slot_remove:
+    # last_slot_addr = slots_base + (owner_count - 1) * 2
+    add r11, r4, -1             # r11 = owner_count - 1
+    sll r11, r11, 1             # r11 = (owner_count - 1) * 2
+    add r11, r11, r6            # r11 = last_slot_addr
+
+    # last_val = load_dram_half(last_slot_addr)
+    lhu_d r12, r11, 0           # r12 = last_val
+
+    # store_dram_half(slots_base + i * 2, last_val)
+    # r10 still = slots_base + i * 2
+    sh_d r12, r10, 0            # slots[i] = last_val
+
+    # store_dram_half(last_slot_addr, 0)
+    and r12, r12, 0
+    sh_d r12, r11, 0            # last slot = 0
+
+    # atomic_add_dram(q_low + 24, -1)
+    add r10, r3, 24             # r10 = &core_owner_count
+    atomadd_d r12, r10, -1     # core_owner_count--
+
+    beq r15, r15, release_remove, true
+
+slot_not_found_remove:
+    # Still need to release lock before returning
+release_remove:
+    # atomic_add_dram(q_low + 20, LOCK_DECREMENT)
+    # rebuild LOCK_DECREMENT = 0x7FFFFFFF
+    and r5, r5, 0
+    add r5, r5, -1
+    srl r5, r5, 1               # r5 = 0x7FFFFFFF
+    add r10, r3, 20             # r10 = &lock
+    atomadd_d r12, r10, r5     # release lock
+
+    # atomic_add_dram(q_low + 16, 1)
+    add r10, r3, 16             # r10 = &now_serving
+    and r5, r5, 0
+    add r5, r5, 1
+    atomadd_d r12, r10, r5     # advance now_serving
+
+    beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
+    
+
+
+LEAF_CORE_INDEX_FOR_BRANCH: .data -1
 VERTEX_ARRAY_BASE:       .data 0
+INDEX_ARRAY_BASE:        .data -1
 SRAM_ALLOC_COUNT:       .data 0
 SRAM_NODE_ALLOC_PTR:     .data 0
 NODE_ARRAY_TOP:         .data 0
