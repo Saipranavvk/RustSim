@@ -725,6 +725,7 @@ EMERGENCY_SLOT_FLUSH_LOOP:
     switchctx
     beq r5, r6, EMERGENCY_SLOT_FLUSH_LOOP, true
     sw r4, CORE_ID_TO_SWITCH_TO         # *(self.local_queue_flushing + 4) = new_node_id
+    #TODO
     beq r15, r15, SWITCH_DRAM_QUEUE, true  # goto switch_dram_queue
 
 CHECK_SPAWNED_RAY_POOL:
@@ -1871,19 +1872,12 @@ SWITCH_ROLES_INTERRUPT:
     intena 34                               # enable_interrupts(channel) (nothing to do)
     jmp r15, r4                             # return
 CONTINUE_WITH_SWITCH_ROLES_INTERRUPT:
-    add r9, r14, LOCAL_QUEUE_FLUSHING
-    atomadd r15, r9, 1
-    add r10, r14, 16
-WAIT_FOR_FLUSH_READY:
-    lw r9, LOCAL_QUEUE_FLUSHING
-    switchctx
-    beq r10, r9, WAIT_FOR_FLUSH_READY, true
-
     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
     # if (self.core_handled->previously_idle == 0)
     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
     #     send_flit(REJECT_CHANGE << 24, switch_core_request >> 4, switch_core_request & 0xF + 16);
+REJECT_CHANGE:
     add r10, r7, 0                      # r10 = switch_core_request
     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
@@ -1896,10 +1890,34 @@ WAIT_FOR_FLUSH_READY:
     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
     # enable_interrupts(34);
     # return;
-    intena r6                               # enable_interrupts(channel)
-    bne r14, r14, r4, true                             # return
+    intena 34                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
 UNHANDLED_CORE:
     # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);
+    lw r9, IS_BRANCH_CORE
+    and r14, r14, 0
+    beq r9, r14, LEGAL_TO_SWITCH, true
+    lw r9, RAY_QUEUE_HIGH
+    setmembits r9
+    lw r9, RAY_QUEUE_LOW
+    add r9, r9, 20
+GET_READER_LOCK_CORE_CNT:
+    atomadd_d r10, r9, 1
+    blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
+    atomadd_d r10, r9, -1
+    beq r15, r15, GET_READER_LOCK_CORE_CNT, true
+HAVE_READER_LOCK_CORE_CNT:
+    lw_d r9, r9, 4
+    add r10, r14, 1
+    beq r9, r10, REJECT_CHANGE, false
+LEGAL_TO_SWITCH:
+    add r9, r14, LOCAL_QUEUE_FLUSHING
+    atomadd r15, r9, 1
+    add r10, r14, 16 
+WAIT_FOR_FLUSH_READY:
+    lw r9, LOCAL_QUEUE_FLUSHING
+    switchctx
+    beq r10, r9, WAIT_FOR_FLUSH_READY, true
     add r10, r7, 0                      # r10 = switch_core_request
     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
@@ -1912,24 +1930,21 @@ UNHANDLED_CORE:
     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
     getowner                  # TODO ALex tf is this?
     # uint32_t type_of_core = blocking_recv(0);
-    beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM ; # if t0 == t1 then target
+    beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
     
                                 # REMOVE CURRENT CORE FROM DRAM QUEUE
 RETURN_FROM_CORE_DRAM_QUEUE:
-
-
-
     block r10, r14                           # r10 = type_of_core = blocking_recv(0)
     # if (type_of_core != self.is_branch_core)
     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
     #     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
     add r11, r14, 1
-    beq r10, r11, BRANCH_START_OF_CODE
+    beq r10, r11, BRANCH_START_OF_CODE, true
     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
     beq r15, r15, DONE_LOADING_CODE, true
 BRANCH_START_OF_CODE:
-    lw, r11, branch_start_of_code   
+    lw r11, branch_start_of_code   
     # r11 = starting_address
 DONE_LOADING_CODE:
     and r12, r12, 0
@@ -1949,7 +1964,7 @@ CORE_TYPE_BRANCH:
     # uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
     add r11, r14, 1
     and r12, r12, 0
-    bne r10, r11, leaf_start_of_geometry
+    bne r10, r11, leaf_start_of_geometry, true
     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
     add r12, r12, 5678 * 4
     beq r15, r15, DONE_LOADING_GEO, true
@@ -1966,9 +1981,14 @@ FOR_SIZE_OF_GEO:
     sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
     add r9, r9, 4                           # i += 4
     add r11, r11, 4
-    blt r9, r12, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
+    bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
     # self.is_branch_core = type_of_core;
     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
+    beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
+RETURN_FROM_INSERT_DRAM_QUEUE:
+    relinquish true
+    lw r10, IS_BRANCH_CORE
+    and r14, r14, 0
     add r11, r14, 1
     beq r10, r11, VERTEX_COPY_DONE, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
     beq r15, r15, VERTEX_COPY_DONE_BUT_LEAF, true
@@ -2222,58 +2242,34 @@ queue_loop_2_done:
 
 
 REMOVE_FROM_RAY_QUEUE_DRAM:
-;     set_address_bits(q_high);
-    lw r2, RAY_QUEUE_HIGH   # r2 = q_high
+# ;     set_address_bits(q_high);
+    lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
     lw r3, RAY_QUEUE_LOW    # r3 = q_low
     setmembits r2
-;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+# ;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
     add r4, r3, 12
     atomadd_d r5, r4, 1
 REMOVE_TICKET_WAIT:
-;     uint32_t now_serving = load_dram_word(q_low + 16)
-;     if (now_serving != my_ticket) <- should be while
-;     {
-;         now_serving = load_dram_word(q_low + 16)
-;     }
+# ;     uint32_t now_serving = load_dram_word(q_low + 16)
+# ;     if (now_serving != my_ticket) <- should be while
+# ;     {
+# ;         now_serving = load_dram_word(q_low + 16)
+# ;     }
     lw_d r4, r3, 16
     bne r4, r5, REMOVE_TICKET_WAIT, true
 
+# ;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+# ;     while (lock_val != -LOCK_DECREMENT)
+# ;     {
+# ;         lock_val = load_dram_word(q_low + 20);
+# ;     }
+    add r4, r3, 20
+    and r5, r5, 0
+    add r5, r5, -8192
+    atomadd_d r15, r4, r5
 LOCKING_BULLSHIT:
-;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
-;     while (lock_val != -LOCK_DECREMENT)
-;     {
-;         lock_val = load_dram_word(q_low + 20);
-;     }
-    add r4, r3, 20
-    and r5, r5, 0
-    add r5, r5, 1
-    srl r5, r5, 1           # r5 = 0x7FFFFFFF
-    xor r5, r5, -1
-    atomadd_d r4, r4, r5
-    bne r5, r4, LOCKING_BULLSHIT, true
-
-;     uint32_t owner_count = load_dram_word(q_low + 24);
-;     if (owner_count <= 1)
-;     {
-;         atomic_add_dram(q_low + 20, LOCK_DECREMENT);
-;         atomic_add_dram(q_low + 16, 1);
-;         return 0;
-;     }
-    add r4, r3, 24
-    ld_w r4, r4, 0
-    and r5, r5, 0
-    add r5, r5, 1
-    bg r4, r5, continue_on_gandalf
-    and r5, r5, 0
-    add r5, r5, 1
-    srl r5, r5, 1           # r5 = 0x7FFFFFFF
-    add r4, r3, 20
-    atomadd_d r5, r4, r5
-    and r5, r5, 0
-    add r5, r5, 1
-    add r4, r4, -4
-    atomadd_d r5, r4, r5
-continue_on_gandalf:
+    lw_d r9, r4, 0
+    bne r5, r9, LOCKING_BULLSHIT, true
     # r4 = owner_count
     # uint32_t slots_base = q_low + 28
     add r6, r3, 28              # r6 = slots_base
@@ -2283,12 +2279,10 @@ continue_on_gandalf:
 
     # core_id = r15 >> 4
     srl r9, r15, 4              # r9 = core_id
-    and r9, r9, 0xFFF           # r9 = core_id masked
-
+    lw_d r4, r4, 4
 find_our_slot_remove:
-    # if (i >= owner_count) goto slot_not_found_remove
-    bgt r8, r4, slot_not_found_remove, true     # i > owner_count
-    beq r8, r4, slot_not_found_remove, true     # i == owner_count
+    add r10, r14, 256
+    beq r4, r10, RELEASE_INSERT_LOCK, false
     # slot_val = load_dram_half(slots_base + i * 2)
     sll r10, r8, 1              # r10 = i * 2
     add r10, r10, r6            # r10 = slots_base + i * 2
@@ -2321,19 +2315,11 @@ found_our_slot_remove:
     # atomic_add_dram(q_low + 24, -1)
     add r10, r3, 24             # r10 = &core_owner_count
     atomadd_d r12, r10, -1     # core_owner_count--
-
-    beq r15, r15, release_remove, true
-
-slot_not_found_remove:
-    # Still need to release lock before returning
 release_remove:
     # atomic_add_dram(q_low + 20, LOCK_DECREMENT)
     # rebuild LOCK_DECREMENT = 0x7FFFFFFF
-    and r5, r5, 0
-    add r5, r5, -1
-    srl r5, r5, 1               # r5 = 0x7FFFFFFF
     add r10, r3, 20             # r10 = &lock
-    atomadd_d r12, r10, r5     # release lock
+    atomadd_d r12, r10, 8192     # release lock
 
     # atomic_add_dram(q_low + 16, 1)
     add r10, r3, 16             # r10 = &now_serving
@@ -2344,6 +2330,67 @@ release_remove:
     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
     
 
+ADD_TO_RAY_QUEUE_DRAM:
+# ;     set_address_bits(q_high);
+    lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+    lw r3, RAY_QUEUE_LOW    # r3 = q_low
+    setmembits r2
+# ;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+    add r4, r3, 12
+    atomadd_d r5, r4, 1
+ADD_TICKET_WAIT:
+# ;     uint32_t now_serving = load_dram_word(q_low + 16)
+# ;     if (now_serving != my_ticket) <- should be while
+# ;     {
+# ;         now_serving = load_dram_word(q_low + 16)
+# ;     }
+    lw_d r4, r3, 16
+    bne r4, r5, ADD_TICKET_WAIT, true
+
+# ;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+# ;     while (lock_val != -LOCK_DECREMENT)
+# ;     {
+# ;         lock_val = load_dram_word(q_low + 20);
+# ;     }
+    add r4, r3, 20
+    and r5, r5, 0
+    add r5, r5, -8192
+    atomadd_d r15, r4, r5
+LOCKING_BULLSHIT_INSERT:
+    lw_d r9, r4, 0
+    bne r5, r9, LOCKING_BULLSHIT_INSERT, true
+    # uint32_t slots_base = q_low + 28
+    add r6, r3, 28              # r6 = slots_base
+
+    # uint32_t i = 0
+    and r8, r8, 0               # r8 = i = 0
+
+    # core_id = r15 >> 4
+    srl r9, r15, 4              # r9 = core_id
+    lw_d r4, r4, 4    # r4 = owner_count
+
+    sll r4, r4, 1
+    add r6, r6, r4
+    srl r12, r15, 4
+    # last_val = load_dram_half(last_slot_addr)
+    sh_d r12, r6, 0           # r12 = last_val
+
+    # atomic_add_dram(q_low + 24, -1)
+    add r10, r3, 24             # r10 = &core_owner_count
+    atomadd_d r12, r10, 1     # core_owner_count--
+    # atomic_add_dram(q_low + 20, LOCK_DECREMENT)
+    # rebuild LOCK_DECREMENT = 0x7FFFFFFF
+RELEASE_INSERT_LOCK:
+    add r10, r3, 20             # r10 = &lock
+    atomadd_d r12, r10, 8192     # release lock
+
+    # atomic_add_dram(q_low + 16, 1)
+    add r10, r3, 16             # r10 = &now_serving
+    and r5, r5, 0
+    add r5, r5, 1
+    atomadd_d r12, r10, r5     # advance now_serving
+
+    beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
 
 VERTEX_ARRAY_BASE:       .data 0
 SRAM_ALLOC_COUNT:       .data 0

@@ -668,8 +668,7 @@ CHECK_DRAM_QUEUE:
     and r7, r7, 0
     add r7, r7, 200
     blte r9, r7, CHECK_CUR_RAY_COUNT, true
-    # TODO CALL branch_core_ask_for_help
-    jmp branch_core_ask_for_help, r14
+    jmp r15, SEARCH_FOR_IDLE_CORES 
 DONT_ASK_FOR_HELP:
     # *(self->pulled_from_full_queue_address) = 0;
     and r9, r9, 0
@@ -811,6 +810,7 @@ ENSURE_EMERGENCY_SLOT_READY_TWO:
     add r8, r8, 4           # r8 = &local_queue_flushing + 4
     sw r11, r8, 0          # store new_node_id to local_queue_flushing + 4
     # goto switch_dram_queue;
+    #TODO
     beq r15, r15, SWITCH_DRAM_QUEUE, true
 
     # yield();
@@ -1002,31 +1002,12 @@ ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
     lw r3, ADD_IDLE_CORE
     jmp r14, r3
     and r3, r3, 0
-    add r3, r3, 1
-    sw r2, PREVIOUSLY_IDLE    
+    add r3, r3, PREVIOUSLY_IDLE
+    atomadd r3, r3, 1    
     and r14, r14, 0                         # r14 = 0 (zero register)
     add r14, r14, 1
     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
 
-ADD_IDLE_CORE:                              # ALEX AI CODE <-
-    lw r6, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
-    setmembits r6, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
-    lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
-    add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
-    atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
-    add r4, r4, -4                          # r4 = &idle_queue.tail_relative
-    atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
-    add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
-    and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
-    add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
-IDLE_CORE_INSERT_SPINLOCK:
-    lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
-    bne r14, r5, IDLE_CORE_INSERT_SPINLOCK  # spin until is_valid == 0 (slot is free)
-    srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
-    sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
-    add r5, r14, 1                          # r5 = 1
-    sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
-    jmp r15, r3                             # return    
 
 
 
@@ -1710,37 +1691,7 @@ queue_loop_2_done:
 
     beq r15, r15, ray_done, true
 
-
-
-
-IS_IDLE_LEAF:
-    getclk r3                               # r3 = current_cycle = get_cycle_count()
-    lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
-    sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
-    and r14, r14, 0                         # r14 = 0 (zero register)
-    lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
-    bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
-    jmp r15, r2                             # return 0 (not enough time has passed)
-PASSED_BRANCH_WINDOW:
-    lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
-    beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
-    jmp r15, r2                             # return 0 (already marked idle, nothing to do)
-NOT_PREVIOUSLY_IDLE:
-    getclk r5                               # r5 = current_cycle (fresh timestamp)
-    sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
-    lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
-    sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
-    sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
-    div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
-    lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-    blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
-    jmp r15, r2                             # return 0 (not idle enough to enqueue)
-ONLY_ENQUEUE_ONCE_IDLE_QUEUE:
-    add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
-    atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1)
-    beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE
-    jmp r15, r2                             # return 
-    
+   
 ADD_IDLE_CORE:
     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
@@ -1765,7 +1716,6 @@ SEARCH_FOR_IDLE_CORES: #There's no documentation of who uses this function
 #I am going to assume that r3 has a return address
     and r14, r14, 0                     # r14 = 0 (zero register)
     lw r5, IDLE_QUEUE_ADDRESS_HIGH      # r5 = self.idle_queue_address_high
-    sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
     lw r6, IDLE_QUEUE_ADDRESS_LOW       # r6 = current = self.idle_queue_address_low
@@ -1848,14 +1798,14 @@ SIBLING_EXHAUSTED:
     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
 SEARCH_DONE:
     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
-    beq r9, r8, RAY_DONE, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
+    beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
     sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
     and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
     add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
-    bne r11, r10, RAY_DONE, false      # if response == REJECT_CHANGE goto RAY_DONE
+    bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
     add r10, r14, 1                     # r10 = 1
     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
@@ -1878,63 +1828,38 @@ TRANSFER_BRANCH_GEO_LOOP:
     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
     add r12, r12, 4                     # i += 4
     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
-    beq r15, r15, RAY_DONE, true       # unconditional goto RAY_DONE
-
+    beq r15, r15, ray_done, true       # unconditional goto RAY_DONE
 
 
 REMOVE_FROM_RAY_QUEUE_DRAM:
-;     set_address_bits(q_high);
-    lw r2, RAY_QUEUE_HIGH   # r2 = q_high
+# ;     set_address_bits(q_high);
+    lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
     lw r3, RAY_QUEUE_LOW    # r3 = q_low
     setmembits r2
-;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+# ;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
     add r4, r3, 12
     atomadd_d r5, r4, 1
 REMOVE_TICKET_WAIT:
-;     uint32_t now_serving = load_dram_word(q_low + 16)
-;     if (now_serving != my_ticket) <- should be while
-;     {
-;         now_serving = load_dram_word(q_low + 16)
-;     }
+# ;     uint32_t now_serving = load_dram_word(q_low + 16)
+# ;     if (now_serving != my_ticket) <- should be while
+# ;     {
+# ;         now_serving = load_dram_word(q_low + 16)
+# ;     }
     lw_d r4, r3, 16
     bne r4, r5, REMOVE_TICKET_WAIT, true
 
+# ;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+# ;     while (lock_val != -LOCK_DECREMENT)
+# ;     {
+# ;         lock_val = load_dram_word(q_low + 20);
+# ;     }
+    add r4, r3, 20
+    and r5, r5, 0
+    add r5, r5, -8192
+    atomadd_d r15, r4, r5
 LOCKING_BULLSHIT:
-;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
-;     while (lock_val != -LOCK_DECREMENT)
-;     {
-;         lock_val = load_dram_word(q_low + 20);
-;     }
-    add r4, r3, 20
-    and r5, r5, 0
-    add r5, r5, 1
-    srl r5, r5, 1           # r5 = 0x7FFFFFFF
-    xor r5, r5, -1
-    atomadd_d r4, r4, r5
-    bne r5, r4, LOCKING_BULLSHIT, true
-
-;     uint32_t owner_count = load_dram_word(q_low + 24);
-;     if (owner_count <= 1)
-;     {
-;         atomic_add_dram(q_low + 20, LOCK_DECREMENT);
-;         atomic_add_dram(q_low + 16, 1);
-;         return 0;
-;     }
-    add r4, r3, 24
-    ld_w r4, r4, 0
-    and r5, r5, 0
-    add r5, r5, 1
-    bg r4, r5, continue_on_gandalf
-    and r5, r5, 0
-    add r5, r5, 1
-    srl r5, r5, 1           # r5 = 0x7FFFFFFF
-    add r4, r3, 20
-    atomadd_d r5, r4, r5
-    and r5, r5, 0
-    add r5, r5, 1
-    add r4, r4, -4
-    atomadd_d r5, r4, r5
-continue_on_gandalf:
+    lw_d r9, r4, 0
+    bne r5, r9, LOCKING_BULLSHIT, true
     # r4 = owner_count
     # uint32_t slots_base = q_low + 28
     add r6, r3, 28              # r6 = slots_base
@@ -1944,12 +1869,10 @@ continue_on_gandalf:
 
     # core_id = r15 >> 4
     srl r9, r15, 4              # r9 = core_id
-    and r9, r9, 0xFFF           # r9 = core_id masked
-
+    lw_d r4, r4, 4
 find_our_slot_remove:
-    # if (i >= owner_count) goto slot_not_found_remove
-    bgt r8, r4, slot_not_found_remove, true     # i > owner_count
-    beq r8, r4, slot_not_found_remove, true     # i == owner_count
+    add r10, r14, 256
+    beq r4, r10, RELEASE_INSERT_LOCK, false
     # slot_val = load_dram_half(slots_base + i * 2)
     sll r10, r8, 1              # r10 = i * 2
     add r10, r10, r6            # r10 = slots_base + i * 2
@@ -1982,19 +1905,11 @@ found_our_slot_remove:
     # atomic_add_dram(q_low + 24, -1)
     add r10, r3, 24             # r10 = &core_owner_count
     atomadd_d r12, r10, -1     # core_owner_count--
-
-    beq r15, r15, release_remove, true
-
-slot_not_found_remove:
-    # Still need to release lock before returning
 release_remove:
     # atomic_add_dram(q_low + 20, LOCK_DECREMENT)
     # rebuild LOCK_DECREMENT = 0x7FFFFFFF
-    and r5, r5, 0
-    add r5, r5, -1
-    srl r5, r5, 1               # r5 = 0x7FFFFFFF
     add r10, r3, 20             # r10 = &lock
-    atomadd_d r12, r10, r5     # release lock
+    atomadd_d r12, r10, 8192     # release lock
 
     # atomic_add_dram(q_low + 16, 1)
     add r10, r3, 16             # r10 = &now_serving
@@ -2004,6 +1919,201 @@ release_remove:
 
     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
     
+
+ADD_TO_RAY_QUEUE_DRAM:
+# ;     set_address_bits(q_high);
+    lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+    lw r3, RAY_QUEUE_LOW    # r3 = q_low
+    setmembits r2
+# ;     uint32_t my_ticket = atomic_add_dram(q_low + 12, 1);
+    add r4, r3, 12
+    atomadd_d r5, r4, 1
+ADD_TICKET_WAIT:
+# ;     uint32_t now_serving = load_dram_word(q_low + 16)
+# ;     if (now_serving != my_ticket) <- should be while
+# ;     {
+# ;         now_serving = load_dram_word(q_low + 16)
+# ;     }
+    lw_d r4, r3, 16
+    bne r4, r5, ADD_TICKET_WAIT, true
+
+# ;     int32_t lock_val = atomic_add_dram(q_low + 20, -LOCK_DECREMENT);
+# ;     while (lock_val != -LOCK_DECREMENT)
+# ;     {
+# ;         lock_val = load_dram_word(q_low + 20);
+# ;     }
+    add r4, r3, 20
+    and r5, r5, 0
+    add r5, r5, -8192
+    atomadd_d r15, r4, r5
+LOCKING_BULLSHIT_INSERT:
+    lw_d r9, r4, 0
+    bne r5, r9, LOCKING_BULLSHIT_INSERT, true
+    # uint32_t slots_base = q_low + 28
+    add r6, r3, 28              # r6 = slots_base
+
+    # uint32_t i = 0
+    and r8, r8, 0               # r8 = i = 0
+
+    # core_id = r15 >> 4
+    srl r9, r15, 4              # r9 = core_id
+    lw_d r4, r4, 4    # r4 = owner_count
+
+    sll r4, r4, 1
+    add r6, r6, r4
+    srl r12, r15, 4
+    # last_val = load_dram_half(last_slot_addr)
+    sh_d r12, r6, 0           # r12 = last_val
+
+    # atomic_add_dram(q_low + 24, -1)
+    add r10, r3, 24             # r10 = &core_owner_count
+    atomadd_d r12, r10, 1     # core_owner_count--
+    # atomic_add_dram(q_low + 20, LOCK_DECREMENT)
+    # rebuild LOCK_DECREMENT = 0x7FFFFFFF
+RELEASE_INSERT_LOCK:
+    add r10, r3, 20             # r10 = &lock
+    atomadd_d r12, r10, 8192     # release lock
+
+    # atomic_add_dram(q_low + 16, 1)
+    add r10, r3, 16             # r10 = &now_serving
+    and r5, r5, 0
+    add r5, r5, 1
+    atomadd_d r12, r10, r5     # advance now_serving
+
+    beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
+
+SWITCH_ROLES_INTERRUPT:
+    add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+    intdis 34                               # disable_interrupts(34)
+    nonblock r7, 34                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
+    and r14, r14, 0                         # r14 = 0 (zero register)
+    bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
+    intena 34                               # enable_interrupts(channel) (nothing to do)
+    jmp r15, r4                             # return
+CONTINUE_WITH_SWITCH_ROLES_INTERRUPT:
+    block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
+    # if (self.core_handled->previously_idle == 0)
+    lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
+    bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
+    #     send_flit(REJECT_CHANGE << 24, switch_core_request >> 4, switch_core_request & 0xF + 16);
+REJECT_CHANGE:
+    add r10, r7, 0                      # r10 = switch_core_request
+    add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
+    sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
+    and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+    add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+    and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+    sll r10, r10, 8                     
+    srl r10, r10, 6
+    or r10, r10, r12                    # r10 = destination flit
+    sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
+    # enable_interrupts(34);
+    # return;
+    intena 34                               # enable_interrupts(channel)
+    jmp r15, r4                             # return
+UNHANDLED_CORE:
+    # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, switch_core_request >> 4, switch_core_request & 0xF + 16);
+    lw r9, IS_BRANCH_CORE
+    and r14, r14, 0
+    beq r9, r14, LEGAL_TO_SWITCH, true
+    lw r9, RAY_QUEUE_HIGH
+    setmembits r9
+    lw r9, RAY_QUEUE_LOW
+    add r9, r9, 20
+GET_READER_LOCK_CORE_CNT:
+    atomadd_d r10, r9, 1
+    blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
+    atomadd_d r10, r9, -1
+    beq r15, r15, GET_READER_LOCK_CORE_CNT, true
+HAVE_READER_LOCK_CORE_CNT:
+    lw_d r9, r9, 4
+    add r10, r14, 1
+    beq r9, r10, REJECT_CHANGE, false
+LEGAL_TO_SWITCH:
+    add r9, r14, LOCAL_QUEUE_FLUSHING
+    atomadd r15, r9, 1
+    add r10, r14, 16 
+WAIT_FOR_FLUSH_READY:
+    lw r9, LOCAL_QUEUE_FLUSHING
+    switchctx
+    beq r10, r9, WAIT_FOR_FLUSH_READY, true
+    add r10, r7, 0                      # r10 = switch_core_request
+    add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
+    sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
+    and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+    add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+    and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+    sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
+    srl r10, r10, 6
+    or r10, r10, r12                    # r10 = destination flit
+    sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
+    getowner                  # TODO ALex tf is this?
+    # uint32_t type_of_core = blocking_recv(0);
+    beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
+    
+                                # REMOVE CURRENT CORE FROM DRAM QUEUE
+RETURN_FROM_CORE_DRAM_QUEUE:
+    block r10, r14                           # r10 = type_of_core = blocking_recv(0)
+    # if (type_of_core != self.is_branch_core)
+    lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
+    beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
+    #     uint32_t starting_address = (type_of_core == 1) ? branch_start_of_code : leaf_start_of_code;
+    add r11, r14, 1
+    beq r10, r11, BRANCH_START_OF_CODE, true
+    lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
+    beq r15, r15, DONE_LOADING_CODE, true
+BRANCH_START_OF_CODE:
+    lw r11, branch_start_of_code   
+    # r11 = starting_address
+DONE_LOADING_CODE:
+    and r12, r12, 0
+    add r12, r12, 17284                     # num_instructions
+    #    for (int i = 0; i < num_instructions; i += 4)
+    and r14, r14, 0             # 0
+    and r9, r9, 0               # i
+FOR_NUM_INSTRUCTIONS:
+    #         uint32_t instruction_to_recv = blocking_recv(0);
+    block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
+    #           *(starting_address + i) = instruction_to_recv;
+    sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
+    add r11, r11, 4
+    add r9, r9, 4                           # i += 4
+    bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
+CORE_TYPE_BRANCH:
+    # uint32_t starting_address = (type_of_core == 1) ? branch_start_of_geometry : leaf_start_of_geometry;
+    add r11, r14, 1
+    and r12, r12, 0
+    bne r10, r11, leaf_start_of_geometry, true
+    lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
+    add r12, r12, 5678 * 4
+    beq r15, r15, DONE_LOADING_GEO, true
+    lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
+    add r12, r12, 8765 * 4
+DONE_LOADING_GEO:
+    # for (int i = 0; i < size_of_geo; i += 4)
+    and r14, r14, 0             # 0
+    and r9, r9, 0               # i
+FOR_SIZE_OF_GEO:
+    #     uint32_t word_to_transfer_of_geo = blocking_recv(0);
+    #     *(starting_address + i) = word_to_transfer_of_geo;
+    block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
+    sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
+    add r9, r9, 4                           # i += 4
+    add r11, r11, 4
+    bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
+    # self.is_branch_core = type_of_core;
+    sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
+    beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
+RETURN_FROM_INSERT_DRAM_QUEUE:
+    relinquish true
+    lw r10, IS_BRANCH_CORE
+    and r14, r14, 0
+    add r11, r14, 1
+    beq r10, r11, VERTEX_COPY_DONE, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
+    beq r15, r15, VERTEX_COPY_DONE_BUT_LEAF, true
+
+
+
 
 
 LEAF_CORE_INDEX_FOR_BRANCH: .data -1
@@ -2019,7 +2129,6 @@ BRANCH_START_OF_GEO:     .data -1
 BRANCH_SIZE_OF_GEO:      .data -1
 SAVED_BRANCH_HIGH:       .data -1
 SAVED_BRANCH_LOW:        .data -1
-SEARCH_FOR_IDLE_CORES_STORAGE: .data -1
 BRANCH_IDLE_THRESHOLD:    .data -1
 IDLE_WINDOW:             .data 100000
 EAT_RAY_MASK:            .data 0x0001FFFF
