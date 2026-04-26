@@ -886,7 +886,7 @@ uint32_t head_mask = 0x0000FFFF;
 head &= head_mask;
 tile_pool_low += head;
 
-// ensure_tile_slot_ready:
+// ensure_tile_slot_ready: <- in asm this is WAIT_FOR_TILE_SLOT_TO_OPEN
 uint8_t slot_ready = load_dram_byte(tile_pool_low + 15);
 if (slot_ready == 0)
 {

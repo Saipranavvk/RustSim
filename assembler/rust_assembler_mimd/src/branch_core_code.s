@@ -833,43 +833,189 @@ GET_NEW_TILE:
     lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
     add r4, r14, 255                     # r4 = 255
     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
-    #SAI PLEASE WRITE HERE
+    # SAI PLEASE WRITE HERE - BETSKI
+    # tile_pool_low += 4;
+    add r2, r2, 4
+    # uint32_t bytes_relative_tail = atomic_add_dram(tile_pool_low, 4);
+    atomadd_d r3, r2, 4     # r3 = bytes_relative_tail
+    # tile_pool_low += 4;
+    add r2, r2, 4
+    # atomic_add_dram(tile_pool_low, 1);
+    atomadd_d r4, r2, 1
+    # bytes_relative_tail &= 0x0000FFFF;
+    and r3, r3, 0xFFFF
+    # tile_pool_low += bytes_relative_tail;
+    add r2, r2, r3
+loop_on_putting_tile_back:
+    # tile_pool_low += 4;
+    add r2, r2, 4
+    # uint8_t is_valid = load_dram_byte(tile_pool_low + 3);
+    lbu_d r3, r2, 3
+    # if (is_valid != 0)
+    # {
+    #     goto loop_on_putting_tile_back;
+    # }
+    and r14, r14, 0
+    bne r3, r14, loop_on_putting_tile_back, false
+    # tile_y_index = self.tile_data_sram->tile_y_index  (offset 7 from struct base)
+    lbu r3, TILE_INTER_INDEX, 7          # r3 = tile_y_index
+    # tile_y_index *= 160
+    and r4, r4, 0
+    add r4, r4, 160
+    mul r3, r3, r4                       # r3 = tile_y_index * 160
+    # tile_x_index = self.tile_data_sram->tile_x_index  (offset 6 from struct base)
+    lbu r4, TILE_INTER_INDEX, 6          # r4 = tile_x_index
+    # uint16_t tile_index = tile_y_index * 160 + tile_x_index
+    add r3, r3, r4                       # r3 = tile_index
+    # store_dram_half(tile_pool_low, tile_index)
+    # r2 currently points at the slot base (is_valid byte is at +3)
+    sh_d r3, r2, 0                       # store tile_index as half at slot base
+    # uint8_t tile_rays_spawned = *(self.tile_data_sram->count)
+    lbu r3, TILE_DATA_COUNT              # r3 = tile_rays_spawned (count)
+    # tile_pool_low += 2
+    add r2, r2, 2                        # r2 = slot base + 2
+    # store_dram_byte(tile_pool_low, tile_rays_spawned)
+    sb_d r3, r2, 0                       # store count byte at slot+2
+    # tile_pool_low += 1
+    add r2, r2, 1                        # r2 = slot base + 3
+    # uint8_t one_small = 1
+    # store_dram_byte(tile_pool_low, one_small)
+    and r3, r3, 0
+    add r3, r3, 1                        # r3 = 1
+    sb_d r3, r2, 0                       # store is_valid = 1 at slot+3
+
 SKIP_RETURNING_TILE: 
-    add r2, r2, 8                        # tile_pool_low += 8 (point to count field)
-    atomadd_d r15, r2, 1                 # atomic_add_dram(tile_pool_low, 1) -- increment tile count
-    add r2, r2, -4                        # tile_pool_low -= 4 (point to tail field)
-    atomadd_d r3, r2, 4                  # uint32_t bytes_relative_tail = atomic_add_dram(tile_pool_low, 4)
-    add r4, r14, 255                     # r4 = 255
-    sll r4, r4, 8                        # r4 = 255 << 8 = 0xFF00
-    add r4, r4, 255                      # r4 = 0xFFFF
-    and r3, r3, r4                       # bytes_relative_tail &= 0x0000FFFF
-    add r2, r2, r3                       # tile_pool_low += bytes_relative_tail
-    add r2, r2, 8                        # tile_pool_low += 8 (skip header)
+    
+    ; add r2, r2, 8                        # tile_pool_low += 8 (point to count field)
+    ; atomadd_d r15, r2, 1                 # atomic_add_dram(tile_pool_low, 1) -- increment tile count
+    ; add r2, r2, -4                        # tile_pool_low -= 4 (point to tail field)
+    ; atomadd_d r3, r2, 4                  # uint32_t bytes_relative_tail = atomic_add_dram(tile_pool_low, 4)
+    ; add r4, r14, 255                     # r4 = 255
+    ; sll r4, r4, 8                        # r4 = 255 << 8 = 0xFF00
+    ; add r4, r4, 255                      # r4 = 0xFFFF
+    ; and r3, r3, r4                       # bytes_relative_tail &= 0x0000FFFF
+    ; add r2, r2, r3                       # tile_pool_low += bytes_relative_tail
+    ; add r2, r2, 8                        # tile_pool_low += 8 (skip header)
+
+    # uint32_t tile_pool_low = self.tile_pool_low;
+    lw r2, TILE_QUEUE_LOW
+    # uint32_t count = load_dram_word(tile_pool_low + 8);
+    add r2, r2, 8
+    lw r3, r2, 0
+    add r2, r2, -8
+    and r14, r14, 0
+    # if (count <= 0) { goto skip_grabbing_tile_rays; }
+    blte r3, r14, SKIP_GRABBING_TILE_RAYS, true
+    # tile_pool_low += 8;
+    add r2, r2, 8
+    # uint32_t old_cnt = atomic_add(tile_pool_low, -1);
+    atomadd_d r3, r2, -1
+    # if (old_cnt <= 0) { atomic_add(tile_pool_low, 1); goto skip_grabbing_tile_rays; }
+    bg r3, r14, DONT_SKIP_GRABBING_TILE, false
+    atomadd_d r3, r2, 1
+    beq r15, r15, SKIP_GRABBING_TILE_RAYS, true
+DONT_SKIP_GRABBING_TILE:
+    # tile_pool_low -= 8;
+    add r2, r2, -8
+    # uint32_t head = atomic_add(tile_pool_low, 4);
+    atomadd_d r3, r2, 4
+    # uint32_t head_mask = 0x0000FFFF;
+    add r4, r14, 0xFFFF
+    # head &= head_mask;
+    and r3, r3, r4
+    # tile_pool_low += head;
+    add r2, r2, r3
+
 WAIT_FOR_TILE_SLOT_TO_OPEN:
-    lbu r3, r2, 3                        # uint8_t is_valid = load_dram_byte(tile_pool_low + 3)
-    beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false  # if (is_valid == 0) goto loop_on_putting_tile_back
-    lhu_d r3, r2, 0                      # uint16_t tile_index -- load tile index (2 bytes)
-    lbu_d r4, r2, 2                      # uint16_t tile_cnt -- load tile count (1 byte)
-    sb_d r14, r2, 3                      # store_dram_byte(tile_pool_low, 0) -- mark slot as taken
-    sw r4, TILE_DATA_COUNT               # self.tile_data_sram->count = tile_cnt
-    div r5, r4, 160                      # uint32_t tile_y_index = tile_index / 160
-    mul r6, r5, 160                      # r6 = tile_y_index * 160
-    sub r6, r4, r6                       # uint32_t tile_x_index = tile_index - (tile_y_index * 160)
-    add r2, r14, TILE_INTER_INDEX        # r2 = &TILE_INTER_INDEX
-    sh r6, r2, 0                         # self.tile_data_sram->tile_x_index = tile_x_index
-    sh r5, r2, 2                         # self.tile_data_sram->tile_y_index = tile_y_index
-    sw r14, r2, 4                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 0) = 0
-    sw r14, r2, 8                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = 0
-    sw r14, r2, 12                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = 0
-    sw r14, r2, 16                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = 0
-    and r3, r15, 0xF                     # r3 = self.thread_id (low 4 bits of r15)
-    add r2, r3, r2                       # r2 = &cur_ray_spawned_from_tile[thread_id]
-    add r4, r14, 1                       # r4 = 1
-    sb r4, r2, 4                         # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1
-    sw r14, RAYS_FORWARDED_OUT_FROM_TILE # self.tile_data_sram->rays_forwarded_out_from_tile = 0
-    sw r14, RAYS_SPAWNED_FROM_TILE       # self.tile_data_sram->rays_spawned_from_tile = 0
+    # slot_ready = load_dram_byte(tile_pool_low + 15)
+    lbu_d r3, r2, 15                     
+    # if (slot_ready == 0)
+    # {
+    #     goto ensure_tile_slot_ready;
+    # }
+    beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false
+
+    # uint16_t tile_index = load_dram_half(tile_pool_low + 12);
+    # uint16_t tile_cnt = load_dram_byte(tile_pool_low + 14);
+    # tile_pool_low += 15;
+    # store_dram_byte(tile_pool_low, 0);
+    lhu_d r3, r2, 12                     # r3 = tile_index  (uint16 at +12)
+    lbu_d r4, r2, 14                     # r4 = tile_cnt    (uint8  at +14)
+    sb_d r14, r2, 15                     # is_valid = 0
+
+    # self.tile_data_sram->count = tile_cnt;
+    sw r4, TILE_DATA_COUNT               # store count
+
+    # uint32_t tile_y_index = tile_index / 160;
+    # uint32_t tile_x_index = tile_y_index * 160;
+    # tile_x_index = tile_index - tile_x_index;
+    and r5, r5, 0
+    add r5, r5, 160
+    div r5, r3, r5                       # r5 = tile_y_index = tile_index / 160
+    mul r6, r5, 160                      # r6 = tile_y_index * 160  (temp for subtraction)
+    sub r6, r3, r6                       # r6 = tile_x_index = tile_index - tile_y_index*160
+
+    # self.tile_data_sram->tile_x_index = tile_x_index;
+    # self.tile_data_sram->tile_y_index = tile_y_index;
+    and r2, r2, 0
+    add r2, r2, TILE_INTER_INDEX         # r2 = base of tile_data_sram fields
+    sh r6, r2, 0                         # tile_x_index
+    sh r5, r2, 2                         # tile_y_index
+
+    # uint32_t zero = 0;
+    # *(self.tile_data_sram->cur_ray_spawned_from_tile + 0) = zero;
+    # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = zero;
+    # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = zero;
+    # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = zero;
+    sw r14, r2, 4
+    sw r14, r2, 8
+    sw r14, r2, 12
+    sw r14, r2, 16
+
+    # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1;
+    and r3, r15, 0xF                     # r3 = thread_id
+    add r3, r3, 4                        # r3 = thread_id + 4 (offset into struct past x/y)
+    add r3, r3, r2                       # r3 = &cur_ray_spawned_from_tile[thread_id]
+    and r4, r4, 0
+    add r4, r4, 1
+    sb r4, r3, 0                         # cur_ray_spawned_from_tile[thread_id] = 1
+
+
+    # self.tile_data_sram->rays_forwarded_out_from_tile = zero;
+    # self.tile_data_sram->rays_spawned_from_tile = zero;
+    sw r14, RAYS_FORWARDED_OUT_FROM_TILE # rays_forwarded_out_from_tile = 0
+    sw r14, RAYS_SPAWNED_FROM_TILE       # rays_spawned_from_tile = 0
+
     setctx 16                            # set_ctx(16)
-    relinquish false                         # relinquish_ownership(0)
+    relinquish false                     # relinquish_ownership(0)
+
+    # Bro tf were you cooking below this????
+
+; WAIT_FOR_TILE_SLOT_TO_OPEN:     # Assume this refers to "ensure_tile_slot_ready" in main_branch_loop
+;     lbu r3, r2, 3                        # uint8_t is_valid = load_dram_byte(tile_pool_low + 3)
+;     beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false  # if (is_valid == 0) goto loop_on_putting_tile_back
+;     lhu_d r3, r2, 0                      # uint16_t tile_index -- load tile index (2 bytes)
+;     lbu_d r4, r2, 2                      # uint16_t tile_cnt -- load tile count (1 byte)
+;     sb_d r14, r2, 3                      # store_dram_byte(tile_pool_low, 0) -- mark slot as taken
+;     sw r4, TILE_DATA_COUNT               # self.tile_data_sram->count = tile_cnt
+;     div r5, r4, 160                      # uint32_t tile_y_index = tile_index / 160
+;     mul r6, r5, 160                      # r6 = tile_y_index * 160
+;     sub r6, r4, r6                       # uint32_t tile_x_index = tile_index - (tile_y_index * 160)
+;     add r2, r14, TILE_INTER_INDEX        # r2 = &TILE_INTER_INDEX
+;     sh r6, r2, 0                         # self.tile_data_sram->tile_x_index = tile_x_index
+;     sh r5, r2, 2                         # self.tile_data_sram->tile_y_index = tile_y_index
+;     sw r14, r2, 4                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 0) = 0
+;     sw r14, r2, 8                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = 0
+;     sw r14, r2, 12                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = 0
+;     sw r14, r2, 16                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = 0
+;     and r3, r15, 0xF                     # r3 = self.thread_id (low 4 bits of r15)
+;     add r2, r3, r2                       # r2 = &cur_ray_spawned_from_tile[thread_id]
+;     add r4, r14, 1                       # r4 = 1
+;     sb r4, r2, 4                         # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1
+;     sw r14, RAYS_FORWARDED_OUT_FROM_TILE # self.tile_data_sram->rays_forwarded_out_from_tile = 0
+;     sw r14, RAYS_SPAWNED_FROM_TILE       # self.tile_data_sram->rays_spawned_from_tile = 0
+;     setctx 16                            # set_ctx(16)
+;     relinquish false                         # relinquish_ownership(0)
 SPAWN_FROM_TILE:
     AND r14, r14, 0                      # r14 = 0
     add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
@@ -2695,6 +2841,10 @@ TILE_DATA_COUNT:
 .data 0 #count
 TILE_IS_ACTIVE: 
 .data 0 
+TILE_X_INDEX:
+.data 0
+TILE_Y_INDEX:
+.data 0
 TILE_INTER_INDEX: 
 .data 0 #tile_x_index/tile_y_index
 TILE_CUR_RAY_SPAWNED:
