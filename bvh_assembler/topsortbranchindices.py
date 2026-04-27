@@ -282,9 +282,9 @@ def fill_empty_with_capacity(super_occupant, width, height):
                 # Find metadata (kind, group) from any existing instance
                 for (px, py), (nid2, kind, gi) in super_occupant.items():
                     if nid2 == nid:
-                        super_occupant[(ex, ey)] = (nid, kind, gi)
+                        # mark as duplicate so scoring/rendering can tell
+                        super_occupant[(ex, ey)] = (nid, kind + "_dup", -2)
                         break
-
                 node_usage[nid] += 1
                 break
         # If no node available (all at capacity), leave empty
@@ -705,20 +705,20 @@ def main():
     fill_empty_with_capacity(super_occupant, SUPER_W, SUPER_H)
 
 
-    for gi, place in enumerate(tile_placements):
-        tile_row = gi // TILES_PER_ROW
-        if tile_row == 0:
-            tile_col = gi % TILES_PER_ROW              # 0,1,2,3
-        else:
-            tile_col = (TILES_PER_ROW - 1) - (gi % TILES_PER_ROW)  # 3,2,1,0
-        ox = tile_col * TILE
-        oy = tile_row * TILE
-        gd = group_data[gi]
-        branches_set = set(gd["branches"])
-        for nid, (lx, ly) in place.items():
-            if tile_row == 1:
-                lx = (TILE - 1) - lx        # mirror within tile too
-            super_occupant[(ox + lx, oy + ly)] = (nid, kind, gi)
+    # for gi, place in enumerate(tile_placements):
+    #     tile_row = gi // TILES_PER_ROW
+    #     if tile_row == 0:
+    #         tile_col = gi % TILES_PER_ROW              # 0,1,2,3
+    #     else:
+    #         tile_col = (TILES_PER_ROW - 1) - (gi % TILES_PER_ROW)  # 3,2,1,0
+    #     ox = tile_col * TILE
+    #     oy = tile_row * TILE
+    #     gd = group_data[gi]
+    #     branches_set = set(gd["branches"])
+    #     for nid, (lx, ly) in place.items():
+    #         if tile_row == 1:
+    #             lx = (TILE - 1) - lx        # mirror within tile too
+    #         super_occupant[(ox + lx, oy + ly)] = (nid, kind, gi)
     
     
     
