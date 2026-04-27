@@ -2277,16 +2277,12 @@ LEAF_ALLOC_INDEX_BYTE_COUNT:
 BRANCH_LOCAL_LEAF_INDEX:
 .data -1
 NODE_ID_TABLE_HIGH:            
-.data -1
+.data 0
 NODE_ID_TABLE_LOW:              
-.data -1
+.data 63070000
 EMERGENCY_QUEUE_SWITCHED_NODE: 
 .data -1
 LEAF_CORE_INDEX_FOR_BRANCH: 
-.data -1
-VERTEX_ARRAY_BASE:       
-.data 0
-INDEX_ARRAY_BASE:        
 .data -1
 SRAM_ALLOC_COUNT:       
 .data 0
@@ -2337,105 +2333,57 @@ INFINITY:
 SPAWNED_RAY_POOL_MASK:  
 .data 0x007FFFFF
 EMERGENCY_QUEUE_HIGH: 
-.data 0x03B20C8C
+.data 0
 EMERGENCY_QUEUE_LOW: 
-.data 0x03B20B80
+.data 62000000
 SPAWNED_RAY_POOL_HIGH: 
-.data -1
+.data 0
 SPAWNED_RAY_POOL_LOW: 
-.data -1
+.data 2250000000
 TILE_QUEUE_HIGH: 
-.data 0x03B30F74
+.data 0
 TILE_QUEUE_LOW: 
-.data 0x03B20F68
+.data 62000000
 RAY_RESULT_HIGH: 
-.data 0x4261FE80
+.data 0
 RAY_RESULT_LOW: 
-.data 0xA21FE80
+.data 170000000
 FRAME_BUF_HIGH: 
-.data 0x3870D40
+.data 0
 FRAME_BUF_LOW: 
-.data 0x30D40
+.data 200000
 NODE_ARRAY_HIGH: 
-.data -1
+.data 0
 NODE_ARRAY_LOW: 
-.data -1
+.data 2147483648
 TRIANGLE_ARRAY_HIGH: 
-.data 0x09F5E100
+.data 0
 TRIANGLE_ARRAY_LOW: 
-.data 0x05F5E100
+.data 100000000
 INT_TO_FLOAT_TABLE_HIGH: 
-.data 0x271F0
+.data 0
 INT_TO_FLOAT_TABLE_LOW: 
-.data 0x249F0
+.data 150000
 DIV_TABLE_HIGH: 
-.data 0x3A2E940
+.data 0
 DIV_TABLE_LOW: 
-.data 0x3A2C940
+.data 61000000
 INV_SQRT_TABLE_HIGH: 
-.data 0x206A0
+.data 0
 INV_SQRT_TABLE_LOW: 
-.data 0x186A0
-IDLE_QUEUE_HIGH: 
-.data 0x4786AB4E
+.data 100000
+IDLE_QUEUE_HIGH: #CALCULATED AT RUNTIME!!!!!!
+.data 0
 IDLE_QUEUE_LOW: 
 .data 0x47868C00
 RANDOM_TABLE_HIGH: 
-.data 0x03978704
+.data 0
 RANDOM_TABLE_LOW: 
 .data 0x3938704
-; CAM_X: 
-; .data -1
-; CAM_Y: 
-; .data -1
-; CAM_Z: 
-; .data -1
-; CAM_CX: 
-; .data -1
-; CAM_CY: 
-; .data -1
-; CAM_INV_FOCAL: 
-; .data -1
-; CORE_ID_TO_SWITCH_TO: 
-; .data -1
-; LIGHT0_X: 
-; .data -1
-; LIGHT0_Y: 
-; .data -1
-; LIGHT0_Z: 
-; .data -1
-; LIGHT0_R: 
-; .data -1
-; LIGHT0_G: 
-; .data -1
-; LIGHT0_B: 
-; .data -1
-; LIGHT1_X: 
-; .data -1
-; LIGHT1_Y: 
-; .data -1
-; LIGHT1_Z: 
-; .data -1
-; LIGHT1_R: 
-; .data -1
-; LIGHT1_G: 
-; .data -1
-; LIGHT1_B: 
-; .data -1
-; LIGHT2_X: 
-; .data -1
-; LIGHT2_Y: 
-; .data -1
-; LIGHT2_Z: 
-; .data -1
-; LIGHT2_R: 
-; .data -1
-; LIGHT2_G: 
-; .data -1
-; LIGHT2_B: 
-; .data -1
-; ROOT_NODE_ADDRESS: 
-; .data 0
+RAYS_COMPLETED_HIGH: 
+.data 0
+RAYS_COMPLETED_LOW: 
+.data 168000000
 //DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
 RAY_ARRAY: 
 .data(256) 0
@@ -2480,10 +2428,6 @@ RAYS_FORWARDED_OUT_FROM_TILE:
 .data 0 #rays_forwarded_out_from_tile
 FLOAT_TO_BYTE_RGB_TABLE: 
 .data(128) 0
-RAYS_COMPLETED_HIGH: 
-.data -1
-RAYS_COMPLETED_LOW: 
-.data -1
 IS_BRANCH_CORE: 
 .data -1
 RAY_SEND_PENDING_ADDR:  
@@ -2494,3 +2438,8 @@ SAVED_BRANCH_HIGH:
 .data -1
 SAVED_BRANCH_LOW:        
 .data -1
+VERTEX_ARRAY_BASE:       
+.data 0
+INDEX_ARRAY_BASE:        
+.data -1
+

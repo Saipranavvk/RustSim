@@ -543,10 +543,40 @@ fn dump_logs_for_viz(
     println!("WROTE ALL LOGS");
     Ok(())
 }
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
+fn read_placements(path: String) -> std::io::Result<Vec<(u32, u32, u32)>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut result = Vec::new();
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = line?;
+
+        // Skip header
+        if i == 0 {
+            continue;
+        }
+
+        let parts: Vec<&str> = line.split(',').collect();
+        if parts.len() < 3 {
+            continue; // skip malformed lines
+        }
+
+        let x = parts[0].parse::<u32>().unwrap();
+        let y = parts[1].parse::<u32>().unwrap();
+        let node_id = parts[2].parse::<u32>().unwrap();
+
+        result.push((x, y, node_id));
+    }
+
+    Ok(result)
+}
 fn main() {
-    assemble_tree("bvh_data".to_string());
-    return;
+    // assemble_tree("bvh_data".to_string());
+    // return;
 
     let mut stacks: Vec<Stack> = assemble_stacks();
     let init_vector = get_init_vector();
@@ -563,6 +593,19 @@ fn main() {
     // for i in 0..MAT_B.len()/2{
     //     stacks[0].dram_stack[i + 250 + 4096] = MAT_B[2 * i] as u32 | ((MAT_B[2 * i + 1] as u32) << 16);
     // }
+    let start_of_node_init_table = 20_000 / 4;
+    let mut placement_vec_wrapped = read_placements("placement.csv".to_owned());
+    if placement_vec_wrapped.is_err() {
+        placement_vec_wrapped = read_placements("src\\placement.csv".to_owned());
+    }
+    let placement_vec = placement_vec_wrapped.unwrap();
+    for i in 0..8192{
+        let (x, y, node_id) = placement_vec[i];
+        let index = y * 128 + x;
+        stacks[0].dram_stack[index as usize + start_of_node_init_table] = node_id;
+    }
+
+
 
     let start_of_random_table = 60_000_004 / 4;
     let mut rng = StdRng::seed_from_u64(67);
