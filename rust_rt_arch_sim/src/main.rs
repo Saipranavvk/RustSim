@@ -1,20 +1,24 @@
-use crate::core::{BidirectionalNoc, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE, Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue};
+use crate::core::{
+    BidirectionalNoc, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE,
+    Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue,
+};
 use crate::matrices::{MAT_A, MAT_B, MAT_C, get_init_vector};
 use crate::parse_bvh::assemble_tree;
 pub mod core;
 pub mod matrices;
 pub mod parse_bvh;
+use half::f16;
+use hashbrown::HashMap;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Barrier};
 use std::thread;
-use hashbrown::HashMap;
-use half::f16;
 
 use ndarray::{Array2, Array3};
 use ndarray_npy::write_npy;
 use std::fs::create_dir_all;
-
 
 const CORES_IN_X_STACK: u16 = 4;
 const CORES_IN_Y_STACK: u16 = 4;
@@ -34,7 +38,7 @@ struct Stack {
 }
 
 fn init_dram(init: &[u32], dram: &mut Vec<u32>, starting_address: usize, num_bytes: usize) {
-    for i in 0..num_bytes/4 {
+    for i in 0..num_bytes / 4 {
         dram[starting_address + i] = init[i];
     }
 }
@@ -42,24 +46,25 @@ fn init_dram(init: &[u32], dram: &mut Vec<u32>, starting_address: usize, num_byt
 fn assemble_stacks() -> Vec<Stack> {
     let mut mesh: Vec<Vec<Core>> = Vec::new();
     let mut dram_inputs_to_stack: Vec<Vec<Feeder<LongDramOp>>> = vec![];
-    for _ in 0..CORES_IN_Y * CORES_IN_Y_STACK{
+    for _ in 0..CORES_IN_Y * CORES_IN_Y_STACK {
         mesh.push(vec![]);
     }
     println!("Assembling mesh of cores...");
-    for y_stack in 0..CORES_IN_Y_STACK{
-        for x_stack in 0..CORES_IN_X_STACK{
+    for y_stack in 0..CORES_IN_Y_STACK {
+        for x_stack in 0..CORES_IN_X_STACK {
             dram_inputs_to_stack.push(vec![]);
-            for y in 0..CORES_IN_Y{
-                for x in 0..CORES_IN_X{
+            for y in 0..CORES_IN_Y {
+                for x in 0..CORES_IN_X {
                     let y_index = y_stack * CORES_IN_Y + y;
                     let x_index = x_stack * CORES_IN_X + x;
                     let core_index = y_index * CORES_IN_X * CORES_IN_X_STACK + x_index;
                     let dram_top_bits = (y_stack * CORES_IN_X_STACK + x_stack) as usize;
                     mesh[y_index as usize].push(Core::new(
-                        core_index as u32, 
-                        x_index, 
-                        y_index, 
-                        dram_top_bits));
+                        core_index as u32,
+                        x_index,
+                        y_index,
+                        dram_top_bits,
+                    ));
                 }
             }
         }
@@ -68,8 +73,8 @@ fn assemble_stacks() -> Vec<Stack> {
     let mut far_dram_receivers: Vec<Receiver<LongDramRequest>> = Vec::new();
     let mut far_dram_senders: Vec<Sender<LongDramRequest>> = Vec::new();
 
-    for _i in 0..CORES_IN_Y_STACK * CORES_IN_X_STACK{
-        for _j in 0..CORES_IN_Y_STACK * CORES_IN_X_STACK{
+    for _i in 0..CORES_IN_Y_STACK * CORES_IN_X_STACK {
+        for _j in 0..CORES_IN_Y_STACK * CORES_IN_X_STACK {
             let (sender, receiver) = std::sync::mpsc::channel();
             far_dram_receivers.push(receiver);
             far_dram_senders.push(sender);
@@ -77,47 +82,62 @@ fn assemble_stacks() -> Vec<Stack> {
     }
 
     println!("Organized far DRAM channels.");
-    for y_stack in 0..CORES_IN_Y_STACK{
-        for x_stack in 0..CORES_IN_X_STACK{
-            for y in 0..CORES_IN_Y{
-                for x in 0..CORES_IN_X{
+    for y_stack in 0..CORES_IN_Y_STACK {
+        for x_stack in 0..CORES_IN_X_STACK {
+            for y in 0..CORES_IN_Y {
+                for x in 0..CORES_IN_X {
                     let y_index = y_stack * CORES_IN_Y + y;
                     let x_index = x_stack * CORES_IN_X + x;
-                    mesh[y_index as usize][x_index as usize].give_far_dram(far_dram_senders.clone());
+                    mesh[y_index as usize][x_index as usize]
+                        .give_far_dram(far_dram_senders.clone());
                 }
             }
         }
     }
     println!("Given far DRAM channels to cores.");
-    for y in 0..CORES_IN_Y * CORES_IN_Y_STACK{
-        for x in 0..CORES_IN_X * CORES_IN_X_STACK - 1{
-            println!("INIT HORIZONTAL NOC BETWEEN ({}, {}) AND ({}, {})", x, y, x+1, y);
+    for y in 0..CORES_IN_Y * CORES_IN_Y_STACK {
+        for x in 0..CORES_IN_X * CORES_IN_X_STACK - 1 {
+            println!(
+                "INIT HORIZONTAL NOC BETWEEN ({}, {}) AND ({}, {})",
+                x,
+                y,
+                x + 1,
+                y
+            );
             let rightwards = SpscQueue::new(NOC_FIFO_SIZE);
             let leftwards = SpscQueue::new(NOC_FIFO_SIZE);
             let (rightwards_feeder, rightwards_eater) = rightwards.split();
             let (leftwards_feeder, leftwards_eater) = leftwards.split();
-            let right_side = BidirectionalNoc::new(rightwards_eater, leftwards_feeder, NOC_FIFO_LATENCY);
-            let left_side = BidirectionalNoc::new(leftwards_eater, rightwards_feeder, NOC_FIFO_LATENCY);
+            let right_side =
+                BidirectionalNoc::new(rightwards_eater, leftwards_feeder, NOC_FIFO_LATENCY);
+            let left_side =
+                BidirectionalNoc::new(leftwards_eater, rightwards_feeder, NOC_FIFO_LATENCY);
             mesh[y as usize][x as usize].give_right_noc(right_side);
             mesh[y as usize][(x + 1) as usize].give_left_noc(left_side);
         }
     }
     println!("Horizontal NOCs connected.");
-    for x in 0..CORES_IN_X * CORES_IN_X_STACK{
-        for y in 0..CORES_IN_Y * CORES_IN_Y_STACK - 1{
-            println!("INIT VERTICAL NOC BETWEEN ({}, {}) AND ({}, {})", x, y, x, y+1);
+    for x in 0..CORES_IN_X * CORES_IN_X_STACK {
+        for y in 0..CORES_IN_Y * CORES_IN_Y_STACK - 1 {
+            println!(
+                "INIT VERTICAL NOC BETWEEN ({}, {}) AND ({}, {})",
+                x,
+                y,
+                x,
+                y + 1
+            );
             let upwards = SpscQueue::new(NOC_FIFO_SIZE);
             let downwards = SpscQueue::new(NOC_FIFO_SIZE);
             let (upwards_feeder, upwards_eater) = upwards.split();
             let (downwards_feeder, downwards_eater) = downwards.split();
             let up_side = BidirectionalNoc::new(upwards_eater, downwards_feeder, NOC_FIFO_LATENCY);
-            let down_side = BidirectionalNoc::new(downwards_eater, upwards_feeder, NOC_FIFO_LATENCY);
+            let down_side =
+                BidirectionalNoc::new(downwards_eater, upwards_feeder, NOC_FIFO_LATENCY);
             mesh[(y + 1) as usize][x as usize].give_up_noc(up_side);
             mesh[y as usize][x as usize].give_down_noc(down_side);
         }
     }
     println!("Vertical NOCs connected.");
-
 
     let num_stacks = (CORES_IN_X_STACK as usize) * (CORES_IN_Y_STACK as usize);
 
@@ -147,7 +167,7 @@ fn assemble_stacks() -> Vec<Stack> {
         stack.return_result_to_stack = service_other_stack_senders.clone();
     }
 
-    for row in mesh{
+    for row in mesh {
         for core in row {
             let stack_index = core.get_stack() as usize;
             stacks[stack_index].cores.push(core);
@@ -263,41 +283,53 @@ struct StackLog {
     foreign_write: usize,
     stack_id: usize,
 }
-fn service_far_dram_request(dram_stack: &mut Vec<u32>, request: LongDramRequest, forward_dram_result_to_stack: &mut Vec<Sender<LongDramOp>>) -> (usize, usize) {
+fn service_far_dram_request(
+    dram_stack: &mut Vec<u32>,
+    request: LongDramRequest,
+    forward_dram_result_to_stack: &mut Vec<Sender<LongDramOp>>,
+) -> (usize, usize) {
     let modified_address = request.address % DRAM_STACK_SIZE;
-    let (read, written, response_load) = match request.op{
+    let (read, written, response_load) = match request.op {
         Operation::StoreByteDram => {
             dram_store_byte(dram_stack, modified_address, request.value_to_write);
-            (0,1,None)
+            (0, 1, None)
         }
         Operation::StoreHalfDram => {
             dram_store_half(dram_stack, modified_address, request.value_to_write);
-            (0,2,None)
+            (0, 2, None)
         }
         Operation::StoreWordDram => {
             dram_store_word(dram_stack, modified_address, request.value_to_write);
-            (0,4,None)
+            (0, 4, None)
         }
         Operation::AtomicAddDram => {
             let old_value = dram_atomic_add(dram_stack, modified_address, request.value_to_write);
-            (4,4,Some(old_value))
+            (4, 4, Some(old_value))
         }
-        Operation::ReadSignedByteDram => {
-            (1,0,Some(dram_read_signed_byte(dram_stack, modified_address)))
+        Operation::ReadSignedByteDram => (
+            1,
+            0,
+            Some(dram_read_signed_byte(dram_stack, modified_address)),
+        ),
+        Operation::ReadUnsignedByteDram => (
+            1,
+            0,
+            Some(dram_read_unsigned_byte(dram_stack, modified_address)),
+        ),
+        Operation::ReadSignedHalfDram => (
+            2,
+            0,
+            Some(dram_read_signed_half(dram_stack, modified_address)),
+        ),
+        Operation::ReadUnsignedHalfDram => (
+            2,
+            0,
+            Some(dram_read_unsigned_half(dram_stack, modified_address)),
+        ),
+        Operation::ReadWordDram => (4, 0, Some(dram_read_word(dram_stack, modified_address))),
+        _ => {
+            panic!("Unsupported DRAM Operation!")
         }
-        Operation::ReadUnsignedByteDram => {
-            (1,0,Some(dram_read_unsigned_byte(dram_stack, modified_address)))
-        }
-        Operation::ReadSignedHalfDram => {
-            (2,0,Some(dram_read_signed_half(dram_stack, modified_address)))
-        }
-        Operation::ReadUnsignedHalfDram => {
-            (2,0,Some(dram_read_unsigned_half(dram_stack, modified_address)))
-        }
-        Operation::ReadWordDram => {
-            (4,0,Some(dram_read_word(dram_stack, modified_address)))
-        }
-        _=> {panic!("Unsupported DRAM Operation!")}
     };
     if response_load.is_some() {
         let loaded_value = response_load.unwrap();
@@ -313,7 +345,6 @@ fn service_far_dram_request(dram_stack: &mut Vec<u32>, request: LongDramRequest,
     }
     (read as usize, written as usize)
 }
-
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 enum Metric {
@@ -355,7 +386,7 @@ fn series_for_metric<'a>(cl: &'a CoreLog, m: Metric) -> &'a [usize] {
         Metric::RightUtil => &cl.right_noc_util,
         Metric::RightCong => &cl.right_noc_congestion,
         Metric::MailboxCong => &cl.mailbox_congestion,
-        Metric::CoreBusy => &cl.core_busy
+        Metric::CoreBusy => &cl.core_busy,
     }
 }
 
@@ -378,10 +409,14 @@ fn dump_logs_for_viz(
 
     // Metrics you want as videos
     let metrics = [
-        Metric::UpUtil, Metric::UpCong,
-        Metric::DownUtil, Metric::DownCong,
-        Metric::LeftUtil, Metric::LeftCong,
-        Metric::RightUtil, Metric::RightCong,
+        Metric::UpUtil,
+        Metric::UpCong,
+        Metric::DownUtil,
+        Metric::DownCong,
+        Metric::LeftUtil,
+        Metric::LeftCong,
+        Metric::RightUtil,
+        Metric::RightCong,
         Metric::MailboxCong,
         Metric::CoreBusy,
     ];
@@ -415,7 +450,11 @@ fn dump_logs_for_viz(
     {
         let mut w = csv::Writer::from_path(format!("{}/stack_totals.csv", out_dir))?;
         w.write_record([
-            "stack_id", "local_read", "local_write", "foreign_read", "foreign_write"
+            "stack_id",
+            "local_read",
+            "local_write",
+            "foreign_read",
+            "foreign_write",
         ])?;
         for s in log_vec {
             w.write_record([
@@ -441,7 +480,9 @@ fn dump_logs_for_viz(
 
             for (i, row) in s.core_logs.iter().enumerate() {
                 for (j, cell) in row.iter().enumerate() {
-                    let Some(cl) = cell.as_ref() else { continue; };
+                    let Some(cl) = cell.as_ref() else {
+                        continue;
+                    };
 
                     let gx = stack_x * stack_x_dim + j;
                     let gy = stack_y * stack_y_dim + i;
@@ -453,8 +494,10 @@ fn dump_logs_for_viz(
                     bytes_wrote_far[(gy, gx)] = cl.dram_bytes_wrote_far as u64;
                     flits_sent[(gy, gx)] = cl.flits_sent as u64;
                     flits_recv[(gy, gx)] = cl.flits_received as u64;
-                    flits_sent_manhattan[(gy, gx)] = cl.flit_sent_manhattan_distance_traversed as u64;
-                    flits_recv_manhattan[(gy, gx)] = cl.flit_received_manhattan_distance_traversed as u64;
+                    flits_sent_manhattan[(gy, gx)] =
+                        cl.flit_sent_manhattan_distance_traversed as u64;
+                    flits_recv_manhattan[(gy, gx)] =
+                        cl.flit_received_manhattan_distance_traversed as u64;
                     // Time series tensor, padded with last value
                     let series = series_for_metric(cl, m);
                     if series.is_empty() {
@@ -462,7 +505,11 @@ fn dump_logs_for_viz(
                     }
                     let last = *series.last().unwrap() as u32;
                     for ti in 0..t {
-                        let v = if ti < series.len() { series[ti] as u32 } else { last };
+                        let v = if ti < series.len() {
+                            series[ti] as u32
+                        } else {
+                            last
+                        };
                         tensor[(ti, gy, gx)] = v;
                     }
                 }
@@ -473,45 +520,144 @@ fn dump_logs_for_viz(
     }
 
     // Write scalar maps
-    write_npy(format!("{}/bytes_read_close.npy", out_dir), &bytes_read_close)?;
+    write_npy(
+        format!("{}/bytes_read_close.npy", out_dir),
+        &bytes_read_close,
+    )?;
     write_npy(format!("{}/bytes_read_far.npy", out_dir), &bytes_read_far)?;
-    write_npy(format!("{}/bytes_wrote_close.npy", out_dir), &bytes_wrote_close)?;
+    write_npy(
+        format!("{}/bytes_wrote_close.npy", out_dir),
+        &bytes_wrote_close,
+    )?;
     write_npy(format!("{}/bytes_wrote_far.npy", out_dir), &bytes_wrote_far)?;
     write_npy(format!("{}/flits_sent.npy", out_dir), &flits_sent)?;
     write_npy(format!("{}/flits_received.npy", out_dir), &flits_recv)?;
-    write_npy(format!("{}/flits_sent_manhattan.npy", out_dir), &flits_sent_manhattan)?;
-    write_npy(format!("{}/flits_received_manhattan.npy", out_dir), &flits_recv_manhattan)?;
+    write_npy(
+        format!("{}/flits_sent_manhattan.npy", out_dir),
+        &flits_sent_manhattan,
+    )?;
+    write_npy(
+        format!("{}/flits_received_manhattan.npy", out_dir),
+        &flits_recv_manhattan,
+    )?;
     println!("WROTE ALL LOGS");
     Ok(())
 }
 
-
 fn main() {
-    // assemble_tree("bvh_data".to_string());
-    // return;
+    assemble_tree("bvh_data".to_string());
+    return;
 
     let mut stacks: Vec<Stack> = assemble_stacks();
     let init_vector = get_init_vector();
-    println!("Num program init bytes per core: {}", (init_vector[0] + 1)*4);
-    for (i, &value) in init_vector.iter().enumerate() {
-        stacks[0].dram_stack[i] = value;
+    println!(
+        "Num program init bytes per core: {}",
+        (init_vector[0] + 1) * 4
+    );
+    // for (i, &value) in init_vector.iter().enumerate() {
+    //     stacks[0].dram_stack[i] = value;
+    // }
+    // for i in 0..MAT_A.len()/2{
+    //     stacks[0].dram_stack[i + 250] = MAT_A[2 * i] as u32 | ((MAT_A[2 * i + 1] as u32) << 16);
+    // }
+    // for i in 0..MAT_B.len()/2{
+    //     stacks[0].dram_stack[i + 250 + 4096] = MAT_B[2 * i] as u32 | ((MAT_B[2 * i + 1] as u32) << 16);
+    // }
+
+    let start_of_random_table = 60_000_004 / 4;
+    let mut rng = StdRng::seed_from_u64(67);
+
+    for i in 0..(1 << 16) {
+        let x: u32 = rng.random();
+        stacks[0].dram_stack[i + start_of_random_table] = x;
     }
-    for i in 0..MAT_A.len()/2{
-        stacks[0].dram_stack[i + 250] = MAT_A[2 * i] as u32 | ((MAT_A[2 * i + 1] as u32) << 16);
+
+    let start_of_inv_sqrt = 100_000 / 4;
+
+    for i in 0..(32768 / 4) {
+        let i_u32 = i as u32;
+        let exp_lsb = (i_u32 >> 12) & 1;
+        let mant_idx = i_u32 & 0xFFF;
+
+        // Midpoint of the mantissa bin, in [1.0, 2.0)
+        let m_mid = 1.0_f64 + (mant_idx as f64 + 0.5) / 4096.0;
+
+        // Even input exp: seed = 1/sqrt(1+m)        ∈ [~0.707, 1.0)
+        // Odd input exp:  seed = sqrt(2)/sqrt(1+m)  ∈ [1.0, ~1.414)
+        let seed = if exp_lsb == 0 {
+            1.0 / m_mid.sqrt()
+        } else {
+            2.0_f64.sqrt() / m_mid.sqrt()
+        };
+
+        // Store mantissa bits only; the asm ORs in the result exponent at runtime
+        let value = (seed as f32).to_bits() & 0x007F_FFFF;
+        stacks[0].dram_stack[i + start_of_inv_sqrt] = value;
     }
-    for i in 0..MAT_B.len()/2{
-        stacks[0].dram_stack[i + 250 + 4096] = MAT_B[2 * i] as u32 | ((MAT_B[2 * i + 1] as u32) << 16);
+
+    let start_of_int_to_float_table = 150000 / 4;
+
+    for i in 0..10240 / 4 {
+        let fp_val = i as f32;
+        stacks[0].dram_stack[start_of_int_to_float_table + i] = fp_val.to_bits();
+    }
+
+    /*
+     * FRAME_BUF and Random Table shit here
+     */
+
+    let start_of_div_table = 61_000_000 / 4;
+
+    for i in 0..8192 / 4 {
+        // i is the 11-bit mantissa index (0..2047)
+        // reconstruct the float this mantissa represents: 1.mantissa in [1.0, 2.0)
+        // exponent = 127 (biased), so the float = 1.0 + i/2048.0
+        let x = 1.0_f32 + (i as f32) / 2048.0_f32;
+        // reciprocal mantissa: 1/x, but we only store the mantissa bits
+        // the exponent is reconstructed at runtime via 254 - exp
+        let recip = 1.0_f32 / x;
+        // strip the exponent — keep only mantissa bits (bits 0..22)
+        let mantissa_only = recip.to_bits() & 0x007F_FFFF;
+        stacks[0].dram_stack[start_of_div_table + i] = mantissa_only;
+    }
+
+    let tile_queue_start = 62_001_000 / 4; // word index
+
+    // head = 0, tail = num_tiles * 4 (byte offset), count = num_tiles
+    let num_tiles_x = 2560 / 16; // 160
+    let num_tiles_y = 1440 / 16; // 90
+    let num_tiles = num_tiles_x * num_tiles_y; // 14400
+
+    stacks[0].dram_stack[tile_queue_start + 0] = 0; // head = 0
+    stacks[0].dram_stack[tile_queue_start + 1] = (num_tiles * 4) as u32; // tail = num_tiles * sizeof(tile_slot)
+    stacks[0].dram_stack[tile_queue_start + 2] = num_tiles as u32; // count = num_tiles
+
+    // populate slots - one per tile, in raster order
+    let slots_base = tile_queue_start + 3; // +3 words = +12 bytes (past head/tail/count)
+    for tile_y in 0..num_tiles_y {
+        for tile_x in 0..num_tiles_x {
+            let slot_index = tile_y * num_tiles_x + tile_x;
+            let tile_index = (tile_y * num_tiles_x + tile_x) as u16;
+            // tile_slot: index (u16) | count (u8) | is_valid (u8)
+            // count = 0 (no rays spawned yet), is_valid = 1 (slot ready to be grabbed)
+            let slot_word = (tile_index as u32)        // bits 0..15 = tile index
+                        | (0u32 << 16)               // bits 16..23 = ray count = 0
+                        | (1u32 << 24); // bits 24..31 = + = 1
+            // each tile_slot is 4 bytes = 1 word, packed into dram_stack word
+            stacks[0].dram_stack[slots_base + slot_index] = slot_word;
+        }
     }
 
     let barrier = Arc::new(Barrier::new((CORES_IN_X_STACK * CORES_IN_Y_STACK) as usize));
     let mut handles = Vec::new();
     let done = Arc::new(AtomicBool::new(false));
 
-    for (stack_num, mut stack) in stacks.into_iter().enumerate() {        let barrier = barrier.clone();
+    for (stack_num, mut stack) in stacks.into_iter().enumerate() {
+        let barrier = barrier.clone();
         let done_per_thread = done.clone();
         let handle = thread::spawn(move || -> Option<StackLog> {
             let mut result_val: usize = 0;
-            for cycle in 0..1500 * 1000 * 16{
+            for cycle in 0..1500 * 1000 * 16 {
                 let mut local_read = 0;
                 let mut local_write = 0;
                 for core in stack.cores.iter_mut() {
@@ -522,7 +668,7 @@ fn main() {
                 stack.local_read = local_read;
                 stack.local_write = local_write;
                 while let Ok(request) = stack.service_other_stack.try_recv() {
-                    let (read, written) = service_far_dram_request( 
+                    let (read, written) = service_far_dram_request(
                         &mut stack.dram_stack,
                         request,
                         &mut stack.return_result_to_stack,
@@ -543,17 +689,32 @@ fn main() {
                     std::process::exit(1);
                 }
                 if stack_num == 0 {
-                    while result_val < 4096 && 
-                        f16::from_bits(dram_read_unsigned_half(&stack.dram_stack, 256 * 256 * 256 + result_val * 2) as u16) - f16::from_bits(MAT_C[result_val]) < f16::from_f32(1.5) &&
-                        f16::from_bits(dram_read_unsigned_half(&stack.dram_stack, 256 * 256 * 256 + result_val * 2) as u16) - f16::from_bits(MAT_C[result_val]) > f16::from_f32(-1.5) {
+                    while result_val < 4096
+                        && f16::from_bits(dram_read_unsigned_half(
+                            &stack.dram_stack,
+                            256 * 256 * 256 + result_val * 2,
+                        ) as u16)
+                            - f16::from_bits(MAT_C[result_val])
+                            < f16::from_f32(1.5)
+                        && f16::from_bits(dram_read_unsigned_half(
+                            &stack.dram_stack,
+                            256 * 256 * 256 + result_val * 2,
+                        ) as u16)
+                            - f16::from_bits(MAT_C[result_val])
+                            > f16::from_f32(-1.5)
+                    {
                         println!("Completed value {}", result_val);
                         result_val += 1;
                     }
-                    if result_val == 4096{
+                    if result_val == 4096 {
                         println!("WE CALCULATED THE MATRIX!!!");
-                        println!("Local Read: {}, Local write: {}, foreign read: {}, foreign write: {}", 
-                            stack.local_read, stack.local_write, 
-                            stack.foreign_read, stack.foreign_write);
+                        println!(
+                            "Local Read: {}, Local write: {}, foreign read: {}, foreign write: {}",
+                            stack.local_read,
+                            stack.local_write,
+                            stack.foreign_read,
+                            stack.foreign_write
+                        );
                         done_per_thread.store(true, Ordering::Release);
                     }
                 }
@@ -567,9 +728,10 @@ fn main() {
                         core_logs: vec![vec![None; CORES_IN_X as usize]; CORES_IN_Y as usize],
                         stack_id: stack_num,
                     };
-                    for core in stack.cores{
+                    for core in stack.cores {
                         let new_core_log = core.get_log();
-                        stack_log.core_logs[core.get_y_index() % CORES_IN_Y as usize][core.get_x_index() % CORES_IN_X as usize] = Some(new_core_log);
+                        stack_log.core_logs[core.get_y_index() % CORES_IN_Y as usize]
+                            [core.get_x_index() % CORES_IN_X as usize] = Some(new_core_log);
                     }
                     return Some(stack_log);
                 }
@@ -581,7 +743,10 @@ fn main() {
     }
     let mut log_vec = vec![];
     for handle in handles {
-        let log = handle.join().expect("Thread panicked!").expect("Thread Took the long way out???");
+        let log = handle
+            .join()
+            .expect("Thread panicked!")
+            .expect("Thread Took the long way out???");
         log_vec.push(log);
     }
     if !PRINT_STATS {
@@ -595,6 +760,6 @@ fn main() {
         CORES_IN_Y as usize,
         CORES_IN_X_STACK as usize,
         CORES_IN_Y_STACK as usize,
-    ).expect("failed to dump logs");
-
+    )
+    .expect("failed to dump logs");
 }

@@ -53,23 +53,23 @@ pub struct Triangle {
     pub v2: Point,
 }
 
+use hashbrown::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use hashbrown::HashMap;
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const INDEX_SIZE:            usize = 2;
-const POINT_SIZE:            usize = 12;
-const NODE_SIZE:             usize = 48;
-const MATERIAL_POINTER_SIZE: usize = 4;
-const MAX_ALLOC:             usize = 32 * 1024;
+const INDEX_SIZE: usize = 2;
+const POINT_SIZE: usize = 12;
+const NODE_SIZE: usize = 48;
+const MATERIAL_POINTER_SIZE: usize = 6;
+const MAX_ALLOC: usize = 32 * 1024;
 
 /// Phase 1: leaf cores use 65% of SRAM for owned geometry.
-const LEAF_OWNED_PCT: usize = 68;
+const LEAF_OWNED_PCT: usize = 78;
 const LEAF_OWNED_BUDGET: usize = MAX_ALLOC * LEAF_OWNED_PCT / 100;
 
 /// Phase 2: branch treelets (above leaf cores) use the remaining 35%.
@@ -93,12 +93,16 @@ fn read_nodes(path: &str) -> Vec<Node> {
     for line in reader.lines() {
         let line = line.expect("failed to read line");
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
 
         let parts: Vec<&str> = line.split_whitespace().collect();
         assert!(
             parts.len() == 8 || parts.len() == 9,
-            "expected 8 or 9 fields, got {}: {}", parts.len(), line
+            "expected 8 or 9 fields, got {}: {}",
+            parts.len(),
+            line
         );
 
         let offset = if parts.len() == 9 { 1 } else { 0 };
@@ -120,13 +124,18 @@ fn read_nodes(path: &str) -> Vec<Node> {
         );
 
         let left_first: usize = parts[offset + 6].parse().unwrap();
-        let tri_count:  usize = parts[offset + 7].parse().unwrap();
+        let tri_count: usize = parts[offset + 7].parse().unwrap();
 
         if index != 0 && left_first == 0 && tri_count == 0 {
             nodes.push(Node {
-                index, min, max, is_leaf: false,
-                left_child: 0, right_child: 0,
-                tri_count: 0, first_tri: 0,
+                index,
+                min,
+                max,
+                is_leaf: false,
+                left_child: 0,
+                right_child: 0,
+                tri_count: 0,
+                first_tri: 0,
             });
             continue;
         }
@@ -138,10 +147,14 @@ fn read_nodes(path: &str) -> Vec<Node> {
         };
 
         nodes.push(Node {
-            index, min, max,
+            index,
+            min,
+            max,
             is_leaf: tri_count != 0,
-            left_child, right_child,
-            tri_count, first_tri: 0,
+            left_child,
+            right_child,
+            tri_count,
+            first_tri: 0,
         });
     }
     nodes
@@ -154,15 +167,22 @@ fn read_indices(path: &str) -> Vec<Indices> {
     for line in reader.lines() {
         let line = line.expect("failed to read line");
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
 
         let parts: Vec<&str> = line.split_whitespace().collect();
-        assert!(parts.len() == 3, "expected 3 fields, got {}: {}", parts.len(), line);
+        assert!(
+            parts.len() == 3,
+            "expected 3 fields, got {}: {}",
+            parts.len(),
+            line
+        );
 
         indices.push(Indices {
-            node_index:           parts[0].parse().unwrap(),
+            node_index: parts[0].parse().unwrap(),
             first_triangle_index: parts[1].parse().unwrap(),
-            num_triangles:        parts[2].parse().unwrap(),
+            num_triangles: parts[2].parse().unwrap(),
         });
     }
     indices
@@ -175,16 +195,24 @@ fn read_triangles(path: &str) -> Vec<Triangle> {
     for line in reader.lines() {
         let line = line.expect("failed to read line");
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
 
         let parts: Vec<&str> = line.split_whitespace().collect();
         assert!(
             parts.len() == 9 || parts.len() == 10,
-            "expected 9 or 10 fields, got {}: {}", parts.len(), line
+            "expected 9 or 10 fields, got {}: {}",
+            parts.len(),
+            line
         );
 
         let offset = if parts.len() == 10 { 1 } else { 0 };
-        let index = if offset == 1 { parts[0].parse().unwrap() } else { tris.len() };
+        let index = if offset == 1 {
+            parts[0].parse().unwrap()
+        } else {
+            tris.len()
+        };
 
         let v0 = Point::new(
             parts[offset + 0].parse().unwrap(),
@@ -247,7 +275,7 @@ fn subtree_leaf_size(
 
     if node.is_leaf {
         let mut size = NODE_SIZE;
-        for i in node.first_tri .. node.first_tri + node.tri_count {
+        for i in node.first_tri..node.first_tri + node.tri_count {
             size += INDEX_SIZE * 3 + MATERIAL_POINTER_SIZE;
             points.insert(snap(triangles[i].v0), ());
             points.insert(snap(triangles[i].v1), ());
@@ -290,11 +318,7 @@ fn leaf_treelet_cost(
 
 /// Size of a branch treelet: traverse from `index` down, stopping
 /// (inclusive as NODE_SIZE stubs) at nodes in `leaf_roots`.
-fn branch_treelet_size(
-    index: usize,
-    nodes: &[Node],
-    leaf_roots: &HashSet<usize>,
-) -> usize {
+fn branch_treelet_size(index: usize, nodes: &[Node], leaf_roots: &HashSet<usize>) -> usize {
     if leaf_roots.contains(&index) {
         return NODE_SIZE; // stub for leaf core root
     }
@@ -310,11 +334,7 @@ fn branch_treelet_size(
 
 /// Size of the spine: traverse from root down, stopping (inclusive as
 /// NODE_SIZE stubs) at branch core roots.
-fn spine_size(
-    index: usize,
-    nodes: &[Node],
-    branch_roots: &HashSet<usize>,
-) -> usize {
+fn spine_size(index: usize, nodes: &[Node], branch_roots: &HashSet<usize>) -> usize {
     if branch_roots.contains(&index) {
         return NODE_SIZE; // stub
     }
@@ -341,7 +361,7 @@ fn full_subtree_node_bytes(
     let node = &nodes[index];
     if node.is_leaf {
         let mut size = NODE_SIZE;
-        for i in node.first_tri .. node.first_tri + node.tri_count {
+        for i in node.first_tri..node.first_tri + node.tri_count {
             size += INDEX_SIZE * 3 + MATERIAL_POINTER_SIZE;
             points.insert(snap(triangles[i].v0), ());
             points.insert(snap(triangles[i].v1), ());
@@ -355,11 +375,7 @@ fn full_subtree_node_bytes(
 }
 
 /// Total SRAM cost of a full subtree (nodes + deduplicated vertices).
-fn full_subtree_cost(
-    index: usize,
-    nodes: &[Node],
-    triangles: &[Triangle],
-) -> usize {
+fn full_subtree_cost(index: usize, nodes: &[Node], triangles: &[Triangle]) -> usize {
     let mut points: HashMap<QPoint, ()> = HashMap::new();
     let node_bytes = full_subtree_node_bytes(index, nodes, triangles, &mut points);
     node_bytes + points.len() * POINT_SIZE
@@ -377,9 +393,8 @@ fn spine_cost_with_absorbed(
     absorbed: &HashSet<usize>,
 ) -> usize {
     let mut points: HashMap<QPoint, ()> = HashMap::new();
-    let node_bytes = spine_node_bytes_recursive(
-        0, nodes, triangles, branch_roots, absorbed, &mut points,
-    );
+    let node_bytes =
+        spine_node_bytes_recursive(0, nodes, triangles, branch_roots, absorbed, &mut points);
     node_bytes + points.len() * POINT_SIZE
 }
 
@@ -404,7 +419,7 @@ fn spine_node_bytes_recursive(
     if node.is_leaf {
         // A BVH leaf in the spine (unusual but handle it)
         let mut size = NODE_SIZE;
-        for i in node.first_tri .. node.first_tri + node.tri_count {
+        for i in node.first_tri..node.first_tri + node.tri_count {
             size += INDEX_SIZE * 3 + MATERIAL_POINTER_SIZE;
             points.insert(snap(triangles[i].v0), ());
             points.insert(snap(triangles[i].v1), ());
@@ -413,8 +428,22 @@ fn spine_node_bytes_recursive(
         return size;
     }
     NODE_SIZE
-        + spine_node_bytes_recursive(node.left_child, nodes, triangles, branch_roots, absorbed, points)
-        + spine_node_bytes_recursive(node.right_child, nodes, triangles, branch_roots, absorbed, points)
+        + spine_node_bytes_recursive(
+            node.left_child,
+            nodes,
+            triangles,
+            branch_roots,
+            absorbed,
+            points,
+        )
+        + spine_node_bytes_recursive(
+            node.right_child,
+            nodes,
+            triangles,
+            branch_roots,
+            absorbed,
+            points,
+        )
 }
 
 /// Count total descendant nodes (all the way down, no boundary).
@@ -433,7 +462,8 @@ fn count_total_descendants(index: usize, nodes: &[Node]) -> usize {
 
 /// Collect all BVH leaf node indices.
 fn collect_bvh_leaves(nodes: &[Node]) -> Vec<usize> {
-    nodes.iter()
+    nodes
+        .iter()
         .filter(|n| n.is_leaf)
         .map(|n| n.index)
         .collect()
@@ -453,9 +483,7 @@ fn phase1_leaf_partition(
     triangles: &[Triangle],
     parents: &[Option<usize>],
 ) -> Vec<usize> {
-    let mut unclaimed: HashSet<usize> = collect_bvh_leaves(nodes)
-        .into_iter()
-        .collect();
+    let mut unclaimed: HashSet<usize> = collect_bvh_leaves(nodes).into_iter().collect();
 
     let mut leaf_core_roots: Vec<usize> = Vec::new();
 
@@ -630,11 +658,7 @@ fn count_subtree_nodes(index: usize, nodes: &[Node]) -> (usize, usize) {
     (a + c, 1 + b + d)
 }
 
-fn count_subtree_tris_bounded(
-    index: usize,
-    nodes: &[Node],
-    boundary: &HashSet<usize>,
-) -> usize {
+fn count_subtree_tris_bounded(index: usize, nodes: &[Node], boundary: &HashSet<usize>) -> usize {
     if boundary.contains(&index) {
         return 0; // stub — no tris
     }
@@ -646,11 +670,7 @@ fn count_subtree_tris_bounded(
         + count_subtree_tris_bounded(node.right_child, nodes, boundary)
 }
 
-fn count_subtree_nodes_bounded(
-    index: usize,
-    nodes: &[Node],
-    boundary: &HashSet<usize>,
-) -> usize {
+fn count_subtree_nodes_bounded(index: usize, nodes: &[Node], boundary: &HashSet<usize>) -> usize {
     if boundary.contains(&index) {
         return 1; // stub
     }
@@ -687,9 +707,17 @@ fn assign_lcrs(
         return;
     }
     let node = &nodes[index];
-    if node.is_leaf { return; }
+    if node.is_leaf {
+        return;
+    }
     assign_lcrs(node.left_child, branch_root, nodes, leaf_core_roots, result);
-    assign_lcrs(node.right_child, branch_root, nodes, leaf_core_roots, result);
+    assign_lcrs(
+        node.right_child,
+        branch_root,
+        nodes,
+        leaf_core_roots,
+        result,
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -713,17 +741,13 @@ fn subtree_depth_range(
     if node.is_leaf {
         return (depth, depth);
     }
-    let (lmin, lmax) = subtree_depth_range(node.left_child,  nodes, boundary, depth + 1);
+    let (lmin, lmax) = subtree_depth_range(node.left_child, nodes, boundary, depth + 1);
     let (rmin, rmax) = subtree_depth_range(node.right_child, nodes, boundary, depth + 1);
     (lmin.min(rmin), lmax.max(rmax))
 }
 
 /// Skew score = max_leaf_depth - min_leaf_depth for the owned subtree.
-fn skew_score(
-    root: usize,
-    nodes: &[Node],
-    boundary: &HashSet<usize>,
-) -> usize {
+fn skew_score(root: usize, nodes: &[Node], boundary: &HashSet<usize>) -> usize {
     let (min_d, max_d) = subtree_depth_range(root, nodes, boundary, 0);
     max_d - min_d
 }
@@ -763,11 +787,7 @@ fn print_stats(label: &str, values: &[f64]) {
 
 /// Count triangles owned by a branch treelet (interior nodes between
 /// branch root and leaf core root stubs — stubs contribute 0 tris).
-fn branch_owned_tris(
-    index: usize,
-    nodes: &[Node],
-    leaf_core_roots: &HashSet<usize>,
-) -> usize {
+fn branch_owned_tris(index: usize, nodes: &[Node], leaf_core_roots: &HashSet<usize>) -> usize {
     if leaf_core_roots.contains(&index) {
         return 0; // stub — leaf core owns these tris
     }
@@ -780,11 +800,7 @@ fn branch_owned_tris(
 }
 
 /// Count nodes owned by a branch treelet (including stubs).
-fn branch_owned_nodes(
-    index: usize,
-    nodes: &[Node],
-    leaf_core_roots: &HashSet<usize>,
-) -> usize {
+fn branch_owned_nodes(index: usize, nodes: &[Node], leaf_core_roots: &HashSet<usize>) -> usize {
     if leaf_core_roots.contains(&index) {
         return 1; // stub node
     }
@@ -801,16 +817,20 @@ fn branch_owned_nodes(
 // ---------------------------------------------------------------------------
 
 pub fn assemble_tree(subfolder: String) {
-    let bvh_leaves_path    = format!("{}\\bvh_leaves_emerald.txt",    subfolder);
-    let bvh_nodes_path     = format!("{}\\bvh_nodes_emerald.txt",     subfolder);
-    let bvh_triangles_path = format!("{}\\bvh_triangles_emerald.txt", subfolder);
+    let bvh_leaves_path = format!("{}\\bvh_leaves.txt", subfolder);
+    let bvh_nodes_path = format!("{}\\bvh_nodes.txt", subfolder);
+    let bvh_triangles_path = format!("{}\\bvh_triangles.txt", subfolder);
 
     let triangles = read_triangles(&bvh_triangles_path);
-    let indices   = read_indices(&bvh_leaves_path);
+    let indices = read_indices(&bvh_leaves_path);
     let mut nodes = read_nodes(&bvh_nodes_path);
 
     let mut expanded: Vec<Indices> = vec![
-        Indices { node_index: 0, first_triangle_index: 0, num_triangles: 0 };
+        Indices {
+            node_index: 0,
+            first_triangle_index: 0,
+            num_triangles: 0
+        };
         nodes.len().max(2_000_000)
     ];
     for idx in indices {
@@ -820,12 +840,21 @@ pub fn assemble_tree(subfolder: String) {
         node.first_tri = expanded[node.index].first_triangle_index;
     }
 
-    println!("Loaded {} nodes, {} triangles", nodes.len(), triangles.len());
+    println!(
+        "Loaded {} nodes, {} triangles",
+        nodes.len(),
+        triangles.len()
+    );
     println!(
         "Budgets: leaf_owned={}B ({:.1}KB) [{}%], leaf_overhead={}B ({:.1}KB) [{}%], spine={}B ({:.1}KB) [=leaf_owned]",
-        LEAF_OWNED_BUDGET, LEAF_OWNED_BUDGET as f32 / 1024.0, LEAF_OWNED_PCT,
-        LEAF_OVERHEAD_BUDGET, LEAF_OVERHEAD_BUDGET as f32 / 1024.0, 100 - LEAF_OWNED_PCT,
-        SPINE_BUDGET, SPINE_BUDGET as f32 / 1024.0,
+        LEAF_OWNED_BUDGET,
+        LEAF_OWNED_BUDGET as f32 / 1024.0,
+        LEAF_OWNED_PCT,
+        LEAF_OVERHEAD_BUDGET,
+        LEAF_OVERHEAD_BUDGET as f32 / 1024.0,
+        100 - LEAF_OWNED_PCT,
+        SPINE_BUDGET,
+        SPINE_BUDGET as f32 / 1024.0,
     );
 
     // ── Build parent map ────────────────────────────────────────────────────
@@ -833,7 +862,10 @@ pub fn assemble_tree(subfolder: String) {
     let parents = build_parent_map(&nodes);
 
     // ── Phase 1: Leaf treelet partitioning ──────────────────────────────────
-    println!("Phase 1: growing leaf treelets bottom-up (budget = {}B)...", LEAF_OWNED_BUDGET);
+    println!(
+        "Phase 1: growing leaf treelets bottom-up (budget = {}B)...",
+        LEAF_OWNED_BUDGET
+    );
     let leaf_core_roots_vec = phase1_leaf_partition(&nodes, &triangles, &parents);
     let leaf_core_roots: HashSet<usize> = leaf_core_roots_vec.iter().cloned().collect();
     println!("  → {} leaf core roots", leaf_core_roots.len());
@@ -853,9 +885,15 @@ pub fn assemble_tree(subfolder: String) {
     let spine_fits = spine_total <= SPINE_BUDGET;
     println!(
         "  Spine: {}B ({:.1}KB) / {}B budget ({:.1}%) — {}",
-        spine_total, spine_total as f32 / 1024.0,
-        SPINE_BUDGET, 100.0 * spine_total as f32 / SPINE_BUDGET as f32,
-        if spine_fits { "OK" } else { "FAILURE — spine exceeds budget" },
+        spine_total,
+        spine_total as f32 / 1024.0,
+        SPINE_BUDGET,
+        100.0 * spine_total as f32 / SPINE_BUDGET as f32,
+        if spine_fits {
+            "OK"
+        } else {
+            "FAILURE — spine exceeds budget"
+        },
     );
 
     // ── Phase 4: Absorb small branch cores into the spine ───────────────────
@@ -881,9 +919,8 @@ pub fn assemble_tree(subfolder: String) {
             let mut test_absorbed = absorbed.clone();
             test_absorbed.insert(*br);
 
-            let new_spine_cost = spine_cost_with_absorbed(
-                &nodes, &triangles, &branch_core_roots, &test_absorbed,
-            );
+            let new_spine_cost =
+                spine_cost_with_absorbed(&nodes, &triangles, &branch_core_roots, &test_absorbed);
 
             if new_spine_cost <= SPINE_BUDGET {
                 let tris = count_subtree_nodes(*br, &nodes).0;
@@ -893,9 +930,13 @@ pub fn assemble_tree(subfolder: String) {
                 println!(
                     "  Absorbed branch {:>8}: {:>6} descendants, {:>6} tris | \
                      spine now {}B ({:.1}KB) / {}B ({:.1}%)",
-                    br, desc_count, tris,
-                    new_spine_cost, new_spine_cost as f32 / 1024.0,
-                    SPINE_BUDGET, 100.0 * new_spine_cost as f32 / SPINE_BUDGET as f32,
+                    br,
+                    desc_count,
+                    tris,
+                    new_spine_cost,
+                    new_spine_cost as f32 / 1024.0,
+                    SPINE_BUDGET,
+                    100.0 * new_spine_cost as f32 / SPINE_BUDGET as f32,
                 );
             }
         }
@@ -905,7 +946,8 @@ pub fn assemble_tree(subfolder: String) {
         branch_core_roots = branch_core_roots_vec.iter().cloned().collect();
 
         let final_spine_cost = spine_cost_with_absorbed(
-            &nodes, &triangles,
+            &nodes,
+            &triangles,
             // We need the *original* branch roots to know where stubs were.
             // But absorbed ones are now expanded. The remaining branch_core_roots
             // are the stubs. We need to pass the union as "branch roots" and
@@ -923,8 +965,10 @@ pub fn assemble_tree(subfolder: String) {
             );
             println!(
                 "  → Final spine: {}B ({:.1}KB) / {}B ({:.1}%)",
-                final_spine_cost, final_spine_cost as f32 / 1024.0,
-                SPINE_BUDGET, 100.0 * final_spine_cost as f32 / SPINE_BUDGET as f32,
+                final_spine_cost,
+                final_spine_cost as f32 / 1024.0,
+                SPINE_BUDGET,
+                100.0 * final_spine_cost as f32 / SPINE_BUDGET as f32,
             );
             println!(
                 "  → Remaining branch cores: {}",
@@ -955,7 +999,10 @@ pub fn assemble_tree(subfolder: String) {
         }
     }
     if leaf_violations == 0 {
-        println!("  All {} leaf treelets fit within budget.", leaf_core_roots.len());
+        println!(
+            "  All {} leaf treelets fit within budget.",
+            leaf_core_roots.len()
+        );
     }
 
     // ── Validate branch treelet sizes ───────────────────────────────────────
@@ -972,14 +1019,16 @@ pub fn assemble_tree(subfolder: String) {
         }
     }
     if branch_violations == 0 {
-        println!("  All {} branch treelets fit within budget.", branch_core_roots_vec.len());
+        println!(
+            "  All {} branch treelets fit within budget.",
+            branch_core_roots_vec.len()
+        );
     }
 
     // ── Final report ────────────────────────────────────────────────────────
     // Recompute spine cost post-absorption (geometry-aware).
-    let final_spine_size = spine_cost_with_absorbed(
-        &nodes, &triangles, &branch_core_roots, &HashSet::new(),
-    );
+    let final_spine_size =
+        spine_cost_with_absorbed(&nodes, &triangles, &branch_core_roots, &HashSet::new());
     let final_spine_fits = final_spine_size <= SPINE_BUDGET;
 
     println!("\n── Final partition ──────────────────────────────────────────────");
@@ -990,9 +1039,12 @@ pub fn assemble_tree(subfolder: String) {
         "  Total cores:     {} (+ 1 spine)",
         leaf_core_roots.len() + branch_core_roots_vec.len()
     );
-    println!("  Spine size:      {}B ({:.1}KB) / {}B ({:.1}%) — {}",
-        final_spine_size, final_spine_size as f32 / 1024.0,
-        SPINE_BUDGET, 100.0 * final_spine_size as f32 / SPINE_BUDGET as f32,
+    println!(
+        "  Spine size:      {}B ({:.1}KB) / {}B ({:.1}%) — {}",
+        final_spine_size,
+        final_spine_size as f32 / 1024.0,
+        SPINE_BUDGET,
+        100.0 * final_spine_size as f32 / SPINE_BUDGET as f32,
         if final_spine_fits { "OK" } else { "FAIL" },
     );
 
@@ -1013,10 +1065,7 @@ pub fn assemble_tree(subfolder: String) {
         .iter()
         .map(|&lr| skew_score(lr, &nodes, &empty_boundary) as f64)
         .collect();
-    let leaf_sz_values: Vec<f64> = leaf_sizes
-        .iter()
-        .map(|(_, s)| *s as f64)
-        .collect();
+    let leaf_sz_values: Vec<f64> = leaf_sizes.iter().map(|(_, s)| *s as f64).collect();
 
     println!("\n── Leaf core statistics ─────────────────────────────────────────");
     print_stats("Triangles per leaf core ", &leaf_tri_counts);
@@ -1066,24 +1115,28 @@ pub fn assemble_tree(subfolder: String) {
         println!(
             "  Branch {:>8}: {:>5} leaf cores, {:>6} nodes | \
              treelet {}B ({:.1}KB) / {}B  skew={}",
-            br, lcr_count, owned_n,
-            treelet_sz, *treelet_sz as f32 / 1024.0, LEAF_OVERHEAD_BUDGET, sk,
+            br,
+            lcr_count,
+            owned_n,
+            treelet_sz,
+            *treelet_sz as f32 / 1024.0,
+            LEAF_OVERHEAD_BUDGET,
+            sk,
         );
     }
 
     // ── Write output files ──────────────────────────────────────────────────
-    let leaf_out_path = format!(
-        "{}\\leaf_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT
-    );
-    let branch_out_path = format!(
-        "{}\\branch_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT
-    );
+    let leaf_out_path = format!("{}\\leaf_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT);
+    let branch_out_path = format!("{}\\branch_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT);
 
     {
-        let mut f = File::create(&leaf_out_path)
-            .expect("failed to create leaf core roots file");
-        writeln!(f, "# Leaf core root node indices (LEAF_OWNED_PCT={}%)", LEAF_OWNED_PCT)
-            .unwrap();
+        let mut f = File::create(&leaf_out_path).expect("failed to create leaf core roots file");
+        writeln!(
+            f,
+            "# Leaf core root node indices (LEAF_OWNED_PCT={}%)",
+            LEAF_OWNED_PCT
+        )
+        .unwrap();
         writeln!(f, "# {} leaf cores total", leaf_core_roots_vec.len()).unwrap();
         let mut sorted_lcrs = leaf_core_roots_vec.clone();
         sorted_lcrs.sort();
@@ -1094,10 +1147,14 @@ pub fn assemble_tree(subfolder: String) {
     }
 
     {
-        let mut f = File::create(&branch_out_path)
-            .expect("failed to create branch core roots file");
-        writeln!(f, "# Branch core root node indices (LEAF_OWNED_PCT={}%)", LEAF_OWNED_PCT)
-            .unwrap();
+        let mut f =
+            File::create(&branch_out_path).expect("failed to create branch core roots file");
+        writeln!(
+            f,
+            "# Branch core root node indices (LEAF_OWNED_PCT={}%)",
+            LEAF_OWNED_PCT
+        )
+        .unwrap();
         writeln!(f, "# {} branch cores total", branch_core_roots_vec.len()).unwrap();
         let mut sorted_brs = branch_core_roots_vec.clone();
         sorted_brs.sort();
@@ -1114,27 +1171,27 @@ pub fn assemble_tree(subfolder: String) {
 
 /// One level's output: the roots identified at this level, and the budget used.
 pub struct LevelResult {
-    pub level:       usize,
-    pub budget_pct:  usize,
+    pub level: usize,
+    pub budget_pct: usize,
     pub budget_bytes: usize,
-    pub roots:       Vec<usize>,
-    pub spine_size:  Option<usize>, // only Some for the final (spine) level
+    pub roots: Vec<usize>,
+    pub spine_size: Option<usize>, // only Some for the final (spine) level
 }
 
 /// Run a single bottom-up greedy growth pass.
-/// 
+///
 /// `seeds` are the nodes we start from (BVH leaves on level 0,
 /// previous level's roots on levels 1+).
 /// `boundary` is the set of nodes that act as stubs (previous roots).
 /// `budget` is the SRAM byte budget for this level's treelets.
 /// `mode` controls whether cost includes geometry (leaf) or just nodes (branch).
 fn grow_level(
-    seeds:    &HashSet<usize>,
+    seeds: &HashSet<usize>,
     boundary: &HashSet<usize>,
-    nodes:    &[Node],
+    nodes: &[Node],
     triangles: &[Triangle],
-    parents:  &[Option<usize>],
-    budget:   usize,
+    parents: &[Option<usize>],
+    budget: usize,
     with_geometry: bool,
 ) -> Vec<usize> {
     let mut unclaimed: HashSet<usize> = seeds.clone();
@@ -1189,11 +1246,7 @@ fn grow_level(
 
 /// Collect all nodes in `seeds` that exist under a given subtree,
 /// stopping at seed boundaries.
-fn collect_seeds_under(
-    index: usize,
-    nodes: &[Node],
-    seeds: &HashSet<usize>,
-) -> Vec<usize> {
+fn collect_seeds_under(index: usize, nodes: &[Node], seeds: &HashSet<usize>) -> Vec<usize> {
     if seeds.contains(&index) {
         return vec![index];
     }
@@ -1207,12 +1260,12 @@ fn collect_seeds_under(
 }
 
 /// The main k-level partitioner.
-/// 
+///
 /// `budget_pcts` is a slice like [50, 25, 13, 12] where:
 ///   - index 0 is the bottommost level (leaf geometry treelets)
 ///   - subsequent indices are interior levels (node-only treelets)  
 ///   - the last index implicitly defines the spine budget
-/// 
+///
 /// The percentages must sum to 100.
 pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
     assert!(
@@ -1220,19 +1273,26 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
         "budget_pcts must sum to 100, got {}",
         budget_pcts.iter().sum::<usize>()
     );
-    assert!(budget_pcts.len() >= 2, "need at least 2 levels (leaf + spine)");
+    assert!(
+        budget_pcts.len() >= 2,
+        "need at least 2 levels (leaf + spine)"
+    );
 
     // Load data (same as before)
-    let bvh_leaves_path    = format!("{}\\bvh_leaves.txt",    subfolder);
-    let bvh_nodes_path     = format!("{}\\bvh_nodes.txt",     subfolder);
+    let bvh_leaves_path = format!("{}\\bvh_leaves.txt", subfolder);
+    let bvh_nodes_path = format!("{}\\bvh_nodes.txt", subfolder);
     let bvh_triangles_path = format!("{}\\bvh_triangles.txt", subfolder);
 
     let triangles = read_triangles(&bvh_triangles_path);
-    let indices   = read_indices(&bvh_leaves_path);
+    let indices = read_indices(&bvh_leaves_path);
     let mut nodes = read_nodes(&bvh_nodes_path);
 
     let mut expanded: Vec<Indices> = vec![
-        Indices { node_index: 0, first_triangle_index: 0, num_triangles: 0 };
+        Indices {
+            node_index: 0,
+            first_triangle_index: 0,
+            num_triangles: 0
+        };
         nodes.len().max(2_000_000)
     ];
     for idx in indices {
@@ -1242,7 +1302,11 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
         node.first_tri = expanded[node.index].first_triangle_index;
     }
 
-    println!("Loaded {} nodes, {} triangles", nodes.len(), triangles.len());
+    println!(
+        "Loaded {} nodes, {} triangles",
+        nodes.len(),
+        triangles.len()
+    );
 
     let budgets_bytes: Vec<usize> = budget_pcts
         .iter()
@@ -1251,10 +1315,20 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
 
     print!("K-level budgets: ");
     for (i, (&pct, &bytes)) in budget_pcts.iter().zip(budgets_bytes.iter()).enumerate() {
-        let label = if i == 0 { "leaf" } 
-                    else if i == budget_pcts.len() - 1 { "spine" }
-                    else { "branch" };
-        print!("L{}={} ({}B={:.1}KB) ", i, label, bytes, bytes as f32 / 1024.0);
+        let label = if i == 0 {
+            "leaf"
+        } else if i == budget_pcts.len() - 1 {
+            "spine"
+        } else {
+            "branch"
+        };
+        print!(
+            "L{}={} ({}B={:.1}KB) ",
+            i,
+            label,
+            bytes,
+            bytes as f32 / 1024.0
+        );
     }
     println!();
 
@@ -1268,23 +1342,26 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
 
     println!(
         "\nLevel 0 (leaf, geometry): budget={}B ({:.1}KB, {}%)",
-        budgets_bytes[0], budgets_bytes[0] as f32 / 1024.0, budget_pcts[0]
+        budgets_bytes[0],
+        budgets_bytes[0] as f32 / 1024.0,
+        budget_pcts[0]
     );
 
     // Seeds for level 0 are BVH leaves; boundary is empty (no stubs).
-    let bvh_leaves: HashSet<usize> = nodes.iter()
+    let bvh_leaves: HashSet<usize> = nodes
+        .iter()
         .filter(|n| n.is_leaf)
         .map(|n| n.index)
         .collect();
 
     let l0_roots = grow_level(
         &bvh_leaves,
-        &HashSet::new(),    // no boundary — level 0 owns everything below
+        &HashSet::new(), // no boundary — level 0 owns everything below
         &nodes,
         &triangles,
         &parents,
         budgets_bytes[0],
-        true,               // with geometry
+        true, // with geometry
     );
     println!("  → {} level-0 roots", l0_roots.len());
     let l0_set: HashSet<usize> = l0_roots.iter().cloned().collect();
@@ -1302,17 +1379,15 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
 
         println!(
             "\nLevel {} (branch): budget={}B ({:.1}KB, {}%)",
-            level, budget, budget as f32 / 1024.0, budget_pcts[level]
+            level,
+            budget,
+            budget as f32 / 1024.0,
+            budget_pcts[level]
         );
 
         let roots = grow_level(
-            prev_roots,
-            prev_roots,     // boundary = previous level's roots (they're stubs)
-            &nodes,
-            &triangles,
-            &parents,
-            budget,
-            false,          // nodes only, no geometry
+            prev_roots, prev_roots, // boundary = previous level's roots (they're stubs)
+            &nodes, &triangles, &parents, budget, false, // nodes only, no geometry
         );
         println!("  → {} level-{} roots", roots.len(), level);
 
@@ -1325,7 +1400,8 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
     let top_roots = level_root_sets.last().unwrap();
     println!(
         "\nSpine: budget={}B ({:.1}KB, {}%)",
-        spine_budget, spine_budget as f32 / 1024.0,
+        spine_budget,
+        spine_budget as f32 / 1024.0,
         budget_pcts[budget_pcts.len() - 1]
     );
 
@@ -1333,9 +1409,15 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
     let spine_fits = spine_total <= spine_budget;
     println!(
         "  Spine: {}B ({:.1}KB) / {}B ({:.1}%) — {}",
-        spine_total, spine_total as f32 / 1024.0,
-        spine_budget, 100.0 * spine_total as f32 / spine_budget as f32,
-        if spine_fits { "OK" } else { "FAILURE — spine exceeds budget" }
+        spine_total,
+        spine_total as f32 / 1024.0,
+        spine_budget,
+        100.0 * spine_total as f32 / spine_budget as f32,
+        if spine_fits {
+            "OK"
+        } else {
+            "FAILURE — spine exceeds budget"
+        }
     );
 
     // ── Validate all levels ──────────────────────────────────────────────────
@@ -1348,12 +1430,16 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
         let cost = leaf_treelet_cost(lr, &nodes, &triangles, &HashSet::new());
         if cost > budgets_bytes[0] {
             l0_violations += 1;
-            println!("  L0 VIOLATION: root {:>8}: {}B > {}B", lr, cost, budgets_bytes[0]);
+            println!(
+                "  L0 VIOLATION: root {:>8}: {}B > {}B",
+                lr, cost, budgets_bytes[0]
+            );
         }
     }
     println!(
         "  Level 0: {} roots, {} violations",
-        level_roots[0].len(), l0_violations
+        level_roots[0].len(),
+        l0_violations
     );
     total_violations += l0_violations;
 
@@ -1366,12 +1452,17 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
             let cost = branch_treelet_size(br, &nodes, boundary);
             if cost > budget {
                 violations += 1;
-                println!("  L{} VIOLATION: root {:>8}: {}B > {}B", level, br, cost, budget);
+                println!(
+                    "  L{} VIOLATION: root {:>8}: {}B > {}B",
+                    level, br, cost, budget
+                );
             }
         }
         println!(
             "  Level {}: {} roots, {} violations",
-            level, level_roots[level].len(), violations
+            level,
+            level_roots[level].len(),
+            violations
         );
         total_violations += violations;
     }
@@ -1384,15 +1475,16 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
     println!("\n── Final partition ──────────────────────────────────────────────");
     let total_cores: usize = level_roots.iter().map(|r| r.len()).sum();
     for (i, roots) in level_roots.iter().enumerate() {
-        let label = if i == 0 { "leaf" }
-                    else { "branch" };
+        let label = if i == 0 { "leaf" } else { "branch" };
         println!("  Level {} ({}) cores: {}", i, label, roots.len());
     }
     println!("  Total cores: {} (+ 1 spine)", total_cores);
     println!(
         "  Spine: {}B ({:.1}KB) / {}B ({:.1}%) — {}",
-        spine_total, spine_total as f32 / 1024.0,
-        spine_budget, 100.0 * spine_total as f32 / spine_budget as f32,
+        spine_total,
+        spine_total as f32 / 1024.0,
+        spine_budget,
+        100.0 * spine_total as f32 / spine_budget as f32,
         if spine_fits { "OK" } else { "FAIL" }
     );
 
@@ -1400,8 +1492,12 @@ pub fn assemble_tree_klevel(subfolder: String, budget_pcts: Vec<usize>) {
     for (level, roots) in level_roots.iter().enumerate() {
         let path = format!("{}\\klevel_roots_L{}.txt", subfolder, level);
         let mut f = File::create(&path).expect("failed to create output file");
-        writeln!(f, "# K-level roots level={} budget={}% ({}B)", 
-                 level, budget_pcts[level], budgets_bytes[level]).unwrap();
+        writeln!(
+            f,
+            "# K-level roots level={} budget={}% ({}B)",
+            level, budget_pcts[level], budgets_bytes[level]
+        )
+        .unwrap();
         writeln!(f, "# {} roots total", roots.len()).unwrap();
         let mut sorted = roots.clone();
         sorted.sort();
