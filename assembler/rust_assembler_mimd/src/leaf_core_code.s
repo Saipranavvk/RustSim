@@ -8,8 +8,10 @@
     .data -1
     RAY_QUEUE_LOW: 
     .data -1
-
-
+    IS_BRANCH_CORE: 
+    .data -1
+    ROOT_NODE_ID:           
+    .data -1
 SWITCH_DRAM_QUEUE:
     lw r12, NODE_ID_TABLE_HIGH
     setmembits r12
@@ -2290,8 +2292,6 @@ SRAM_NODE_ALLOC_PTR:
 .data 0
 NODE_ARRAY_TOP:         
 .data 0
-ROOT_NODE_ID:           
-.data 0
 BRANCH_START_OF_CODE:    
 .data -1
 BRANCH_NUM_INSTRUCTION_BYTES: 
@@ -2428,8 +2428,6 @@ RAYS_FORWARDED_OUT_FROM_TILE:
 .data 0 #rays_forwarded_out_from_tile
 FLOAT_TO_BYTE_RGB_TABLE: 
 .data(128) 0
-IS_BRANCH_CORE: 
-.data -1
 RAY_SEND_PENDING_ADDR:  
 .data 0
 LOCAL_QUEUE_FLUSHING:   

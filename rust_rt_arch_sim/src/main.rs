@@ -574,6 +574,38 @@ fn read_placements(path: String) -> std::io::Result<Vec<(u32, u32, u32)>> {
 
     Ok(result)
 }
+
+
+fn node_id_lists(path: String) -> std::io::Result<Vec<(u32, u32, u32, u32)>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut result = Vec::new();
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = line?;
+        if i == 0 { continue; }
+
+        let parts: Vec<&str> = line.split(',').collect();
+        if parts.len() < 5 { continue; }
+
+        let kind = parts[3];
+        if kind == "empty" || kind.ends_with("_dup") {
+            continue;
+        }
+
+        let Ok(node_id) = parts[2].parse::<u32>() else { continue };
+        let x = parts[0].parse::<u32>().unwrap();
+        let y = parts[1].parse::<u32>().unwrap();
+        let is_branch = if kind.contains("branch") { 1u32 } else { 0u32 };
+
+        result.push((x, y, node_id, is_branch));
+    }
+
+    Ok(result)
+}
+
+
 fn main() {
     // assemble_tree("bvh_data".to_string());
     // return;
@@ -593,19 +625,45 @@ fn main() {
     // for i in 0..MAT_B.len()/2{
     //     stacks[0].dram_stack[i + 250 + 4096] = MAT_B[2 * i] as u32 | ((MAT_B[2 * i + 1] as u32) << 16);
     // }
-    let start_of_node_init_table = 20_000 / 4;
     let mut placement_vec_wrapped = read_placements("placement.csv".to_owned());
     if placement_vec_wrapped.is_err() {
         placement_vec_wrapped = read_placements("src\\placement.csv".to_owned());
     }
+
+
+    let mut node_id_vec_wrapped = node_id_lists("placement.csv".to_owned());
+    if node_id_vec_wrapped.is_err() {
+        node_id_vec_wrapped = node_id_lists("src\\placement.csv".to_owned());
+    }
+
+    let node_id_vec = node_id_vec_wrapped.unwrap();
+    let start_of_dram_queue_mapping = 63_070_000 / 4;
+    let mut node_id_hash_map = HashMap::new();
+    let mut address_ray_queue_hash_map = HashMap::new();
+
+    let mut ray_queue_allocations: Vec<Vec<u32>> = vec![vec![1_115_000_000, 252_516_352, 100_000_000, 100_000_000],
+        vec![100_000_000, 100_000_000, 100_000_000, 100_000_000]];
+    for i in 0..node_id_vec.len(){
+        node_id_hash_map.insert(node_id_vec[i].2, (i, node_id_vec[i].3));
+        let mut big_address: u64 = node_id_vec[i].0 as u64 + node_id_vec[i].1 as u64 * 4;
+        big_address <<= 31;
+        big_address += ray_queue_allocations[node_id_vec[i].1 as usize / 32 ][node_id_vec[i].0 as usize / 32] as u64;
+        stacks[0].dram_stack[2*i + start_of_dram_queue_mapping] = (big_address >> 32) as u32;
+        stacks[0].dram_stack[2*i + start_of_dram_queue_mapping + 1] = (big_address) as u32;
+        address_ray_queue_hash_map.insert(i, big_address);
+        ray_queue_allocations[node_id_vec[i].1 as usize / 32 ][node_id_vec[i].0 as usize / 32] += 64 * 1024;
+    }
+
+
+    let start_of_node_init_table = 20_000 / 4;
+
     let placement_vec = placement_vec_wrapped.unwrap();
     for i in 0..8192{
         let (x, y, node_id) = placement_vec[i];
         let index = y * 128 + x;
-        stacks[0].dram_stack[index as usize + start_of_node_init_table] = node_id;
+        stacks[0].dram_stack[2* index as usize + start_of_node_init_table] = node_id_hash_map.get(&node_id).unwrap().0 as u32;
+        stacks[0].dram_stack[2* index as usize + start_of_node_init_table + 1] = node_id_hash_map.get(&node_id).unwrap().1;
     }
-
-
 
     let start_of_random_table = 60_000_004 / 4;
     let mut rng = StdRng::seed_from_u64(67);

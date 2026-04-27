@@ -1,19 +1,15 @@
 DRAM:
 0: First word: num words for init core
 4-400: Instructions for initialize core
-400: First word: num words for branch core code
-404 - 10000: branch core instruction code
-10000: First word: num words for Leaf core code
-10004 - 20000: branch core instruction code
-20_000 - 52_768: Initialize Cores with Node IDs array
+400 - 10000: branch core instruction code
+10000 - 20000: branch core instruction code
+20_000 - 85_536: Initialize Cores with Node IDs array
 100_000 - 132_768: INV_SQRT_TABLE
 150_000 - 160_240: INT_TO_FLOAT_TABLE
 200_000 - 59,182,400: FRAME_BUF
 60_000_000: Random table counter # TODO ask alex
 60_000_004 - 60_262_148: Random Table
 61_000_000 - 61_008_192: Div Table
-
-
 
 62_000_000 - 62_000_268: Emergency Queue
 
@@ -22,6 +18,7 @@ DRAM:
 100_000_000 - 167_108_864: Triangle array
 168_000_000: RAYS_COMPLETED 
 170_000_000 - 1_113_718_400: RAY_RESULT
-
+1_115_000_000: Beginning of DRAM RAY QUEUES
 2_147_483_648 - 2_248_146_944: NODE_ARRAY
-2_250_000_000 - 2317108876: SPAWNED_RAY_POOL
+2_250_000_000 - 2_317_108_876: SPAWNED_RAY_POOL
+2_400_000_000: Beginning of DRAM RAY QUEUES
