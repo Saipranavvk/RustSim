@@ -1440,32 +1440,6 @@ WAIT_FOR_TILE_SLOT_TO_OPEN:
     relinquish false                     # relinquish_ownership(0)
 
     # Bro tf were you cooking below this????
-
-; WAIT_FOR_TILE_SLOT_TO_OPEN:     # Assume this refers to "ensure_tile_slot_ready" in main_branch_loop
-;     lbu r3, r2, 3                        # uint8_t is_valid = load_dram_byte(tile_pool_low + 3)
-;     beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false  # if (is_valid == 0) goto loop_on_putting_tile_back
-;     lhu_d r3, r2, 0                      # uint16_t tile_index -- load tile index (2 bytes)
-;     lbu_d r4, r2, 2                      # uint16_t tile_cnt -- load tile count (1 byte)
-;     sb_d r14, r2, 3                      # store_dram_byte(tile_pool_low, 0) -- mark slot as taken
-;     sw r4, TILE_DATA_COUNT               # self.tile_data_sram->count = tile_cnt
-;     div r5, r4, 160                      # uint32_t tile_y_index = tile_index / 160
-;     mul r6, r5, 160                      # r6 = tile_y_index * 160
-;     sub r6, r4, r6                       # uint32_t tile_x_index = tile_index - (tile_y_index * 160)
-;     add r2, r14, TILE_INTER_INDEX        # r2 = &TILE_INTER_INDEX
-;     sh r6, r2, 0                         # self.tile_data_sram->tile_x_index = tile_x_index
-;     sh r5, r2, 2                         # self.tile_data_sram->tile_y_index = tile_y_index
-;     sw r14, r2, 4                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 0) = 0
-;     sw r14, r2, 8                        # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = 0
-;     sw r14, r2, 12                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = 0
-;     sw r14, r2, 16                       # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = 0
-;     and r3, r15, 0xF                     # r3 = self.thread_id (low 4 bits of r15)
-;     add r2, r3, r2                       # r2 = &cur_ray_spawned_from_tile[thread_id]
-;     add r4, r14, 1                       # r4 = 1
-;     sb r4, r2, 4                         # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1
-;     sw r14, RAYS_FORWARDED_OUT_FROM_TILE # self.tile_data_sram->rays_forwarded_out_from_tile = 0
-;     sw r14, RAYS_SPAWNED_FROM_TILE       # self.tile_data_sram->rays_spawned_from_tile = 0
-;     setctx 16                            # set_ctx(16)
-;     relinquish false                         # relinquish_ownership(0)
 SPAWN_FROM_TILE:
     and r14, r14, 0                      # r14 = 0
     add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
@@ -1500,22 +1474,68 @@ SPAWN_FROM_TILE:
     sw r6, r0, 4                         # ray->oy = cam_y
     lw r6, CAM_Z                         # float cam_cy = *(self.cam_y)
     sw r6, r0, 8                         # ray->oy = cam_y
-    lw r5, CAM_CX        # principal point x for direction calc
-    lw r6, CAM_CY        # principal point y
-    lw r7, CAM_INV_FOCAL                 # float cam_inv_f = *(self.cam_inv_f)
-    fpsub.32 r8, r3, r5                   # float dx = fpix_x - cam_cx
-    fpsub.32 r9, r4, r6                   # float dy = fpix_y - cam_cy
-    fpmul.32 r2, r8, r7                   # dx = dx * cam_inv_f
-    fpmul.32 r3, r9, r7                   # dy = dy * cam_inv_f
-    lw r4, NEG_ONE                       # float dz = -1.0f
-    fpmul.32 r5, r2, r2                   # float len_sq = dx * dx
-    fpmul.32 r6, r3, r3                   # tmp = dy * dy
-    fpmul.32 r7, r4, r4                   # tmp2 = dz * dz
-    fpadd.32 r5, r5, r6                   # len_sq += tmp
-    fpadd.32 r9, r5, r7                   # len_sq += tmp2  (r9 = full len_sq)
-    add r6, r8, 0                        # r6 = dx (save for after INV_SQRT clobbers r8)  -- differs: pseudocode doesn't need this save
-    add r7, r9, 0                        # r7 = len_sq (save)
-    jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
+
+# --- Camera-space direction ---
+    lw r5, HALF_RES_X
+    lw r6, HALF_RES_Y
+    lw r7, CAM_INV_FOCAL
+    fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - half_res_x
+    fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - half_res_y
+    fpmul.32 r2, r8, r7                  # r2 = dx_cam *= inv_focal
+    fpmul.32 r3, r9, r7                  # r3 = dy_cam *= inv_focal
+    lw r4, NEG_ONE                       # r4 = dz_cam = -1.0
+    # Now: r2 = dx_cam, r3 = dy_cam, r4 = dz_cam (in camera space)
+
+    # --- Basis transform: world_dir = dx_cam*right + dy_cam*up - dz_cam*forward ---
+    # (negation on forward: dz_cam = -1 means "along forward", so -dz_cam*forward = +forward)
+
+    # X component
+    lw r5, CAM_RIGHT_X
+    lw r6, CAM_UP_X
+    lw r7, CAM_DX
+    fpmul.32 r5, r2, r5                  # dx_cam * right.x
+    fpmul.32 r6, r3, r6                  # dy_cam * up.x
+    fpmul.32 r7, r4, r7                  # dz_cam * forward.x
+    fpadd.32 r5, r5, r6
+    fpsub.32 r8, r5, r7                  # r8 = dx_world
+
+    # Y component
+    lw r5, CAM_RIGHT_Y
+    lw r6, CAM_UP_Y
+    lw r7, CAM_DY
+    fpmul.32 r5, r2, r5
+    fpmul.32 r6, r3, r6
+    fpmul.32 r7, r4, r7
+    fpadd.32 r5, r5, r6
+    fpsub.32 r9, r5, r7                  # r9 = dy_world
+
+    # Z component
+    lw r5, CAM_RIGHT_Z
+    lw r6, CAM_UP_Z
+    lw r7, CAM_DZ
+    fpmul.32 r5, r2, r5
+    fpmul.32 r6, r3, r6
+    fpmul.32 r7, r4, r7
+    fpadd.32 r5, r5, r6
+    fpsub.32 r10, r5, r7                 # r10 = dz_world
+
+    # Move world dirs into r2, r3, r4 (they need to survive INV_SQRT + 3x RECIPROCAL).
+    add r2, r8, 0                        # r2 = dx_world
+    add r3, r9, 0                        # r3 = dy_world
+    add r4, r10, 0                       # r4 = dz_world
+
+    # --- Length squared ---
+    fpmul.32 r5, r2, r2                  # dx²
+    fpmul.32 r6, r3, r3                  # dy²
+    fpmul.32 r7, r4, r4                  # dz²
+    fpadd.32 r5, r5, r6
+    fpadd.32 r8, r5, r7                  # r8 = len_sq (INV_SQRT input)
+
+    # --- Inverse length ---
+    jmp r9, INV_SQRT                     # r8 in/out (= inv_len on return), r9 link, r10+ clobbered
+    # r2, r3, r4 (world dirs) preserved; r8 now holds inv_len
+
+
     fpmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
     sw r9, r0, 24                        # store ray->inv_dx
@@ -2929,6 +2949,12 @@ SRAM_ALLOC_COUNT:
 .data 16384
 ROOT_NODE_ADDRESS: 
 .data 16384 # 0x000022C4
+CAM_RIGHT_X:
+CAM_RIGHT_Y:
+CAM_RIGHT_Z:
+CAM_UP_X:
+CAM_UP_Y:
+CAM_UP_Z:
 # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM 
 # beq r3, r3, JUMP_TO_RAY_EAT_INTERRUPT, true
 RAY_ARRAY: 
