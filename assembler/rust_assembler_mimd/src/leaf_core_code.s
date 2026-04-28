@@ -2019,62 +2019,37 @@ dfs_done:
     # dram_src = self.leaf_alloc.index_array_low + self.leaf_alloc.index_byte_offset;
     and r1, r1, 0
     add r1, r1, 32612
-    sll r1, r1, 1 
     lw r2, RAY_QUEUE_LOW
     add r1, r1, r2
-    lw r2, r1, 16
-    lw r3, r1, 20
-    lw r1, r1, 0
-    add r1, r1, r2              # r1 = dram_src
-
-    # words = self.leaf_alloc.index_byte_count >> 2;
-    lw r3, LEAF_ALLOC_INDEX_BYTE_COUNT
-    srl r3, r3, 2               # r3 = words
-
-    add r4, r14, 0              # i = 0
+    lw_d r2, r1, 0
+    lw_d r3, r1, 4
+    add r1, r1, 8
     lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
-    sw r6, INDEX_ARRAY_BASE         
+    add r4, r2, r6              # i = 0
+    sw r6, INDEX_ARRAY_BASE     
+    sw r4, VERTEX_ARRAY_BASE    
 index_copy_loop:
-    blte r3, r4, index_copy_done, true
+    blte r4, r6, index_copy_done, false
 
     lw_d r5, r1, 0
     sw r5, r6, 0                # *(sram_dst) = ...
     
     add r1, r1, 4               # dram_src += 4
     add r6, r6, 4               # sram_dst += 4
-    add r4, r4, 1               # i++
 
     beq r15, r15, index_copy_loop, true
 
 index_copy_done:
-    and r1, r1, 0
-    add r1, r1, 32612
-    sll r1, r1, 1 
-    lw r2, RAY_QUEUE_LOW
-    add r1, r1, r2
-
-
-    # dram_src = self.leaf_alloc.vertex_array_low + self.leaf_alloc.vertex_byte_offset;
-    lw r2, r1, 24
-    sw r2, VERTEX_ARRAY_BASE
-    lw r3, r1, 28
-    lw r1, r1, 4
-    add r1, r1, r2
-
-    # words = self.leaf_alloc.vertex_byte_count >> 2;
-    srl r3, r3, 2
-
-    add r4, r14, 0              # i = 0
-
+    add r6, r4, 0
+    add r4, r4, r3
 vertex_copy_loop:
-    blte r3, r4, vertex_copy_done, true
+    blte r4, r6, vertex_copy_done, false
 
     lw_d r5, r1, 0
-    sw r5, r6, 0
-
-    add r1, r1, 4
-    add r6, r6, 4
-    add r4, r4, 1
+    sw r5, r6, 0                # *(sram_dst) = ...
+    
+    add r1, r1, 4               # dram_src += 4
+    add r6, r6, 4               # sram_dst += 4
 
     beq r15, r15, vertex_copy_loop, true
 
@@ -2313,8 +2288,6 @@ LEAF_START_OF_GEO:
 .data 1234
 leaf_start_of_code:
 .data 4321
-LEAF_ALLOC_INDEX_BYTE_COUNT:
-.data 1234
 BRANCH_LOCAL_LEAF_INDEX:
 .data -1
 NODE_ID_TABLE_HIGH:            
