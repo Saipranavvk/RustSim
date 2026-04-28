@@ -25,14 +25,27 @@ LEAF_THRESHOLD = 4
 # ---------------------------------------------------------------------------
 # OBJ parsing + triangulation
 # ---------------------------------------------------------------------------
+import hashlib
+
+def _hash_to_unit(name, salt):
+    """Deterministic hash of (name, salt) -> float in [0, 1)."""
+    h = hashlib.md5(f"{salt}:{name}".encode()).digest()
+    # take 4 bytes, normalize
+    return int.from_bytes(h[:4], "big") / 2**32
 
 def decode_material(name):
-    m = MATERIAL_RE.match(name.strip())
-    if not m:
-        return (0.5, 0.5, 0.5)
-    r, g, b = (int(m.group(i)) for i in (1, 2, 3))
-    return (min(r,255)/255.0, min(g,255)/255.0, min(b,255)/255.0)
+    name = name.strip()
+    m = MATERIAL_RE.match(name)
+    if m:
+        r, g, b = (int(m.group(i)) for i in (1, 2, 3))
+        rgb = (min(r,255)/255.0, min(g,255)/255.0, min(b,255)/255.0)
+    else:
+        rgb = (0.5, 0.5, 0.5)
 
+    roughness = _hash_to_unit(name, "rough")
+    metallic  = _hash_to_unit(name, "metal")
+
+    return (*rgb, roughness, metallic)
 
 def parse_face_indices(tokens):
     out = []
@@ -74,23 +87,23 @@ def triangulate(vertices, faces):
     print(f"[prepare] triangulating to {n_tri:,} triangles...")
 
     tri_pos = np.empty((n_tri, 3, 3), dtype=np.float32)
-    tri_col = np.empty((n_tri, 3), dtype=np.float32)
+    tri_mat = np.empty((n_tri, 5), dtype=np.float32)  # was tri_col, (N,3)
 
     t0 = time.time()
     w = 0
 
-    for idx, col in faces:
+    for idx, mat in faces:
         if len(idx) < 3: continue
         v0 = vertices[idx[0]]
         for k in range(1, len(idx) - 1):
             tri_pos[w, 0] = v0
             tri_pos[w, 1] = vertices[idx[k]]
             tri_pos[w, 2] = vertices[idx[k+1]]
-            tri_col[w] = col
+            tri_mat[w] = mat
             w += 1
 
     print(f"[prepare] triangulated in {time.time()-t0:.2f}s")
-    return tri_pos, tri_col
+    return tri_pos, tri_mat
 
 
 # ---------------------------------------------------------------------------
@@ -256,7 +269,18 @@ def collapse_to_bvh4(b2_bounds, b2_ints):
     print(f"[prepare] BVH4 collapsed: {M4:,} nodes")
     return bounds4, meta4
 
-
+def write_scene(path, tri_pos, tri_mat, perm):
+    tri_pos = tri_pos[perm]
+    tri_mat = tri_mat[perm]
+    N = len(tri_pos)
+    with open(path, "w") as f:
+        f.write(f"{N}\n")
+        for i in range(N):
+            p = tri_pos[i].reshape(-1)  # 9 floats
+            m = tri_mat[i]              # 5 floats: r g b roughness metallic
+            f.write(" ".join(f"{x:.6f}" for x in (*p, *m)) + "\n")
+    size_mb = os.path.getsize(path) / 1024 / 1024
+    print(f"[prepare] wrote {path} ({N:,} triangles, {size_mb:.1f} MB)")
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -270,10 +294,9 @@ def main():
     args = ap.parse_args()
 
     vertices, faces = load_obj(args.obj)
-    tri_pos, tri_col = triangulate(vertices, faces)
-
+    tri_pos, tri_mat = triangulate(vertices, faces)
     b2_bounds, b2_ints, perm = build_bvh2(tri_pos)
-
+    write_scene(args.out_scene, tri_pos, tri_mat, perm)
     # NEW
     write_bvh2(args.out_bvh2, b2_bounds, b2_ints)
 

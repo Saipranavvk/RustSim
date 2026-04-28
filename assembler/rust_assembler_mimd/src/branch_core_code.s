@@ -2538,7 +2538,7 @@ dfs_loop:
     sw r10, r13, 20
 
     # -- copy metadata --
-    lhu_d r10, r12, 30
+    or r10, r10, 0xFFFF
     sh r10, r13, 30                          # core_owner
     lhu_d r10, r12, 40
     sh r10, r13, 40                          # queue_high_bit_addr
@@ -2559,10 +2559,10 @@ dfs_loop:
     sh r11, r13, 26                          # right_child = 0xFFFF
 
     # core_id = self.thread_id >> 4
-    srl r11, r15, 4
+    lw r11, RAY_QUEUE_LOW
 
     # if (core_owner != 0xFFFF && core_owner != self.core_id) leaf_node_table_ptr[0] = node;
-    lhu r10, r13, 30                         # r10 = core_owner
+    lw r10, r13, 36                         # r10 = core_owner
     beq r10, r11, SKIP_LEAF_TABLE_INSERT, true
     add r14, r14, 0xFFFF
     beq r10, r14, SKIP_LEAF_TABLE_INSERT, true
@@ -2572,7 +2572,7 @@ dfs_loop:
 SKIP_LEAF_TABLE_INSERT:
     and r14, r14, 0
     # if (parent_ptr != 0xFFFF) patch parent child pointer
-    add r12, r14, 0xFFFF
+    or r12, r14, 0xFFFF
     beq r5, r12, SKIP_PATCH, true
     add r12, r14, 1
     beq r8, r12, PATCH_RIGHT_CHILD, true
@@ -2583,9 +2583,11 @@ PATCH_RIGHT_CHILD:
 SKIP_PATCH:
 
     # if (owner == self->core_id) self->root_node = node;
-    lhu r10, r13, 30                         # owner = dram_node->core_owner
+    lw r10, r13, 36                         # owner = dram_node->core_owner
     bne r10, r11, CHECK_RECURSE, true
-    sw r13, ROOT_NODE_ID
+    lw r14, r13, 44                          # node_id
+    sw r14, ROOT_NODE_ID
+    and r14, r14, 0
 CHECK_RECURSE:
 
     # recurse if owner == 0xFFFF || owner == self->core_id

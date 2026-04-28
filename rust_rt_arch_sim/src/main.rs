@@ -11,6 +11,7 @@ use half::f16;
 use hashbrown::HashMap;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Barrier};
@@ -605,6 +606,112 @@ fn node_id_lists(path: String) -> std::io::Result<Vec<(u32, u32, u32, u32)>> {
     Ok(result)
 }
 
+use std::fs::read_to_string;
+
+pub struct Triangle {
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
+    pub roughness: f32,
+    pub metallic: f32,
+    pub x_norm: f32,
+    pub y_norm: f32,
+    pub z_norm: f32,
+}
+
+pub fn load_triangles() -> Vec<Triangle> {
+    let text = read_to_string("scene.txt")
+        .or_else(|_| read_to_string("src/scene.txt"))
+        .unwrap();
+
+    let mut lines = text.lines();
+    lines.next(); // skip header
+
+    lines
+        .map(|line| {
+            let n: Vec<f32> = line.split_ascii_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+
+            let (e1x, e1y, e1z) = (n[3] - n[0], n[4] - n[1], n[5] - n[2]);
+            let (e2x, e2y, e2z) = (n[6] - n[0], n[7] - n[1], n[8] - n[2]);
+            let nx = e1y * e2z - e1z * e2y;
+            let ny = e1z * e2x - e1x * e2z;
+            let nz = e1x * e2y - e1y * e2x;
+            let len = (nx * nx + ny * ny + nz * nz).sqrt();
+
+            Triangle {
+                red: n[9],
+                green: n[10],
+                blue: n[11],
+                roughness: n[12],
+                metallic: n[13],
+                x_norm: nx / len,
+                y_norm: ny / len,
+                z_norm: nz / len,
+            }
+        })
+        .collect()
+}
+
+pub struct BvhNode {
+    pub min_x: f32,
+    pub min_y: f32,
+    pub min_z: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+    pub max_z: f32,
+    pub left_first: u32,
+    pub tri_count: u32,
+    pub parent: u32,
+}
+
+pub fn load_bvh_nodes() -> Vec<BvhNode> {
+    let text = read_to_string("bvh_nodes.txt")
+        .or_else(|_| read_to_string("src/bvh_nodes.txt"))
+        .unwrap();
+
+    let mut lines = text.lines();
+    lines.next(); // skip header
+
+    let mut nodes: Vec<BvhNode> = lines
+        .map(|line| {
+            let p: Vec<&str> = line.split_ascii_whitespace().collect();
+            BvhNode {
+                min_x: p[0].parse().unwrap(),
+                min_y: p[1].parse().unwrap(),
+                min_z: p[2].parse().unwrap(),
+                max_x: p[3].parse().unwrap(),
+                max_y: p[4].parse().unwrap(),
+                max_z: p[5].parse().unwrap(),
+                left_first: p[6].parse().unwrap(),
+                tri_count: p[7].parse().unwrap(),
+                parent: u32::MAX,
+            }
+        })
+        .collect();
+
+    // BFS from root, filling in parent pointers.
+    let mut queue: VecDeque<u32> = VecDeque::new();
+    queue.push_back(0);
+    nodes[0].parent = 0; // root is its own parent (sentinel)
+
+    while let Some(idx) = queue.pop_front() {
+        let n = &nodes[idx as usize];
+        if n.tri_count == 0 {
+            // branch: children are at left_first and left_first + 1
+            let left = n.left_first;
+            let right = n.left_first + 1;
+            nodes[left as usize].parent = idx;
+            nodes[right as usize].parent = idx;
+            queue.push_back(left);
+            queue.push_back(right);
+        }
+        // leaf: tri_count > 0, no children to enqueue
+    }
+    nodes
+}
+
 
 fn main() {
     // assemble_tree("bvh_data".to_string());
@@ -627,13 +734,43 @@ fn main() {
     // }
     let mut placement_vec_wrapped = read_placements("placement.csv".to_owned());
     if placement_vec_wrapped.is_err() {
-        placement_vec_wrapped = read_placements("src\\placement.csv".to_owned());
+        placement_vec_wrapped = read_placements("src/placement.csv".to_owned());
     }
+
+    let triangles = load_triangles();
+    let starting_tri_array = 100_000_000 / 4;
+    for i in 0..triangles.len() {
+        stacks[0].dram_stack[8*i + starting_tri_array] = triangles[i].red.to_bits();
+        stacks[0].dram_stack[8*i + 1 + starting_tri_array] = triangles[i].green.to_bits();
+        stacks[0].dram_stack[8*i + 2 + starting_tri_array] = triangles[i].blue.to_bits();
+        stacks[0].dram_stack[8*i + 3 + starting_tri_array] = triangles[i].roughness.to_bits();
+        stacks[0].dram_stack[8*i + 4 + starting_tri_array] = triangles[i].metallic.to_bits();
+        stacks[0].dram_stack[8*i + 5 + starting_tri_array] = triangles[i].x_norm.to_bits();
+        stacks[0].dram_stack[8*i + 6 + starting_tri_array] = triangles[i].y_norm.to_bits();
+        stacks[0].dram_stack[8*i + 7 + starting_tri_array] = triangles[i].z_norm.to_bits();
+    }
+
+    let node_vec = load_bvh_nodes();
+    let node_array_start = 0;
+    for i in 0..node_vec.len(){
+        stacks[1].dram_stack[12*i + node_array_start] = node_vec[i].min_x.to_bits();
+        stacks[1].dram_stack[12*i + 1 + node_array_start] = node_vec[i].max_x.to_bits();
+        stacks[1].dram_stack[12*i + 2 + node_array_start] = node_vec[i].min_y.to_bits();
+        stacks[1].dram_stack[12*i + 3 + node_array_start] = node_vec[i].max_y.to_bits();
+        stacks[1].dram_stack[12*i + 4 + node_array_start] = node_vec[i].min_z.to_bits();
+        stacks[1].dram_stack[12*i + 5 + node_array_start] = node_vec[i].max_z.to_bits();
+        stacks[1].dram_stack[12*i + 6 + node_array_start] = node_vec[i].left_first;
+        stacks[1].dram_stack[12*i + 7 + node_array_start] = node_vec[i].parent;
+    }
+
+
+
+
 
 
     let mut node_id_vec_wrapped = node_id_lists("placement.csv".to_owned());
     if node_id_vec_wrapped.is_err() {
-        node_id_vec_wrapped = node_id_lists("src\\placement.csv".to_owned());
+        node_id_vec_wrapped = node_id_lists("src/placement.csv".to_owned());
     }
 
     let node_id_vec = node_id_vec_wrapped.unwrap();
@@ -663,6 +800,15 @@ fn main() {
         let index = y * 128 + x;
         stacks[0].dram_stack[2* index as usize + start_of_node_init_table] = node_id_hash_map.get(&node_id).unwrap().0 as u32;
         stacks[0].dram_stack[2* index as usize + start_of_node_init_table + 1] = (node_id_hash_map.get(&node_id).unwrap().1 << 31) | node_id;
+    }
+
+
+    for i in 0..node_id_vec.len(){
+        let (_x, _y, node_id, _is_branch) = node_id_vec[i];
+        let address = node_id_hash_map.get(&node_id).unwrap().0;
+        stacks[1].dram_stack[12 * node_id as usize + 9 + node_array_start] = address as u32;
+        dram_store_half(&mut stacks[1].dram_stack, 4*(12 * node_id as usize + node_array_start) + 40, (address >> 32) as u32);
+        stacks[1].dram_stack[12 * node_id as usize + 11 + node_array_start] = node_id_hash_map.get(&node_id).unwrap().1;
     }
 
     let start_of_random_table = 60_000_004 / 4;
