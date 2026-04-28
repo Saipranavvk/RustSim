@@ -1,5 +1,8 @@
 .org 0x0028 //TODO
 
+# 0x196C <- 6508 bytes append to the end
+# 15372 - 6508 = 8864
+
 # ***RAY is R0, NODE is R1, R15 is reserved for context info and others**
     # initialize_core();
     beq r15, r15, download_bvh_tree, true
@@ -2222,7 +2225,7 @@ NODE_IDS_MATCH:
     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
     add r9, r0, 0                           # r9 = local_queue = ray base address
     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
-    lw r10, ROOT_NODE_ID_SENDER             # r10 = sender node id
+    lw r10, ROOT_NODE_ID             # r10 = sender node id
     beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
     add r9, r9, 524
@@ -2837,17 +2840,20 @@ RANDOM_TABLE_HIGH:
 RANDOM_TABLE_LOW: 
 .data 60000000
 CAM_X: 
-.data -1
+.data 0x440E4000
 CAM_Y: 
-.data -1
+.data 0x431F0000
 CAM_Z: 
-.data -1
+.data 0xC451C000
+
+# https://stackoverflow.com/questions/78072261/how-to-find-cameras-intrinsic-matrix-from-focal-length
+
 CAM_CX:
-.data -1
+.data 0x44A00000
 CAM_CY: 
-.data -1
+.data 0x44340000
 CAM_INV_FOCAL: 
-.data -1
+.data 0x3A4CCCCD
 RAY_SEND_PENDING: 
 .data 0
 PULLED_FROM_FULL_QUEUE_CNT: 
@@ -2884,46 +2890,47 @@ PREVIOUSLY_IDLE:
 FLOAT_TO_BYTE_RGB_TABLE: 
 .data(128) 0
 LIGHT0_X: 
-.data -1
+.data 0x44228000
 LIGHT0_Y: 
-.data -1
+.data 0x430C0000
 LIGHT0_Z: 
-.data -1
+.data 0xC42F0000
 LIGHT0_R: 
-.data -1
+.data 0x3F800000
 LIGHT0_G: 
-.data -1
+.data 0x00000000
 LIGHT0_B: 
-.data -1
+.data 0x00000000
 LIGHT1_X: 
-.data -1
+.data 0x43FA0000
 LIGHT1_Y: 
-.data -1
+.data 0x430C0000
 LIGHT1_Z: 
-.data -1
+.data 0xC4480000
 LIGHT1_R: 
-.data -1
+.data 0x00000000
 LIGHT1_G: 
-.data -1
+.data 0x3F800000
 LIGHT1_B: 
-.data -1
+.data 0x00000000
 LIGHT2_X: 
-.data -1
+.data 0x444D0000
 LIGHT2_Y: 
-.data -1
+.data 0x430C0000
 LIGHT2_Z: 
-.data -1
+.data 0xC4160000
 LIGHT2_R: 
-.data -1
+.data 0x00000000
 LIGHT2_G: 
-.data -1
+.data 0x00000000
 LIGHT2_B: 
-.data -1
+.data 0x3F800000
 SRAM_ALLOC_COUNT:       
 .data 16384
 ROOT_NODE_ADDRESS: 
-.data 16384
-//DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+.data 16384 # 0x000022C4
+# DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM 
+# beq r3, r3, JUMP_TO_RAY_EAT_INTERRUPT, true
 RAY_ARRAY: 
 .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: 
