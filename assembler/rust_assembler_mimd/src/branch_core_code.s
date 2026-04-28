@@ -2629,6 +2629,11 @@ DO_RECURSE:
 
 dfs_done:
     # *(self.leaf_core_lookup_table + 256) = self->root_node;
+    lw r10, JUMP_TO_RAY_EAT_INTERRUPT
+    sw r10, 49024
+    sw r10, 49028
+    lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
+    sw r10, 49032
     and r14, r14, 0
     lw r10, ROOT_NODE_ID
     add r11, r14, LEAF_CORE_LOOKUP_TABLE
@@ -2715,8 +2720,10 @@ queue_loop_2_done:
 
 
 
-
-
+JUMP_TO_RAY_EAT_INTERRUPT:
+jmp r15, EAT_RAY_INTERRUPT
+JUMP_TO_SWITCH_ROLES_INTERRUPT:
+jmp r15, SWITCH_ROLES_INTERRUPT
 NODE_ID_TABLE_HIGH:
 .data 0
 NODE_ID_TABLE_LOW:

@@ -2007,6 +2007,11 @@ DO_RECURSE:
 dfs_done:
     # *(self.leaf_core_lookup_table + 256) = self->root_node;
     and r14, r14, 0
+    lw r10, JUMP_TO_RAY_EAT_INTERRUPT
+    sw r10, 49024
+    sw r10, 49028
+    lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
+    sw r10, 49032
     # set_address_bits(self.node_array_high);
     lw r12, NODE_ARRAY_HIGH
     setmembits r13, r12
@@ -2300,8 +2305,10 @@ TRANSFER_BRANCH_GEO_LOOP:
 
 
 
-
-
+JUMP_TO_RAY_EAT_INTERRUPT:
+jmp r15, EAT_RAY_INTERRUPT
+JUMP_TO_SWITCH_ROLES_INTERRUPT:
+jmp r15, SWITCH_ROLES_INTERRUPT
 LEAF_START_OF_GEO:
 .data 1234
 leaf_start_of_code:
