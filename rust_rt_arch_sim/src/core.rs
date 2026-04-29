@@ -12,8 +12,8 @@ use crate::{CORES_IN_X_STACK, CoreLog};
 
 pub const FP_PIPE_STAGES: usize = 4;
 pub const DIV_LATENCY: usize = 32;
-pub const DRAM_LATENCY_FAR: u64 = 300;
-pub const DRAM_LATENCY_CLOSE: u64 = 150;
+pub const DRAM_LATENCY_FAR: u64 = 6;
+pub const DRAM_LATENCY_CLOSE: u64 = 6;
 pub const REGS_PER_CONTEXT: usize = 16;
 pub const SRAM_SIZE: usize = 48 * 1024;
 pub const NUM_NOC_PIPES: usize = 64;
@@ -21,8 +21,8 @@ pub const HIGH_CAPACITY_NOC_PIPE_CNT: usize = 32;
 pub const HIGH_CAPACITY_PIPE_SLOTS: usize = 4;
 pub const OUTPUT_NOC_FIFO_CAPACITY: usize = 1;
 pub const PRIORITIZE_X: bool = false;
-pub const CORES_IN_X: u16 = 16;
-pub const CORES_IN_Y: u16 = 16;
+pub const CORES_IN_X: u16 = 32;
+pub const CORES_IN_Y: u16 = 32;
 pub const DRAM_STACK_SIZE: usize = 1 << 31;
 pub const DRAM_STACK_SIZE_LOG2: usize = 31;
 pub const NOC_FIFO_SIZE: usize = 1;
@@ -960,7 +960,7 @@ impl Core {
         val as i32 as u32
     }
     fn read_sram_word(&self, address: &u16) -> u32 {
-        assert!(address & 0x3 == 0, "WORD NOT ALIGNED!");
+        assert!(address & 0x3 == 0, "WORD NOT ALIGNED! address = 0x{:04X} ({}), core_id: {}", address, address, self.core_id);
         let val = u32::from_le_bytes([
             self.sram[*address as usize],
             self.sram[*address as usize + 1],

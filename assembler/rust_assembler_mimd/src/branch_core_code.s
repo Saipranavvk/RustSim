@@ -1,4 +1,4 @@
-.org 28 //TODO
+.org 4 //TODO
 
 # 0x196C <- 6508 bytes append to the end
 # 15372 - 6508 = 8864

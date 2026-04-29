@@ -84,9 +84,9 @@ download_leaf_core_code:
 
     # uint32_t r3 = self.start_of_code_in_sram;
 bootloader_reuse:
-    and r0, r0, 0
+    lw r3, START_OF_DOWNLOADING_MORE_CODE
     # goto bootloader_loop;
-    beq r15, r15, 16, true   # unconditional jump to bootloader
+    beq r15, r15, 20, true   # unconditional jump to bootloader
     
 dram_queue_array_low:
     .data 20000   
@@ -110,3 +110,5 @@ leaf_addr_low:
     .data 61010000   
 AND_MASK:
     .data 0x7FFFFFFF
+START_OF_DOWNLOADING_MORE_CODE:
+    .data 68

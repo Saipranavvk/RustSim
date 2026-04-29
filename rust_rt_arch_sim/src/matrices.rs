@@ -1034,62 +1034,63 @@ pub const MAT_C: [u16; 64 * 64] = [
 ];
 
 pub fn get_init_vector() -> Vec<u32> {
-    let mut init_vector: [u32; 55] = [
-        0x00000028, //PC = 0x00000028,     line: .data 40        # TODO Double check
-        0x0044FF93, //PC = 0x0000002C,     line:     beq r15, r15, INITIALIZE_CORE, true
-        0xFFFFFFFF, //PC = 0x00000030,     line:     .data -1
-        0xFFFFFFFF, //PC = 0x00000034,     line:     .data -1
-        0xFFFFFFFF, //PC = 0x00000038,     line:     .data -1
-        0xFFFFFFFF, //PC = 0x0000003C,     line:     .data -1
-        0xFFFFFFFF, //PC = 0x00000040,     line:     .data -1
-        0x00DC801F, //PC = 0x00000044,     line:     lw r0, dram_queue_array_high
-        0x000007A7, //PC = 0x00000048,     line:     setmembits r0
-        0x0004FF06, //PC = 0x0000004C,     line:     srl r14, r15, 4
-        0x0003F705, //PC = 0x00000050,     line:     sll r14, r14, 3
-        0x00D8809F, //PC = 0x00000054,     line:     lw r1, dram_queue_array_low      # r1 = upper_addr
-        0x000E0880, //PC = 0x00000058,     line:     add r1, r1, r14
-        0x0000092C, //PC = 0x0000005C,     line:     lw_d r2, r1, 0                       # r2 = node_id
-        0x000409AC, //PC = 0x00000060,     line:     lw_d r3, r1, 4 #r3 = is_branch_core
-        0x001F9A06, //PC = 0x00000064,     line:     srl r4, r3, 31
-        0x003C811A, //PC = 0x00000068,     line:     sw r2, ROOT_NODE_ID
-        0x0038821A, //PC = 0x0000006C,     line:     sw r4, IS_BRANCH_CORE
-        0x0100821F, //PC = 0x00000070,     line:     lw r4, AND_MASK
-        0x00032202, //PC = 0x00000074,     line:     and r4, r4, r3
-        0x0040821A, //PC = 0x00000078,     line:     sw r4, NODE_INDEX_OF_ROOT
-        0x00E0801F, //PC = 0x0000007C,     line:     lw r0, dram_queue_addresses_high
-        0x000007A7, //PC = 0x00000080,     line:     setmembits r0
-        0x00039705, //PC = 0x00000084,     line:     sll r14, r2, 3
-        0x00E4809F, //PC = 0x00000088,     line:     lw r1, dram_queue_addresses_low      # r1 = upper_addr
-        0x000E0880, //PC = 0x0000008C,     line:     add r1, r1, r14
-        0x0000092C, //PC = 0x00000090,     line:     lw_d r2, r1, 0                       # r2 = RAY_QUEUE_HIGH
-        0x000409AC, //PC = 0x00000094,     line:     lw_d r3, r1, 4                       # r3 = RAY_QUEUE_LOW
-        0x0030811A, //PC = 0x00000098,     line:     sw r2, RAY_QUEUE_HIGH
-        0x0034819A, //PC = 0x0000009C,     line:     sw r3, RAY_QUEUE_LOW
-        0x0038821F, //PC = 0x000000A0,     line:     lw r4, IS_BRANCH_CORE
-        0x00008002, //PC = 0x000000A4,     line:     and r0, r0, 0
-        0x00C08213, //PC = 0x000000A8,     line:     beq r4, r0, download_leaf_core_code, true
-        0x00E8809F, //PC = 0x000000AC,     line:     lw r1, num_instructions_branch
-        0x00EC811F, //PC = 0x000000B0,     line:     lw r2, branch_addr_high      # r2 = branch_addr_high
-        0x000017A7, //PC = 0x000000B4,     line:     setmembits r2
-        0x00F0811F, //PC = 0x000000B8,     line:     lw r2, branch_addr_low
-        0x00D0FF93, //PC = 0x000000BC,     line:     beq r15, r15, bootloader_reuse, true
-        0x00F4809F, //PC = 0x000000C0,     line:     lw r1, num_instructions_leaf     # r1 = num_instructions_leaf
-        0x00F8811F, //PC = 0x000000C4,     line:     lw r2, leaf_addr_high
-        0x000017A7, //PC = 0x000000C8,     line:     setmembits r2
-        0x00FC811F, //PC = 0x000000CC,     line:     lw r2, leaf_addr_low             # r2 = leaf_addr_low
-        0x00008002, //PC = 0x000000D0,     line:     and r0, r0, 0
-        0x0010FF93, //PC = 0x000000D4,     line:     beq r15, r15, 16, true   # unconditional jump to bootloader
-        0x00004E20, //PC = 0x000000D8,     line:     .data 20000
-        0x00000000, //PC = 0x000000DC,     line:     .data 0
-        0x00000000, //PC = 0x000000E0,     line:     .data 0
-        0x03C25F30, //PC = 0x000000E4,     line:     .data 63070000
-        0x00000ABE, //PC = 0x000000E8,     line:     .data 2750
-        0x00000000, //PC = 0x000000EC,     line:     .data 0
-        0x00000190, //PC = 0x000000F0,     line:     .data 400
-        0x00000661, //PC = 0x000000F4,     line:     .data 1633
-        0x00000000, //PC = 0x000000F8,     line:     .data 0
-        0x03A2F050, //PC = 0x000000FC,     line:     .data 61010000
-        0x7FFFFFFF, //PC = 0x00000100,     line:     .data 0x7FFFFFFF
+    let mut init_vector: [u32; 56] = [
+        0x00000028,   //PC = 0x00000028,     line: .data 40        # TODO Double check
+        0x0044FF93,   //PC = 0x0000002C,     line:     beq r15, r15, INITIALIZE_CORE, true
+        0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
+        0xFFFFFFFF,   //PC = 0x00000034,     line:     .data -1
+        0xFFFFFFFF,   //PC = 0x00000038,     line:     .data -1
+        0xFFFFFFFF,   //PC = 0x0000003C,     line:     .data -1
+        0xFFFFFFFF,   //PC = 0x00000040,     line:     .data -1
+        0x00DC801F,   //PC = 0x00000044,     line:     lw r0, dram_queue_array_high    
+        0x000007A7,   //PC = 0x00000048,     line:     setmembits r0   
+        0x0004FF06,   //PC = 0x0000004C,     line:     srl r14, r15, 4
+        0x0003F705,   //PC = 0x00000050,     line:     sll r14, r14, 3
+        0x00D8809F,   //PC = 0x00000054,     line:     lw r1, dram_queue_array_low      # r1 = upper_addr
+        0x000E0880,   //PC = 0x00000058,     line:     add r1, r1, r14
+        0x0000092C,   //PC = 0x0000005C,     line:     lw_d r2, r1, 0                       # r2 = node_id
+        0x000409AC,   //PC = 0x00000060,     line:     lw_d r3, r1, 4 #r3 = is_branch_core
+        0x001F9A06,   //PC = 0x00000064,     line:     srl r4, r3, 31
+        0x003C811A,   //PC = 0x00000068,     line:     sw r2, ROOT_NODE_ID
+        0x0038821A,   //PC = 0x0000006C,     line:     sw r4, IS_BRANCH_CORE
+        0x0100821F,   //PC = 0x00000070,     line:     lw r4, AND_MASK
+        0x00032202,   //PC = 0x00000074,     line:     and r4, r4, r3
+        0x0040821A,   //PC = 0x00000078,     line:     sw r4, NODE_INDEX_OF_ROOT
+        0x00E0801F,   //PC = 0x0000007C,     line:     lw r0, dram_queue_addresses_high    
+        0x000007A7,   //PC = 0x00000080,     line:     setmembits r0   
+        0x00039705,   //PC = 0x00000084,     line:     sll r14, r2, 3
+        0x00E4809F,   //PC = 0x00000088,     line:     lw r1, dram_queue_addresses_low      # r1 = upper_addr
+        0x000E0880,   //PC = 0x0000008C,     line:     add r1, r1, r14
+        0x0000092C,   //PC = 0x00000090,     line:     lw_d r2, r1, 0                       # r2 = RAY_QUEUE_HIGH
+        0x000409AC,   //PC = 0x00000094,     line:     lw_d r3, r1, 4                       # r3 = RAY_QUEUE_LOW
+        0x0030811A,   //PC = 0x00000098,     line:     sw r2, RAY_QUEUE_HIGH
+        0x0034819A,   //PC = 0x0000009C,     line:     sw r3, RAY_QUEUE_LOW
+        0x0038821F,   //PC = 0x000000A0,     line:     lw r4, IS_BRANCH_CORE
+        0x00008002,   //PC = 0x000000A4,     line:     and r0, r0, 0
+        0x00C08213,   //PC = 0x000000A8,     line:     beq r4, r0, download_leaf_core_code, true
+        0x00E8809F,   //PC = 0x000000AC,     line:     lw r1, num_instructions_branch
+        0x00EC811F,   //PC = 0x000000B0,     line:     lw r2, branch_addr_high      # r2 = branch_addr_high
+        0x000017A7,   //PC = 0x000000B4,     line:     setmembits r2
+        0x00F0811F,   //PC = 0x000000B8,     line:     lw r2, branch_addr_low
+        0x00D0FF93,   //PC = 0x000000BC,     line:     beq r15, r15, bootloader_reuse, true
+        0x00F4809F,   //PC = 0x000000C0,     line:     lw r1, num_instructions_leaf     # r1 = num_instructions_leaf
+        0x00F8811F,   //PC = 0x000000C4,     line:     lw r2, leaf_addr_high
+        0x000017A7,   //PC = 0x000000C8,     line:     setmembits r2
+        0x00FC811F,   //PC = 0x000000CC,     line:     lw r2, leaf_addr_low             # r2 = leaf_addr_low
+        0x0104819F,   //PC = 0x000000D0,     line:     lw r3, START_OF_DOWNLOADING_MORE_CODE
+        0x0014FF93,   //PC = 0x000000D4,     line:     beq r15, r15, 20, true   # unconditional jump to bootloader
+        0x00004E20,   //PC = 0x000000D8,     line:     .data 20000   
+        0x00000000,   //PC = 0x000000DC,     line:     .data 0  
+        0x00000000,   //PC = 0x000000E0,     line:     .data 0  
+        0x03C25F30,   //PC = 0x000000E4,     line:     .data 63070000  
+        0x00000ABE,   //PC = 0x000000E8,     line:     .data 2750   
+        0x00000000,   //PC = 0x000000EC,     line:     .data 0   
+        0x00000190,   //PC = 0x000000F0,     line:     .data 400 
+        0x00000661,   //PC = 0x000000F4,     line:     .data 1633   
+        0x00000000,   //PC = 0x000000F8,     line:     .data 0   
+        0x03A2F050,   //PC = 0x000000FC,     line:     .data 61010000   
+        0x7FFFFFFF,   //PC = 0x00000100,     line:     .data 0x7FFFFFFF
+        0x00000044,   //PC = 0x00000104,     line:     .data 68
     ];
     init_vector[0] = init_vector.len() as u32 - 1;
     init_vector.to_vec()
@@ -1097,2099 +1098,2105 @@ pub fn get_init_vector() -> Vec<u32> {
 
 pub fn get_branch_core_code() -> Vec<u32> {
     let mut branch_core_code: [u32; 2250] = [
-0x1D10FF93,   //PC = 0x0000001C,     line:     beq r15, r15, download_bvh_tree, true
-0xFFFFFFFF,   //PC = 0x00000020,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000024,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000028,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x0000002C,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
-0x1F90861F,   //PC = 0x00000034,     line:     lw r12, NODE_ID_TABLE_HIGH
-0x000067A7,   //PC = 0x00000038,     line:     setmembits r12
-0x1F94861F,   //PC = 0x0000003C,     line:     lw r12, NODE_ID_TABLE_LOW
-0x0002DD85,   //PC = 0x00000040,     line:     sll r11, r11, 2
-0x000B6600,   //PC = 0x00000044,     line:     add r12, r12, r11
-0x000064AC,   //PC = 0x00000048,     line:     lw_d r9, r12, 0
-0x0004652C,   //PC = 0x0000004C,     line:     lw_d r10, r12, 4
-0x0020811F,   //PC = 0x00000050,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
-0x0024819F,   //PC = 0x00000054,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x0020849A,   //PC = 0x00000058,     line:     sw r9, RAY_QUEUE_HIGH
-0x0024851A,   //PC = 0x0000005C,     line:     sw r10, RAY_QUEUE_LOW
-0x0000F702,   //PC = 0x00000060,     line:     and r14, r14, 0
-0x1FFCF480,   //PC = 0x00000064,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
-0x0001CFB3,   //PC = 0x00000068,     line:     atomadd r15, r9, 1
-0x0010F500,   //PC = 0x0000006C,     line:     add r10, r14, 16 
-0x1FFC849F,   //PC = 0x00000070,     line:     lw r9, LOCAL_QUEUE_FLUSHING
-0x00000038,   //PC = 0x00000074,     line:     switchctx
-0x0070CD13,   //PC = 0x00000078,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY_TWO, true
-0x000017A7,   //PC = 0x0000007C,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000080,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000084,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000088,     line:     lw_d r4, r3, 16
-0x0088AA14,   //PC = 0x0000008C,     line:     bne r4, r5, REMOVE_TICKET_WAIT_EMERGENCY, true
-0x00149A00,   //PC = 0x00000090,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000094,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000098,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x0000009C,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x000000A0,     line:     lw_d r9, r4, 0
-0x00A0CA94,   //PC = 0x000000A4,     line:     bne r5, r9, LOCKING_BULLSHIT_EMERGENCY, true
-0x001C9B00,   //PC = 0x000000A8,     line:     add r6, r3, 28 
-0x0000C402,   //PC = 0x000000AC,     line:     and r8, r8, 0
-0x0004FC86,   //PC = 0x000000B0,     line:     srl r9, r15, 4
-0x0004222C,   //PC = 0x000000B4,     line:     lw_d r4, r4, 4
-0x0100F500,   //PC = 0x000000B8,     line:     add r10, r14, 256
-0x028C5213,   //PC = 0x000000BC,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
-0x0001C505,   //PC = 0x000000C0,     line:     sll r10, r8, 1              # r10 = i * 2
-0x00065500,   //PC = 0x000000C4,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
-0x000055AB,   //PC = 0x000000C8,     line:     lhu_d r11, r10, 0           # r11 = slot_val
-0x00D8CD93,   //PC = 0x000000CC,     line:     beq r11, r9, found_our_slot_remove_emergency, true
-0x0001C400,   //PC = 0x000000D0,     line:     add r8, r8, 1
-0x00B8FF93,   //PC = 0x000000D4,     line:     beq r15, r15, find_our_slot_remove_emergency, true
-0xFFFFA580,   //PC = 0x000000D8,     line:     add r11, r4, -1             # r11 = owner_count - 1
-0x0001DD85,   //PC = 0x000000DC,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
-0x00065D80,   //PC = 0x000000E0,     line:     add r11, r11, r6            # r11 = last_slot_addr
-0x00005E2B,   //PC = 0x000000E4,     line:     lhu_d r12, r11, 0           # r12 = last_val
-0x0000562E,   //PC = 0x000000E8,     line:     sh_d r12, r10, 0            # slots[i] = last_val
-0x0000E602,   //PC = 0x000000EC,     line:     and r12, r12, 0
-0x00005E2E,   //PC = 0x000000F0,     line:     sh_d r12, r11, 0            # last slot = 0
-0x00189D00,   //PC = 0x000000F4,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0xFFFFD630,   //PC = 0x000000F8,     line:     atomadd_d r12, r10, -1     # core_owner_count--
-0x00149D00,   //PC = 0x000000FC,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000100,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000104,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000108,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x0000010C,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000110,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0020811F,   //PC = 0x00000114,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
-0x0024819F,   //PC = 0x00000118,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x0000011C,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000120,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000124,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000128,     line:     lw_d r4, r3, 16
-0x0128AA14,   //PC = 0x0000012C,     line:     bne r4, r5, ADD_TICKET_WAIT_EMERGENCY, true
-0x00149A00,   //PC = 0x00000130,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000134,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000138,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x0000013C,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x00000140,     line:     lw_d r9, r4, 0
-0x0140CA94,   //PC = 0x00000144,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT_EMERGENCY, true
-0x001C9B00,   //PC = 0x00000148,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x0000014C,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x00000150,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x00000154,     line:     lw_d r4, r4, 4    # r4 = owner_count
-0x0001A205,   //PC = 0x00000158,     line:     sll r4, r4, 1
-0x00043300,   //PC = 0x0000015C,     line:     add r6, r6, r4
-0x0004FE06,   //PC = 0x00000160,     line:     srl r12, r15, 4
-0x0000362E,   //PC = 0x00000164,     line:     sh_d r12, r6, 0           # r12 = last_val
-0x00189D00,   //PC = 0x00000168,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0x0001D630,   //PC = 0x0000016C,     line:     atomadd_d r12, r10, 1     # core_owner_count--
-0x00149D00,   //PC = 0x00000170,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000174,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000178,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x0000017C,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x00000180,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000184,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x1D10FF93,   //PC = 0x00000188,     line:     beq r15, r15, download_bvh_tree, true
-0x0020811F,   //PC = 0x0000018C,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
-0x0024819F,   //PC = 0x00000190,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x00000194,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000198,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x0000019C,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x000001A0,     line:     lw_d r4, r3, 16
-0x01A0AA14,   //PC = 0x000001A4,     line:     bne r4, r5, REMOVE_TICKET_WAIT, true
-0x00149A00,   //PC = 0x000001A8,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x000001AC,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x000001B0,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x000001B4,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x000001B8,     line:     lw_d r9, r4, 0
-0x01B8CA94,   //PC = 0x000001BC,     line:     bne r5, r9, LOCKING_BULLSHIT, true
-0x001C9B00,   //PC = 0x000001C0,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x000001C4,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x000001C8,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x000001CC,     line:     lw_d r4, r4, 4
-0x0100F500,   //PC = 0x000001D0,     line:     add r10, r14, 256
-0x028C5213,   //PC = 0x000001D4,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
-0x0001C505,   //PC = 0x000001D8,     line:     sll r10, r8, 1              # r10 = i * 2
-0x00065500,   //PC = 0x000001DC,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
-0x000055AB,   //PC = 0x000001E0,     line:     lhu_d r11, r10, 0           # r11 = slot_val
-0x01F0CD93,   //PC = 0x000001E4,     line:     beq r11, r9, found_our_slot_remove, true
-0x0001C400,   //PC = 0x000001E8,     line:     add r8, r8, 1
-0x01D0FF93,   //PC = 0x000001EC,     line:     beq r15, r15, find_our_slot_remove, true
-0xFFFFA580,   //PC = 0x000001F0,     line:     add r11, r4, -1             # r11 = owner_count - 1
-0x0001DD85,   //PC = 0x000001F4,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
-0x00065D80,   //PC = 0x000001F8,     line:     add r11, r11, r6            # r11 = last_slot_addr
-0x00005E2B,   //PC = 0x000001FC,     line:     lhu_d r12, r11, 0           # r12 = last_val
-0x0000562E,   //PC = 0x00000200,     line:     sh_d r12, r10, 0            # slots[i] = last_val
-0x0000E602,   //PC = 0x00000204,     line:     and r12, r12, 0
-0x00005E2E,   //PC = 0x00000208,     line:     sh_d r12, r11, 0            # last slot = 0
-0x00189D00,   //PC = 0x0000020C,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0xFFFFD630,   //PC = 0x00000210,     line:     atomadd_d r12, r10, -1     # core_owner_count--
-0x00149D00,   //PC = 0x00000214,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000218,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x0000021C,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000220,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x00000224,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000228,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0380FF93,   //PC = 0x0000022C,     line:     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
-0x0020811F,   //PC = 0x00000230,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
-0x0024819F,   //PC = 0x00000234,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x00000238,     line:     setmembits r2
-0x000C9A00,   //PC = 0x0000023C,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000240,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000244,     line:     lw_d r4, r3, 16
-0x0244AA14,   //PC = 0x00000248,     line:     bne r4, r5, ADD_TICKET_WAIT, true
-0x00149A00,   //PC = 0x0000024C,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000250,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000254,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x00000258,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x0000025C,     line:     lw_d r9, r4, 0
-0x025CCA94,   //PC = 0x00000260,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT, true
-0x001C9B00,   //PC = 0x00000264,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x00000268,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x0000026C,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x00000270,     line:     lw_d r4, r4, 4    # r4 = owner_count
-0x0001A205,   //PC = 0x00000274,     line:     sll r4, r4, 1
-0x00043300,   //PC = 0x00000278,     line:     add r6, r6, r4
-0x0004FE06,   //PC = 0x0000027C,     line:     srl r12, r15, 4
-0x0000362E,   //PC = 0x00000280,     line:     sh_d r12, r6, 0           # r12 = last_val
-0x00189D00,   //PC = 0x00000284,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0x0001D630,   //PC = 0x00000288,     line:     atomadd_d r12, r10, 1     # core_owner_count--
-0x00149D00,   //PC = 0x0000028C,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000290,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000294,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000298,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x0000029C,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x000002A0,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0408FF93,   //PC = 0x000002A4,     line:     beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
-0x0000C200,   //PC = 0x000002A8,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
-0x00228037,   //PC = 0x000002AC,     line:     intdis 34                               # disable_interrupts(34)
-0x002283A1,   //PC = 0x000002B0,     line:     nonblock r7, 34                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
-0x0000F702,   //PC = 0x000002B4,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x02C4BF14,   //PC = 0x000002B8,     line:     bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
-0x00228026,   //PC = 0x000002BC,     line:     intena 34                               # enable_interrupts(channel) (nothing to do)
-0x00040797,   //PC = 0x000002C0,     line:     jmp r15, r4                             # return
-0x002283A0,   //PC = 0x000002C4,     line:     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
-0x20CC849F,   //PC = 0x000002C8,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
-0x03007494,   //PC = 0x000002CC,     line:     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
-0x0000BD00,   //PC = 0x000002D0,     line:     add r10, r7, 0                      # r10 = switch_core_request
-0x000EF580,   //PC = 0x000002D4,     line:     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
-0x0018DD85,   //PC = 0x000002D8,     line:     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
-0x000FD602,   //PC = 0x000002DC,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
-0x0010E600,   //PC = 0x000002E0,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-0xFFF0D502,   //PC = 0x000002E4,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
-0x0008D505,   //PC = 0x000002E8,     line:     sll r10, r10, 8                     
-0x0006D506,   //PC = 0x000002EC,     line:     srl r10, r10, 6
-0x000C5503,   //PC = 0x000002F0,     line:     or r10, r10, r12                    # r10 = destination flit
-0x000055B1,   //PC = 0x000002F4,     line:     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
-0x00228026,   //PC = 0x000002F8,     line:     intena 34                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x000002FC,     line:     jmp r15, r4                             # return
-0x0028849F,   //PC = 0x00000300,     line:     lw r9, IS_BRANCH_CORE
-0x0000F702,   //PC = 0x00000304,     line:     and r14, r14, 0
-0x0338F493,   //PC = 0x00000308,     line:     beq r9, r14, LEGAL_TO_SWITCH, true
-0x0020849F,   //PC = 0x0000030C,     line:     lw r9, RAY_QUEUE_HIGH
-0x00004FA7,   //PC = 0x00000310,     line:     setmembits r9
-0x0024849F,   //PC = 0x00000314,     line:     lw r9, RAY_QUEUE_LOW
-0x0014CC80,   //PC = 0x00000318,     line:     add r9, r9, 20
-0x0001CD30,   //PC = 0x0000031C,     line:     atomadd_d r10, r9, 1
-0x032CD715,   //PC = 0x00000320,     line:     blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
-0xFFFFCD30,   //PC = 0x00000324,     line:     atomadd_d r10, r9, -1
-0x031CFF93,   //PC = 0x00000328,     line:     beq r15, r15, GET_READER_LOCK_CORE_CNT, true
-0x00044CAC,   //PC = 0x0000032C,     line:     lw_d r9, r9, 4
-0x0001F500,   //PC = 0x00000330,     line:     add r10, r14, 1
-0x02D05493,   //PC = 0x00000334,     line:     beq r9, r10, REJECT_CHANGE, false
-0x1FFCF480,   //PC = 0x00000338,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
-0x0001CFB3,   //PC = 0x0000033C,     line:     atomadd r15, r9, 1
-0x0010F500,   //PC = 0x00000340,     line:     add r10, r14, 16 
-0x1FFC849F,   //PC = 0x00000344,     line:     lw r9, LOCAL_QUEUE_FLUSHING
-0x00000038,   //PC = 0x00000348,     line:     switchctx
-0x0344CD13,   //PC = 0x0000034C,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY, true
-0x0000BD00,   //PC = 0x00000350,     line:     add r10, r7, 0                      # r10 = switch_core_request
-0x000DF580,   //PC = 0x00000354,     line:     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
-0x0018DD85,   //PC = 0x00000358,     line:     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
-0x000FD602,   //PC = 0x0000035C,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
-0x0010E600,   //PC = 0x00000360,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-0xFFF0D502,   //PC = 0x00000364,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
-0x0008D505,   //PC = 0x00000368,     line:     sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
-0x0006D506,   //PC = 0x0000036C,     line:     srl r10, r10, 6
-0x000C5503,   //PC = 0x00000370,     line:     or r10, r10, r12                    # r10 = destination flit
-0x000055B1,   //PC = 0x00000374,     line:     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
-0x00000023,   //PC = 0x00000378,     line:     getowner                  # TODO ALex tf is this?
-0x018CFF93,   //PC = 0x0000037C,     line:     beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
-0x00007520,   //PC = 0x00000380,     line:     block r10, r14                           # r10 = type_of_core = blocking_recv(0)
-0x0028859F,   //PC = 0x00000384,     line:     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
-0x03C45D13,   //PC = 0x00000388,     line:     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
-0x0001F580,   //PC = 0x0000038C,     line:     add r11, r14, 1
-0x039CDD13,   //PC = 0x00000390,     line:     beq r10, r11, EAT_BRANCH_START_OF_CODE, true
-0x1FA0859F,   //PC = 0x00000394,     line:     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
-0x03A0FF93,   //PC = 0x00000398,     line:     beq r15, r15, DONE_LOADING_CODE, true
-0x1FA8859F,   //PC = 0x0000039C,     line:     lw r11, BRANCH_START_OF_CODE   
-0x0000E602,   //PC = 0x000003A0,     line:     and r12, r12, 0
-0x4384E600,   //PC = 0x000003A4,     line:     add r12, r12, 17284                     # num_instructions
-0x0000F702,   //PC = 0x000003A8,     line:     and r14, r14, 0             # 0
-0x0000CC82,   //PC = 0x000003AC,     line:     and r9, r9, 0               # i
-0x000076A0,   //PC = 0x000003B0,     line:     block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
-0x00005E9A,   //PC = 0x000003B4,     line:     sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
-0x0004DD80,   //PC = 0x000003B8,     line:     add r11, r11, 4
-0x0004CC80,   //PC = 0x000003BC,     line:     add r9, r9, 4                           # i += 4
-0x03B0CE16,   //PC = 0x000003C0,     line:     bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
-0x0001F580,   //PC = 0x000003C4,     line:     add r11, r14, 1
-0x0000E602,   //PC = 0x000003C8,     line:     and r12, r12, 0
-0x1F9CDD14,   //PC = 0x000003CC,     line:     bne r10, r11, LEAF_START_OF_GEO, true
-0x1F9C859F,   //PC = 0x000003D0,     line:     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
-0x1F98861F,   //PC = 0x000003D4,     line:     lw r12, LEAF_SIZE_OF_GEO
-0x03E4FF93,   //PC = 0x000003D8,     line:     beq r15, r15, DONE_LOADING_GEO, true
-0x1FB0859F,   //PC = 0x000003DC,     line:     lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
-0x1FB4861F,   //PC = 0x000003E0,     line:     lw r12, BRANCH_SIZE_OF_GEO
-0x0000F702,   //PC = 0x000003E4,     line:     and r14, r14, 0             # 0
-0x0000CC82,   //PC = 0x000003E8,     line:     and r9, r9, 0               # i
-0x000076A0,   //PC = 0x000003EC,     line:     block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
-0x00005E9A,   //PC = 0x000003F0,     line:     sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
-0x0004CC80,   //PC = 0x000003F4,     line:     add r9, r9, 4                           # i += 4
-0x0004DD80,   //PC = 0x000003F8,     line:     add r11, r11, 4
-0x03ECCE16,   //PC = 0x000003FC,     line:     bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
-0x0028851A,   //PC = 0x00000400,     line:     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
-0x0230FF93,   //PC = 0x00000404,     line:     beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
-0x00008025,   //PC = 0x00000408,     line:     relinquish true
-0x0028851F,   //PC = 0x0000040C,     line:     lw r10, IS_BRANCH_CORE
-0x0000F702,   //PC = 0x00000410,     line:     and r14, r14, 0
-0x0001F580,   //PC = 0x00000414,     line:     add r11, r14, 1
-0x04D2DD13,   //PC = 0x00000418,     line:     beq r10, r11, 1234, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
-0x10E1FF93,   //PC = 0x0000041C,     line:     beq r15, r15, 4321, true
-0x00000422,   //PC = 0x00000420,     line:     yield r8                        # r8 = scratch for yield
-0x002C011F,   //PC = 0x00000424,     line:     lw r2, r0, 44                   # r2 = ray->check_left
-0x00019202,   //PC = 0x00000428,     line:     and r4, r2, 1
-0x0030019F,   //PC = 0x0000042C,     line:     lw r3, r0, 48                   # r3 = ray->check_right
-0x00019A82,   //PC = 0x00000430,     line:     and r5, r3, 1
-0x00052202,   //PC = 0x00000434,     line:     and r4, r4, r5                  # r4 = (check_left & 1) & (check_right & 1)
-0x0000AA82,   //PC = 0x00000438,     line:     and r5, r5, 0
-0x131CAA14,   //PC = 0x0000043C,     line:     bne r4, r5, COMPLETE_RAY, true  # if both bits set goto complete_ray
-0x003E029C,   //PC = 0x00000440,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0x0000A202,   //PC = 0x00000444,     line:     and r4, r4, 0
-0x0001A200,   //PC = 0x00000448,     line:     add r4, r4, 1                   # r4 = 1
-0x00052205,   //PC = 0x0000044C,     line:     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
-0x00022202,   //PC = 0x00000450,     line:     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
-0x00180B1E,   //PC = 0x00000454,     line:     lhu r6, r1, 24                  # r6 = node->left_child
-0x0000BB82,   //PC = 0x00000458,     line:     and r7, r7, 0
-0xFFFFBB80,   //PC = 0x0000045C,     line:     add r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
-0x046CBB13,   //PC = 0x00000460,     line:     beq r6, r7, LEFT_CHILD_NULL, true
-0x0000B302,   //PC = 0x00000464,     line:     and r6, r6, 0                   # left_child != null => contribute 0
-0x0470FF93,   //PC = 0x00000468,     line:     beq r15, r15, LEFT_BITFIELD_DONE, true
-0x0001B300,   //PC = 0x0000046C,     line:     add r6, r6, 1                   # left_child == null => contribute 1 (forces visited)
-0x00062203,   //PC = 0x00000470,     line:     or r4, r4, r6                   # r4 = left_bitfield_check
-0x003E029C,   //PC = 0x00000474,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0x0000CC82,   //PC = 0x00000478,     line:     and r9, r9, 0
-0x0001CC80,   //PC = 0x0000047C,     line:     add r9, r9, 1
-0x00054C85,   //PC = 0x00000480,     line:     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
-0x00034C82,   //PC = 0x00000484,     line:     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
-0x001A0B1E,   //PC = 0x00000488,     line:     lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 25)
-0x0498BB13,   //PC = 0x0000048C,     line:     beq r6, r7, RIGHT_CHILD_NULL, true
-0x0000B302,   //PC = 0x00000490,     line:     and r6, r6, 0
-0x049CFF93,   //PC = 0x00000494,     line:     beq r15, r15, RIGHT_BITFIELD_DONE, true
-0x0001B300,   //PC = 0x00000498,     line:     add r6, r6, 1                   # right_child == null => contribute 1 (forces visited)
-0x00064C83,   //PC = 0x0000049C,     line:     or r9, r9, r6                   # r9 = right_bitfield_check
-0x00092302,   //PC = 0x000004A0,     line:     and r6, r4, r9                  # r6 = left_bitfield_check & right_bitfield_check (nonzero if both set)
-0x0000BB82,   //PC = 0x000004A4,     line:     and r7, r7, 0                   # r7 = 0
-0x0500BB13,   //PC = 0x000004A8,     line:     beq r6, r7, CHECK_BOTH_ZERO, true   # if r6 == 0, neither both set — check other cases
+0x1CF8FF93,   //PC = 0x00000004,     line:     beq r15, r15, download_bvh_tree, true
+0xFFFFFFFF,   //PC = 0x00000008,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x0000000C,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000010,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000014,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000018,     line:     .data -1
+0x1F78861F,   //PC = 0x0000001C,     line:     lw r12, NODE_ID_TABLE_HIGH
+0x000067A7,   //PC = 0x00000020,     line:     setmembits r12
+0x1F7C861F,   //PC = 0x00000024,     line:     lw r12, NODE_ID_TABLE_LOW
+0x0002DD85,   //PC = 0x00000028,     line:     sll r11, r11, 2
+0x000B6600,   //PC = 0x0000002C,     line:     add r12, r12, r11
+0x000064AC,   //PC = 0x00000030,     line:     lw_d r9, r12, 0
+0x0004652C,   //PC = 0x00000034,     line:     lw_d r10, r12, 4
+0x0008811F,   //PC = 0x00000038,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
+0x000C819F,   //PC = 0x0000003C,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x0008849A,   //PC = 0x00000040,     line:     sw r9, RAY_QUEUE_HIGH
+0x000C851A,   //PC = 0x00000044,     line:     sw r10, RAY_QUEUE_LOW
+0x0000F702,   //PC = 0x00000048,     line:     and r14, r14, 0
+0x1FE4F480,   //PC = 0x0000004C,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x0001CFB3,   //PC = 0x00000050,     line:     atomadd r15, r9, 1
+0x0010F500,   //PC = 0x00000054,     line:     add r10, r14, 16 
+0x1FE4849F,   //PC = 0x00000058,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x00000038,   //PC = 0x0000005C,     line:     switchctx
+0x0058CD13,   //PC = 0x00000060,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY_TWO, true
+0x000017A7,   //PC = 0x00000064,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000068,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x0000006C,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000070,     line:     lw_d r4, r3, 16
+0x0070AA14,   //PC = 0x00000074,     line:     bne r4, r5, REMOVE_TICKET_WAIT_EMERGENCY, true
+0x00149A00,   //PC = 0x00000078,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x0000007C,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x00000080,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x00000084,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x00000088,     line:     lw_d r9, r4, 0
+0x0088CA94,   //PC = 0x0000008C,     line:     bne r5, r9, LOCKING_BULLSHIT_EMERGENCY, true
+0x001C9B00,   //PC = 0x00000090,     line:     add r6, r3, 28 
+0x0000C402,   //PC = 0x00000094,     line:     and r8, r8, 0
+0x0004FC86,   //PC = 0x00000098,     line:     srl r9, r15, 4
+0x0004222C,   //PC = 0x0000009C,     line:     lw_d r4, r4, 4
+0x0100F500,   //PC = 0x000000A0,     line:     add r10, r14, 256
+0x02745213,   //PC = 0x000000A4,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
+0x0001C505,   //PC = 0x000000A8,     line:     sll r10, r8, 1              # r10 = i * 2
+0x00065500,   //PC = 0x000000AC,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
+0x000055AB,   //PC = 0x000000B0,     line:     lhu_d r11, r10, 0           # r11 = slot_val
+0x00C0CD93,   //PC = 0x000000B4,     line:     beq r11, r9, found_our_slot_remove_emergency, true
+0x0001C400,   //PC = 0x000000B8,     line:     add r8, r8, 1
+0x00A0FF93,   //PC = 0x000000BC,     line:     beq r15, r15, find_our_slot_remove_emergency, true
+0xFFFFA580,   //PC = 0x000000C0,     line:     add r11, r4, -1             # r11 = owner_count - 1
+0x0001DD85,   //PC = 0x000000C4,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
+0x00065D80,   //PC = 0x000000C8,     line:     add r11, r11, r6            # r11 = last_slot_addr
+0x00005E2B,   //PC = 0x000000CC,     line:     lhu_d r12, r11, 0           # r12 = last_val
+0x0000562E,   //PC = 0x000000D0,     line:     sh_d r12, r10, 0            # slots[i] = last_val
+0x0000E602,   //PC = 0x000000D4,     line:     and r12, r12, 0
+0x00005E2E,   //PC = 0x000000D8,     line:     sh_d r12, r11, 0            # last slot = 0
+0x00189D00,   //PC = 0x000000DC,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0xFFFFD630,   //PC = 0x000000E0,     line:     atomadd_d r12, r10, -1     # core_owner_count--
+0x00149D00,   //PC = 0x000000E4,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x000000E8,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x000000EC,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x000000F0,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x000000F4,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x000000F8,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x0008811F,   //PC = 0x000000FC,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+0x000C819F,   //PC = 0x00000100,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x00000104,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000108,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x0000010C,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000110,     line:     lw_d r4, r3, 16
+0x0110AA14,   //PC = 0x00000114,     line:     bne r4, r5, ADD_TICKET_WAIT_EMERGENCY, true
+0x00149A00,   //PC = 0x00000118,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x0000011C,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x00000120,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x00000124,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x00000128,     line:     lw_d r9, r4, 0
+0x0128CA94,   //PC = 0x0000012C,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT_EMERGENCY, true
+0x001C9B00,   //PC = 0x00000130,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x00000134,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x00000138,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x0000013C,     line:     lw_d r4, r4, 4    # r4 = owner_count
+0x0001A205,   //PC = 0x00000140,     line:     sll r4, r4, 1
+0x00043300,   //PC = 0x00000144,     line:     add r6, r6, r4
+0x0004FE06,   //PC = 0x00000148,     line:     srl r12, r15, 4
+0x0000362E,   //PC = 0x0000014C,     line:     sh_d r12, r6, 0           # r12 = last_val
+0x00189D00,   //PC = 0x00000150,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0x0001D630,   //PC = 0x00000154,     line:     atomadd_d r12, r10, 1     # core_owner_count--
+0x00149D00,   //PC = 0x00000158,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x0000015C,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x00000160,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x00000164,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x00000168,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x0000016C,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x1CF8FF93,   //PC = 0x00000170,     line:     beq r15, r15, download_bvh_tree, true
+0x0008811F,   //PC = 0x00000174,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
+0x000C819F,   //PC = 0x00000178,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x0000017C,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000180,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x00000184,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000188,     line:     lw_d r4, r3, 16
+0x0188AA14,   //PC = 0x0000018C,     line:     bne r4, r5, REMOVE_TICKET_WAIT, true
+0x00149A00,   //PC = 0x00000190,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x00000194,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x00000198,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x0000019C,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x000001A0,     line:     lw_d r9, r4, 0
+0x01A0CA94,   //PC = 0x000001A4,     line:     bne r5, r9, LOCKING_BULLSHIT, true
+0x001C9B00,   //PC = 0x000001A8,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x000001AC,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x000001B0,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x000001B4,     line:     lw_d r4, r4, 4
+0x0100F500,   //PC = 0x000001B8,     line:     add r10, r14, 256
+0x02745213,   //PC = 0x000001BC,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
+0x0001C505,   //PC = 0x000001C0,     line:     sll r10, r8, 1              # r10 = i * 2
+0x00065500,   //PC = 0x000001C4,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
+0x000055AB,   //PC = 0x000001C8,     line:     lhu_d r11, r10, 0           # r11 = slot_val
+0x01D8CD93,   //PC = 0x000001CC,     line:     beq r11, r9, found_our_slot_remove, true
+0x0001C400,   //PC = 0x000001D0,     line:     add r8, r8, 1
+0x01B8FF93,   //PC = 0x000001D4,     line:     beq r15, r15, find_our_slot_remove, true
+0xFFFFA580,   //PC = 0x000001D8,     line:     add r11, r4, -1             # r11 = owner_count - 1
+0x0001DD85,   //PC = 0x000001DC,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
+0x00065D80,   //PC = 0x000001E0,     line:     add r11, r11, r6            # r11 = last_slot_addr
+0x00005E2B,   //PC = 0x000001E4,     line:     lhu_d r12, r11, 0           # r12 = last_val
+0x0000562E,   //PC = 0x000001E8,     line:     sh_d r12, r10, 0            # slots[i] = last_val
+0x0000E602,   //PC = 0x000001EC,     line:     and r12, r12, 0
+0x00005E2E,   //PC = 0x000001F0,     line:     sh_d r12, r11, 0            # last slot = 0
+0x00189D00,   //PC = 0x000001F4,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0xFFFFD630,   //PC = 0x000001F8,     line:     atomadd_d r12, r10, -1     # core_owner_count--
+0x00149D00,   //PC = 0x000001FC,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x00000200,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x00000204,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x00000208,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x0000020C,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x00000210,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x0368FF93,   //PC = 0x00000214,     line:     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
+0x0008811F,   //PC = 0x00000218,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+0x000C819F,   //PC = 0x0000021C,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x00000220,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000224,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x00000228,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x0000022C,     line:     lw_d r4, r3, 16
+0x022CAA14,   //PC = 0x00000230,     line:     bne r4, r5, ADD_TICKET_WAIT, true
+0x00149A00,   //PC = 0x00000234,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x00000238,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x0000023C,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x00000240,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x00000244,     line:     lw_d r9, r4, 0
+0x0244CA94,   //PC = 0x00000248,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT, true
+0x001C9B00,   //PC = 0x0000024C,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x00000250,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x00000254,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x00000258,     line:     lw_d r4, r4, 4    # r4 = owner_count
+0x0001A205,   //PC = 0x0000025C,     line:     sll r4, r4, 1
+0x00043300,   //PC = 0x00000260,     line:     add r6, r6, r4
+0x0004FE06,   //PC = 0x00000264,     line:     srl r12, r15, 4
+0x0000362E,   //PC = 0x00000268,     line:     sh_d r12, r6, 0           # r12 = last_val
+0x00189D00,   //PC = 0x0000026C,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0x0001D630,   //PC = 0x00000270,     line:     atomadd_d r12, r10, 1     # core_owner_count--
+0x00149D00,   //PC = 0x00000274,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x00000278,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x0000027C,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x00000280,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x00000284,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x00000288,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x03F0FF93,   //PC = 0x0000028C,     line:     beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
+0x0000C200,   //PC = 0x00000290,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+0x00228037,   //PC = 0x00000294,     line:     intdis 34                               # disable_interrupts(34)
+0x002283A1,   //PC = 0x00000298,     line:     nonblock r7, 34                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
+0x0000F702,   //PC = 0x0000029C,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x02ACBF14,   //PC = 0x000002A0,     line:     bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
+0x00228026,   //PC = 0x000002A4,     line:     intena 34                               # enable_interrupts(channel) (nothing to do)
+0x00040797,   //PC = 0x000002A8,     line:     jmp r15, r4                             # return
+0x002283A0,   //PC = 0x000002AC,     line:     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
+0x20B4849F,   //PC = 0x000002B0,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
+0x02E87494,   //PC = 0x000002B4,     line:     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
+0x0000BD00,   //PC = 0x000002B8,     line:     add r10, r7, 0                      # r10 = switch_core_request
+0x000EF580,   //PC = 0x000002BC,     line:     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
+0x0018DD85,   //PC = 0x000002C0,     line:     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
+0x000FD602,   //PC = 0x000002C4,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+0x0010E600,   //PC = 0x000002C8,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+0xFFF0D502,   //PC = 0x000002CC,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+0x0008D505,   //PC = 0x000002D0,     line:     sll r10, r10, 8                     
+0x0006D506,   //PC = 0x000002D4,     line:     srl r10, r10, 6
+0x000C5503,   //PC = 0x000002D8,     line:     or r10, r10, r12                    # r10 = destination flit
+0x000055B1,   //PC = 0x000002DC,     line:     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
+0x00228026,   //PC = 0x000002E0,     line:     intena 34                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x000002E4,     line:     jmp r15, r4                             # return
+0x0010849F,   //PC = 0x000002E8,     line:     lw r9, IS_BRANCH_CORE
+0x0000F702,   //PC = 0x000002EC,     line:     and r14, r14, 0
+0x0320F493,   //PC = 0x000002F0,     line:     beq r9, r14, LEGAL_TO_SWITCH, true
+0x0008849F,   //PC = 0x000002F4,     line:     lw r9, RAY_QUEUE_HIGH
+0x00004FA7,   //PC = 0x000002F8,     line:     setmembits r9
+0x000C849F,   //PC = 0x000002FC,     line:     lw r9, RAY_QUEUE_LOW
+0x0014CC80,   //PC = 0x00000300,     line:     add r9, r9, 20
+0x0001CD30,   //PC = 0x00000304,     line:     atomadd_d r10, r9, 1
+0x0314D715,   //PC = 0x00000308,     line:     blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
+0xFFFFCD30,   //PC = 0x0000030C,     line:     atomadd_d r10, r9, -1
+0x0304FF93,   //PC = 0x00000310,     line:     beq r15, r15, GET_READER_LOCK_CORE_CNT, true
+0x00044CAC,   //PC = 0x00000314,     line:     lw_d r9, r9, 4
+0x0001F500,   //PC = 0x00000318,     line:     add r10, r14, 1
+0x02B85493,   //PC = 0x0000031C,     line:     beq r9, r10, REJECT_CHANGE, false
+0x1FE4F480,   //PC = 0x00000320,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x0001CFB3,   //PC = 0x00000324,     line:     atomadd r15, r9, 1
+0x0010F500,   //PC = 0x00000328,     line:     add r10, r14, 16 
+0x1FE4849F,   //PC = 0x0000032C,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x00000038,   //PC = 0x00000330,     line:     switchctx
+0x032CCD13,   //PC = 0x00000334,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY, true
+0x0000BD00,   //PC = 0x00000338,     line:     add r10, r7, 0                      # r10 = switch_core_request
+0x000DF580,   //PC = 0x0000033C,     line:     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
+0x0018DD85,   //PC = 0x00000340,     line:     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
+0x000FD602,   //PC = 0x00000344,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+0x0010E600,   //PC = 0x00000348,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+0xFFF0D502,   //PC = 0x0000034C,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+0x0008D505,   //PC = 0x00000350,     line:     sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
+0x0006D506,   //PC = 0x00000354,     line:     srl r10, r10, 6
+0x000C5503,   //PC = 0x00000358,     line:     or r10, r10, r12                    # r10 = destination flit
+0x000055B1,   //PC = 0x0000035C,     line:     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
+0x00000023,   //PC = 0x00000360,     line:     getowner                  # TODO ALex tf is this?
+0x0174FF93,   //PC = 0x00000364,     line:     beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
+0x00007520,   //PC = 0x00000368,     line:     block r10, r14                           # r10 = type_of_core = blocking_recv(0)
+0x0010859F,   //PC = 0x0000036C,     line:     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
+0x03AC5D13,   //PC = 0x00000370,     line:     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
+0x0001F580,   //PC = 0x00000374,     line:     add r11, r14, 1
+0x0384DD13,   //PC = 0x00000378,     line:     beq r10, r11, EAT_BRANCH_START_OF_CODE, true
+0x1F88859F,   //PC = 0x0000037C,     line:     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
+0x0388FF93,   //PC = 0x00000380,     line:     beq r15, r15, DONE_LOADING_CODE, true
+0x1F90859F,   //PC = 0x00000384,     line:     lw r11, BRANCH_START_OF_CODE   
+0x0000E602,   //PC = 0x00000388,     line:     and r12, r12, 0
+0x4384E600,   //PC = 0x0000038C,     line:     add r12, r12, 17284                     # num_instructions
+0x0000F702,   //PC = 0x00000390,     line:     and r14, r14, 0             # 0
+0x0000CC82,   //PC = 0x00000394,     line:     and r9, r9, 0               # i
+0x000076A0,   //PC = 0x00000398,     line:     block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
+0x00005E9A,   //PC = 0x0000039C,     line:     sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
+0x0004DD80,   //PC = 0x000003A0,     line:     add r11, r11, 4
+0x0004CC80,   //PC = 0x000003A4,     line:     add r9, r9, 4                           # i += 4
+0x0398CE16,   //PC = 0x000003A8,     line:     bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
+0x0001F580,   //PC = 0x000003AC,     line:     add r11, r14, 1
+0x0000E602,   //PC = 0x000003B0,     line:     and r12, r12, 0
+0x1F84DD14,   //PC = 0x000003B4,     line:     bne r10, r11, LEAF_START_OF_GEO, true
+0x1F84859F,   //PC = 0x000003B8,     line:     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
+0x1F80861F,   //PC = 0x000003BC,     line:     lw r12, LEAF_SIZE_OF_GEO
+0x03CCFF93,   //PC = 0x000003C0,     line:     beq r15, r15, DONE_LOADING_GEO, true
+0x1F98859F,   //PC = 0x000003C4,     line:     lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
+0x1F9C861F,   //PC = 0x000003C8,     line:     lw r12, BRANCH_SIZE_OF_GEO
+0x0000F702,   //PC = 0x000003CC,     line:     and r14, r14, 0             # 0
+0x0000CC82,   //PC = 0x000003D0,     line:     and r9, r9, 0               # i
+0x000076A0,   //PC = 0x000003D4,     line:     block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
+0x00005E9A,   //PC = 0x000003D8,     line:     sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
+0x0004CC80,   //PC = 0x000003DC,     line:     add r9, r9, 4                           # i += 4
+0x0004DD80,   //PC = 0x000003E0,     line:     add r11, r11, 4
+0x03D4CE16,   //PC = 0x000003E4,     line:     bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
+0x0010851A,   //PC = 0x000003E8,     line:     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
+0x0218FF93,   //PC = 0x000003EC,     line:     beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
+0x00008025,   //PC = 0x000003F0,     line:     relinquish true
+0x0010851F,   //PC = 0x000003F4,     line:     lw r10, IS_BRANCH_CORE
+0x0000F702,   //PC = 0x000003F8,     line:     and r14, r14, 0
+0x0001F580,   //PC = 0x000003FC,     line:     add r11, r14, 1
+0x04D2DD13,   //PC = 0x00000400,     line:     beq r10, r11, 1234, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
+0x10E1FF93,   //PC = 0x00000404,     line:     beq r15, r15, 4321, true
+0x00000422,   //PC = 0x00000408,     line:     yield r8                        # r8 = scratch for yield
+0x002C011F,   //PC = 0x0000040C,     line:     lw r2, r0, 44                   # r2 = ray->check_left
+0x00019202,   //PC = 0x00000410,     line:     and r4, r2, 1
+0x0030019F,   //PC = 0x00000414,     line:     lw r3, r0, 48                   # r3 = ray->check_right
+0x00019A82,   //PC = 0x00000418,     line:     and r5, r3, 1
+0x00052202,   //PC = 0x0000041C,     line:     and r4, r4, r5                  # r4 = (check_left & 1) & (check_right & 1)
+0x0000AA82,   //PC = 0x00000420,     line:     and r5, r5, 0
+0x1304AA14,   //PC = 0x00000424,     line:     bne r4, r5, COMPLETE_RAY, true  # if both bits set goto complete_ray
+0x003E029C,   //PC = 0x00000428,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0x0000A202,   //PC = 0x0000042C,     line:     and r4, r4, 0
+0x0001A200,   //PC = 0x00000430,     line:     add r4, r4, 1                   # r4 = 1
+0x00052205,   //PC = 0x00000434,     line:     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
+0x00022202,   //PC = 0x00000438,     line:     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
+0x00180B1E,   //PC = 0x0000043C,     line:     lhu r6, r1, 24                  # r6 = node->left_child
+0x0000BB82,   //PC = 0x00000440,     line:     and r7, r7, 0
+0xFFFFBB80,   //PC = 0x00000444,     line:     add r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
+0x0454BB13,   //PC = 0x00000448,     line:     beq r6, r7, LEFT_CHILD_NULL, true
+0x0000B302,   //PC = 0x0000044C,     line:     and r6, r6, 0                   # left_child != null => contribute 0
+0x0458FF93,   //PC = 0x00000450,     line:     beq r15, r15, LEFT_BITFIELD_DONE, true
+0x0001B300,   //PC = 0x00000454,     line:     add r6, r6, 1                   # left_child == null => contribute 1 (forces visited)
+0x00062203,   //PC = 0x00000458,     line:     or r4, r4, r6                   # r4 = left_bitfield_check
+0x003E029C,   //PC = 0x0000045C,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0x0000CC82,   //PC = 0x00000460,     line:     and r9, r9, 0
+0x0001CC80,   //PC = 0x00000464,     line:     add r9, r9, 1
+0x00054C85,   //PC = 0x00000468,     line:     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
+0x00034C82,   //PC = 0x0000046C,     line:     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
+0x001A0B1E,   //PC = 0x00000470,     line:     lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 25)
+0x0480BB13,   //PC = 0x00000474,     line:     beq r6, r7, RIGHT_CHILD_NULL, true
+0x0000B302,   //PC = 0x00000478,     line:     and r6, r6, 0
+0x0484FF93,   //PC = 0x0000047C,     line:     beq r15, r15, RIGHT_BITFIELD_DONE, true
+0x0001B300,   //PC = 0x00000480,     line:     add r6, r6, 1                   # right_child == null => contribute 1 (forces visited)
+0x00064C83,   //PC = 0x00000484,     line:     or r9, r9, r6                   # r9 = right_bitfield_check
+0x00092302,   //PC = 0x00000488,     line:     and r6, r4, r9                  # r6 = left_bitfield_check & right_bitfield_check (nonzero if both set)
+0x0000BB82,   //PC = 0x0000048C,     line:     and r7, r7, 0                   # r7 = 0
+0x04E8BB13,   //PC = 0x00000490,     line:     beq r6, r7, CHECK_BOTH_ZERO, true   # if r6 == 0, neither both set — check other cases
+0x003E029C,   //PC = 0x00000494,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0x1304BA93,   //PC = 0x00000498,     line:     beq r5, r7, COMPLETE_RAY, true
+0x00200B1C,   //PC = 0x0000049C,     line:     lbu r6, r1, 32                  # r6 = node->is_right
+0x0002B305,   //PC = 0x000004A0,     line:     sll r6, r6, 2                   # r6 = node->is_right * 4
+0x00060300,   //PC = 0x000004A4,     line:     add r6, r0, r6                  # r6 = &ray.check_left + is_right*4
+0x002C341F,   //PC = 0x000004A8,     line:     lw r8, r6, 44                    # r8 = bitfield
 0x003E029C,   //PC = 0x000004AC,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0x131CBA93,   //PC = 0x000004B0,     line:     beq r5, r7, COMPLETE_RAY, true
-0x00200B1C,   //PC = 0x000004B4,     line:     lbu r6, r1, 32                  # r6 = node->is_right
-0x0002B305,   //PC = 0x000004B8,     line:     sll r6, r6, 2                   # r6 = node->is_right * 4
-0x00060300,   //PC = 0x000004BC,     line:     add r6, r0, r6                  # r6 = &ray.check_left + is_right*4
-0x002C341F,   //PC = 0x000004C0,     line:     lw r8, r6, 44                    # r8 = bitfield
-0x003E029C,   //PC = 0x000004C4,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0xFFFFAA80,   //PC = 0x000004C8,     line:     add r5, r5, -1                  # r5 = ray_depth - 1
-0x0000D502,   //PC = 0x000004CC,     line:     and r10, r10, 0
-0x0001D500,   //PC = 0x000004D0,     line:     add r10, r10, 1
-0x00055505,   //PC = 0x000004D4,     line:     sll r10, r10, r5                # r10 = or_value
-0x000A4403,   //PC = 0x000004D8,     line:     or r8, r8, r10
-0x0000341A,   //PC = 0x000004DC,     line:     sw r8, r6, 0                    # *(ray.check_left + is_right*4) = bitfield
-0x003E029C,   //PC = 0x000004E0,     line:     lbu r5, r0, 62
-0xFFFFAA80,   //PC = 0x000004E4,     line:     add r5, r5, -1
-0x003E0298,   //PC = 0x000004E8,     line:     sb r5, r0, 62
-0x001C0B1E,   //PC = 0x000004EC,     line:     lhu r6, r1, 28                  # r6 = node->parent
-0x131CBB13,   //PC = 0x000004F0,     line:     beq r6, r7, COMPLETE_RAY, true  # r7 = 0
-0x00008882,   //PC = 0x000004F4,     line:     and r1, r1, 0
-0x00060880,   //PC = 0x000004F8,     line:     add r1, r1, r6                  # r1 = node->parent (SRAM pointer)
-0x0420FF93,   //PC = 0x000004FC,     line:     beq r15, r15, start_ray_traversal, true
-0x00092303,   //PC = 0x00000500,     line:     or r6, r4, r9                   # r6 = left | right
-0x091C3B14,   //PC = 0x00000504,     line:     bne r6, r7, TRAVERSE_LEFT_OR_RIGHT, false       # both zero -> do AABB test
-0x12588417,   //PC = 0x00000508,     line:     jmp r8, AABB_INTERSECT 
-0x08C0BD93,   //PC = 0x0000050C,     line:     beq r11, r7, AABB_MISS, true
-0x0038031C,   //PC = 0x00000510,     line:     lbu r6, r0, 56                  # TODO confirm offset
-0x003E029C,   //PC = 0x00000514,     line:     lbu r5, r0, 62
-0x0001AA80,   //PC = 0x00000518,     line:     add r5, r5, 1
-0x003E0298,   //PC = 0x0000051C,     line:     sb r5, r0, 62
-0x001E0B1E,   //PC = 0x00000520,     line:     lhu r6, r1, 30                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
-0x0000BB82,   //PC = 0x00000524,     line:     and r7, r7, 0
-0xFFFFBB80,   //PC = 0x00000528,     line:     add r7, r7, 0xFFFF
-0x08B8BB13,   //PC = 0x0000052C,     line:     beq r6, r7, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
-0x1FF8F400,   //PC = 0x00000530,     line:     add r8, r14, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
-0x0001C4B3,   //PC = 0x00000534,     line:     atomadd r9, r8, 1               # r9 = clobber
+0xFFFFAA80,   //PC = 0x000004B0,     line:     add r5, r5, -1                  # r5 = ray_depth - 1
+0x0000D502,   //PC = 0x000004B4,     line:     and r10, r10, 0
+0x0001D500,   //PC = 0x000004B8,     line:     add r10, r10, 1
+0x00055505,   //PC = 0x000004BC,     line:     sll r10, r10, r5                # r10 = or_value
+0x000A4403,   //PC = 0x000004C0,     line:     or r8, r8, r10
+0x0000341A,   //PC = 0x000004C4,     line:     sw r8, r6, 0                    # *(ray.check_left + is_right*4) = bitfield
+0x003E029C,   //PC = 0x000004C8,     line:     lbu r5, r0, 62
+0xFFFFAA80,   //PC = 0x000004CC,     line:     add r5, r5, -1
+0x003E0298,   //PC = 0x000004D0,     line:     sb r5, r0, 62
+0x001C0B1E,   //PC = 0x000004D4,     line:     lhu r6, r1, 28                  # r6 = node->parent
+0x1304BB13,   //PC = 0x000004D8,     line:     beq r6, r7, COMPLETE_RAY, true  # r7 = 0
+0x00008882,   //PC = 0x000004DC,     line:     and r1, r1, 0
+0x00060880,   //PC = 0x000004E0,     line:     add r1, r1, r6                  # r1 = node->parent (SRAM pointer)
+0x0408FF93,   //PC = 0x000004E4,     line:     beq r15, r15, start_ray_traversal, true
+0x00092303,   //PC = 0x000004E8,     line:     or r6, r4, r9                   # r6 = left | right
+0x09043B14,   //PC = 0x000004EC,     line:     bne r6, r7, TRAVERSE_LEFT_OR_RIGHT, false       # both zero -> do AABB test
+0x12408417,   //PC = 0x000004F0,     line:     jmp r8, AABB_INTERSECT 
+0x08A8BD93,   //PC = 0x000004F4,     line:     beq r11, r7, AABB_MISS, true
+0x0038031C,   //PC = 0x000004F8,     line:     lbu r6, r0, 56                  # TODO confirm offset
+0x003E029C,   //PC = 0x000004FC,     line:     lbu r5, r0, 62
+0x0001AA80,   //PC = 0x00000500,     line:     add r5, r5, 1
+0x003E0298,   //PC = 0x00000504,     line:     sb r5, r0, 62
+0x001E0B1E,   //PC = 0x00000508,     line:     lhu r6, r1, 30                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
+0x0000BB82,   //PC = 0x0000050C,     line:     and r7, r7, 0
+0xFFFFBB80,   //PC = 0x00000510,     line:     add r7, r7, 0xFFFF
+0x08A0BB13,   //PC = 0x00000514,     line:     beq r6, r7, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
+0x1FE0F400,   //PC = 0x00000518,     line:     add r8, r14, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
+0x0001C4B3,   //PC = 0x0000051C,     line:     atomadd r9, r8, 1               # r9 = clobber
+0x000FFD02,   //PC = 0x00000520,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x0001D582,   //PC = 0x00000524,     line:     and r11, r10, 1                 # r11 = is_thread_odd
+0x0020DD80,   //PC = 0x00000528,     line:     add r11, r11, 32                
+0x000B0037,   //PC = 0x0000052C,     line:     intdis r11          
+0x002C0E1F,   //PC = 0x00000530,     line:     lw r12, r1, 44                  # r12 = node->node_id TODO confirm offset
+0x0011E605,   //PC = 0x00000534,     line:     sll r12, r12, 17
 0x000FFD02,   //PC = 0x00000538,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x0001D582,   //PC = 0x0000053C,     line:     and r11, r10, 1                 # r11 = is_thread_odd
-0x0020DD80,   //PC = 0x00000540,     line:     add r11, r11, 32                
-0x000B0037,   //PC = 0x00000544,     line:     intdis r11          
-0x002C0E1F,   //PC = 0x00000548,     line:     lw r12, r1, 44                  # r12 = node->node_id TODO confirm offset
-0x0011E605,   //PC = 0x0000054C,     line:     sll r12, r12, 17
-0x000FFD02,   //PC = 0x00000550,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x000A6603,   //PC = 0x00000554,     line:     or r12, r12, r10                # r12 = request_word
-0x001E0B1E,   //PC = 0x00000558,     line:     lhu r6, r1, 30                  # r6 = node->core_owner
-0x0020E331,   //PC = 0x0000055C,     line:     sendflit r6, r12, 32            # TODO confirm notation w/ Alex
-0x00009982,   //PC = 0x00000560,     line:     and r3, r3, 0                   # r3 = sent = 0
-0x000FFD02,   //PC = 0x00000564,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x0010D580,   //PC = 0x00000568,     line:     add r11, r10, 16                # r11 = thread_id + 16
-0x00005E21,   //PC = 0x0000056C,     line:     nonblock r12, r11               # r12 = msg_available
-0x0738BE13,   //PC = 0x00000570,     line:     beq r12, r7, CHECK_DATA_MAILBOX, true   # r7=0, nothing on shallow mailbox
-0x00005E20,   //PC = 0x00000574,     line:     block r12, r11                  # r12 = msg
-0x0018E686,   //PC = 0x00000578,     line:     srl r13, r12, 24                # r13 = header
-0x0000DD82,   //PC = 0x0000057C,     line:     and r11, r11, 0
-0x0005DD80,   //PC = 0x00000580,     line:     add r11, r11, 5                 # r11 = 5 (ack_ray)
-0x05D4DE94,   //PC = 0x00000584,     line:     bne r13, r11, REJECT_PATH, true
-0x001E0B1E,   //PC = 0x00000588,     line:     lhu r6, r1, 30                  # r6 = node->core_owner
-0x0004E506,   //PC = 0x0000058C,     line:     srl r10, r12, 4
-0x0013D505,   //PC = 0x00000590,     line:     sll r10, r10, 19
-0x000DD506,   //PC = 0x00000594,     line:     srl r10, r10, 13
-0x000FE582,   //PC = 0x00000598,     line:     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
-0x000B5503,   //PC = 0x0000059C,     line:     or r10, r10, r11
-0x00008680,   //PC = 0x000005A0,     line:     add r13, r0, 0                  # r13 = ray base ptr
-0x0000F702,   //PC = 0x000005A4,     line:     and r14, r14, 0                 # r14 = i = 0
-0x00006C9F,   //PC = 0x000005A8,     line:     lw r9, r13, 0                   # r9 = ray word i
-0x000054B1,   //PC = 0x000005AC,     line:     sendflit r9, r10            # send word to core_owner on mailbox
-0x0004EE80,   //PC = 0x000005B0,     line:     add r13, r13, 4                 # r13 += 4 (next word)
-0x0001F700,   //PC = 0x000005B4,     line:     add r14, r14, 1                 # i++
-0x0000DD82,   //PC = 0x000005B8,     line:     and r11, r11, 0
-0x0010DD80,   //PC = 0x000005BC,     line:     add r11, r11, 16                # r11 = 16
-0x05A8F596,   //PC = 0x000005C0,     line:     bgt r11, r14, RAY_SEND_LOOP, true   # loop while i < 16
-0x003F0398,   //PC = 0x000005C4,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
-0x00009982,   //PC = 0x000005C8,     line:     and r3, r3, 0
-0x00019980,   //PC = 0x000005CC,     line:     add r3, r3, 1                   # r3 = sent = 1
-0x0738FF93,   //PC = 0x000005D0,     line:     beq r15, r15, CHECK_DATA_MAILBOX, true
-0x00280C1E,   //PC = 0x000005D4,     line:     lhu r8, r1, 40                  # r8 = node->queue_high_bit_addr
-0x000047A7,   //PC = 0x000005D8,     line:     setmembits r8                   # set address bits to reach node's DRAM stack
-0x00240C9F,   //PC = 0x000005DC,     line:     lw r9, r1, 36                   # r9 = node->queue_low_bit_addr
-0xFFF44D2C,   //PC = 0x000005E0,     line:     lw_d r10, r9, -12               # r10 = cur_ray_count (count field is -12 from here)
-0x0000DD82,   //PC = 0x000005E4,     line:     and r11, r11, 0
-0x00FFDD80,   //PC = 0x000005E8,     line:     add r11, r11, 255               # r11 = 255
-0x05E0DD16,   //PC = 0x000005EC,     line:     bgt r10, r11, ENSURE_SPACE_IN_QUEUE, true   # spin while count > 255
-0xFFF0CC80,   //PC = 0x000005F0,     line:     add r9, r9, -16                 # r9 = queue base (tail field)
-0x0040CD30,   //PC = 0x000005F4,     line:     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
-0x3FFFD502,   //PC = 0x000005F8,     line:     and r10, r10, 0x3FFF            # r10 = tail & 0x3FFF (ring mask)
-0x3F60CD80,   //PC = 0x000005FC,     line:     add r11, r9, 16224                # r11 = queue base + 536 (start of ray slots)
-0x000A5D80,   //PC = 0x00000600,     line:     add r11, r11, r10               # r11 = write_addr = slot base + tail offset
-0x003F5D29,   //PC = 0x00000604,     line:     lbu_d r10, r11, 63              # r10 = slot[63] (valid byte)
-0x0604BD14,   //PC = 0x00000608,     line:     bne r10, r7, WAIT_FOR_SLOT_TO_OPEN, true   # spin while slot occupied (r7=0)
-0x00008680,   //PC = 0x0000060C,     line:     add r13, r0, 0                  # r13 = ray base ptr
-0x0000F702,   //PC = 0x00000610,     line:     and r14, r14, 0                 # r14 = i = 0
-0x00006D1F,   //PC = 0x00000614,     line:     lw r10, r13, 0                  # r10 = ray word i
-0x00005D2D,   //PC = 0x00000618,     line:     sw_d r10, r11, 0                # write to DRAM slot
-0x0004EE80,   //PC = 0x0000061C,     line:     add r13, r13, 4                 # r13 += 4
-0x0004DD80,   //PC = 0x00000620,     line:     add r11, r11, 4                 # r11 write_addr += 4
-0x0001F700,   //PC = 0x00000624,     line:     add r14, r14, 1                 # i++
-0x0000E602,   //PC = 0x00000628,     line:     and r12, r12, 0
-0x0010E600,   //PC = 0x0000062C,     line:     add r12, r12, 16                # r12 = 16
-0x0614F616,   //PC = 0x00000630,     line:     bgt r12, r14, RAY_DRAM_WRITE_LOOP, true   # loop while i < 16
-0x00240C9F,   //PC = 0x00000634,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
-0x0014CC80,   //PC = 0x00000638,     line:     add r9, r9, 20                  # r9 = &lock field (offset 20 from queue base)
-0x0001CD30,   //PC = 0x0000063C,     line:     atomadd_d r10, r9, 1            # r10 = old lock value, increment
-0x0000DD82,   //PC = 0x00000640,     line:     and r11, r11, 0                 # r11 = 0
-0x0658D593,   //PC = 0x00000644,     line:     beq r11, r10, SKIP_UNDO_LOCK, true   # old val >= 0 means no writer held it
-0xFFFFCDB0,   //PC = 0x00000648,     line:     atomadd_d r11, r9, -1           # undo our increment
-0x00004D2C,   //PC = 0x0000064C,     line:     lw_d r10, r9, 0                 # r10 = current lock value
-0x064CD596,   //PC = 0x00000650,     line:     bgt r11, r10, ENSURE_NO_WRITERS_LOOP, true   # spin while lock < 0 (writer active)
-0x063CFF93,   //PC = 0x00000654,     line:     beq r15, r15, ENSURE_NO_WRITERS, true        # retry claim
-0x00044D2C,   //PC = 0x00000658,     line:     lw_d r10, r9, 4                 # r10 = core_owner_count
-0x0698BD13,   //PC = 0x0000065C,     line:     beq r10, r7, NO_OWNER, true     # r7=0, no owners
-0x000005B4,   //PC = 0x00000660,     line:     getclk r11                      # r11 = clock
-0x0004FE06,   //PC = 0x00000664,     line:     srl r12, r15, 4                 # r12 = core_id
-0x000B6604,   //PC = 0x00000668,     line:     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
-0x00260E9E,   //PC = 0x0000066C,     line:     lhu r13, r1, 38                 # r13 = node->prev_index
-0x0678EE13,   //PC = 0x00000670,     line:     beq r12, r13, BUMP_IDX, true    # if idx == prev_idx, bump to avoid repeat
-0x067CFF93,   //PC = 0x00000674,     line:     beq r15, r15, SKIP_BUMP, true
-0x0001E600,   //PC = 0x00000678,     line:     add r12, r12, 1                 # r12 = idx + 1
-0x000A6632,   //PC = 0x0000067C,     line:     mod r12, r12, r10               # r12 = idx % core_owner_count
-0x00260E19,   //PC = 0x00000680,     line:     sh r12, r1, 38                  # node->prev_index = idx
-0x0001E605,   //PC = 0x00000684,     line:     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
-0x000C4C80,   //PC = 0x00000688,     line:     add r9, r9, r12                 # r9 = &core_slots[idx]
-0x001C4D2C,   //PC = 0x0000068C,     line:     lw_d r10, r9, 28                # r10 = core_to_cache (core_slots at +28 from lock field)
-0x00200D19,   //PC = 0x00000690,     line:     sh r10, r1, 32                  # node->core_owner = core_to_cache
-0x0720FF93,   //PC = 0x00000694,     line:     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
-0x0000DD82,   //PC = 0x00000698,     line:     and r11, r11, 0
-0xFFFFDD80,   //PC = 0x0000069C,     line:     add r11, r11, 0xFFFF            # r11 = 0xFFFF
-0x00200D99,   //PC = 0x000006A0,     line:     sh r11, r1, 32                  # node->core_owner = 0xFFFF
-0x00240C9F,   //PC = 0x000006A4,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
-0xFFF44D2C,   //PC = 0x000006A8,     line:     lw_d r10, r9, -12               # r10 = cur_ray_count
-0x0000DD82,   //PC = 0x000006AC,     line:     and r11, r11, 0
-0x00C8DD80,   //PC = 0x000006B0,     line:     add r11, r11, 200               # r11 = 200
-0x0720DD15,   //PC = 0x000006B4,     line:     blte r10, r11, SKIP_EMERGENCY_ENQUEUE, true   # if count <= 200 skip emergency
-0x421CCC80,   //PC = 0x000006B8,     line:     add r9, r9, 16924               # r9 = &on_emergency_idle_queue flag
-0x0001CD30,   //PC = 0x000006BC,     line:     atomadd_d r10, r9, 1            # r10 = old value
-0x0720BD14,   //PC = 0x000006C0,     line:     bne r10, r7, SKIP_EMERGENCY_ENQUEUE, true   # r7=0; if old != 0 someone else did it
-0x2000849F,   //PC = 0x000006C4,     line:     lw r9, EMERGENCY_QUEUE_HIGH     # r9 = emergency_queue_high
-0x00004FA7,   //PC = 0x000006C8,     line:     setmembits r9                   # set address bits
-0x2004849F,   //PC = 0x000006CC,     line:     lw r9, EMERGENCY_QUEUE_LOW      # r9 = emergency_queue_low
-0x0008CC80,   //PC = 0x000006D0,     line:     add r9, r9, 8                   # r9 = &count field
-0x0001CD30,   //PC = 0x000006D4,     line:     atomadd_d r10, r9, 1            # r10 = old count, increment
-0x0000DD82,   //PC = 0x000006D8,     line:     and r11, r11, 0
-0x0040DD80,   //PC = 0x000006DC,     line:     add r11, r11, 64                # r11 = 64 (max slots)
-0x06E8DD16,   //PC = 0x000006E0,     line:     bgt r10, r11, EMERGENCY_UNDO_AND_SPIN, true   # if old >= 64 queue full
-0x06F0FF93,   //PC = 0x000006E4,     line:     beq r15, r15, EMERGENCY_CLAIM_SLOT, true
-0xFFFFCDB0,   //PC = 0x000006E8,     line:     atomadd_d r11, r9, -1           # undo increment
-0x06D4FF93,   //PC = 0x000006EC,     line:     beq r15, r15, LOOP_EMERGENCY_QUEUE_INSERTION, true  # retry
-0xFFFCCC80,   //PC = 0x000006F0,     line:     add r9, r9, -4                  # r9 = &tail field
-0x0004CD30,   //PC = 0x000006F4,     line:     atomadd_d r10, r9, 4            # r10 = old tail, advance by 4 bytes per slot
-0x00FFD502,   //PC = 0x000006F8,     line:     and r10, r10, 0xFF              # r10 = tail & 0xFF (ring mask for 64 slots)
-0x000A4C80,   //PC = 0x000006FC,     line:     add r9, r9, r10                 # r9 = &slots[tail]
-0x0008CC80,   //PC = 0x00000700,     line:     add r9, r9, 8                   # r9 = slot base (skip head+tail fields)
-0x00024DA9,   //PC = 0x00000704,     line:     lbu_d r11, r9, 2                # r11 = slot->is_valid
-0x0704BD94,   //PC = 0x00000708,     line:     bne r11, r7, ENSURE_EMERGENCY_SLOT_READY, true  # spin while slot occupied (r7=0)
-0x002C0D9F,   //PC = 0x0000070C,     line:     lw r11, r1, 44                  # r11 = node->node_id
-0x00004DAE,   //PC = 0x00000710,     line:     sh_d r11, r9, 0                 # slot->node_id = node_id (uint16)
-0x0000DD82,   //PC = 0x00000714,     line:     and r11, r11, 0
-0x0001DD80,   //PC = 0x00000718,     line:     add r11, r11, 1                 # r11 = 1
-0x00024DAF,   //PC = 0x0000071C,     line:     sb_d r11, r9, 2                 # slot->is_valid = 1
-0x00240C9F,   //PC = 0x00000720,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr
-0x0014CC80,   //PC = 0x00000724,     line:     add r9, r9, 20                  # r9 = &lock field
-0xFFFFCDB0,   //PC = 0x00000728,     line:     atomadd_d r11, r9, -1           # release lock (decrement back)
-0x003F0398,   //PC = 0x0000072C,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
-0x00009982,   //PC = 0x00000730,     line:     and r3, r3, 0
-0x00019980,   //PC = 0x00000734,     line:     add r3, r3, 1                   # r3 = sent = 1
-0x000FFD02,   //PC = 0x00000738,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x00005621,   //PC = 0x0000073C,     line:     nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
-0x0788BE13,   //PC = 0x00000740,     line:     beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available
-0x00008682,   //PC = 0x00000744,     line:     and r13, r0, 0                 # r13 = slot ptr (starts at 0 = invalid sentinel)
-0x0000F702,   //PC = 0x00000748,     line:     and r14, r14, 0                 # r14 = i = 0
-0x000054A0,   //PC = 0x0000074C,     line:     block r9, r10                   # r9 = ray_word from data mailbox
-0x00006C9A,   //PC = 0x00000750,     line:     sw r9, r13, 0                   # *slot = ray_word
-0x0004EE80,   //PC = 0x00000754,     line:     add r13, r13, 4                 # slot += 4
-0x0001F700,   //PC = 0x00000758,     line:     add r14, r14, 1                 # i++
-0x0000DD82,   //PC = 0x0000075C,     line:     and r11, r11, 0
-0x0010DD80,   //PC = 0x00000760,     line:     add r11, r11, 16                # r11 = 16
-0x074CF596,   //PC = 0x00000764,     line:     bgt r11, r14, DATA_RECV_LOOP, true   # loop while i < 16
-0x0028049F,   //PC = 0x00000768,     line:     lw r9, r0, 40                   # r9 = ray->leaf_node_starting_point
-0x0001CC85,   //PC = 0x0000076C,     line:     sll r9, r9, 1                   # r9 = leaf_node_index * 2 (uint16 array)
-0x2744859F,   //PC = 0x00000770,     line:     lw r11, LEAF_CORE_LOOKUP_TABLE  # r11 = base address of lookup table in SRAM
-0x00095D80,   //PC = 0x00000774,     line:     add r11, r11, r9                # r11 = &leaf_core_ptrs[leaf_node_index]
-0x00005C9E,   //PC = 0x00000778,     line:     lhu r9, r11, 0                  # r9 = leaf_core_data_addr
-0xFFF06C9A,   //PC = 0x0000077C,     line:     sw r9, r13, -16                 # *(slot - 16) = leaf_core_data_addr
-0x0000EE82,   //PC = 0x00000780,     line:     and r13, r13, 0
-0xFFFFEE83,   //PC = 0x00000784,     line:     or r13, r13, 0xFFFF            # r13 = slot = 0xFFFF sentinel (low 16; full 32 not possible in imm)
-0x000FFD02,   //PC = 0x00000788,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x0001D582,   //PC = 0x0000078C,     line:     and r11, r10, 1                 # r11 = thread_id & 1
-0x0020DD80,   //PC = 0x00000790,     line:     add r11, r11, 32                # r11 = interrupt mailbox index
-0x00005E21,   //PC = 0x00000794,     line:     nonblock r12, r11               # r12 = nb_recv(interrupt mailbox)
-0x0880BE13,   //PC = 0x00000798,     line:     beq r12, r7, DONE_WITH_INTERRUPT, true   # r7=0, nothing available
-0x00005E20,   //PC = 0x0000079C,     line:     block r12, r11                  # r12 = message
-0x0011E406,   //PC = 0x000007A0,     line:     srl r8, r12, 17                 # r8 = supposed_node_id (message >> 17)
-0x002C849F,   //PC = 0x000007A4,     line:     lw r9, ROOT_NODE_ID             # r9 = self.root_node_id
-0x0858CC14,   //PC = 0x000007A8,     line:     bne r8, r9, WRONG_CORE_SEND, true   # node mismatch -> wrong core
-0x2844F400,   //PC = 0x000007AC,     line:     add r8, r14, LOCAL_RAY_QUEUE              # r8 = self.local_queue
-0x0008C400,   //PC = 0x000007B0,     line:     add r8, r8, 8                   # r8 = skip head and tail
-0x0001D482,   //PC = 0x000007B4,     line:     and r9, r10, 1                  # r9 = thread_id & 1
-0x0000DD82,   //PC = 0x000007B8,     line:     and r11, r11, 0
-0x040CDD80,   //PC = 0x000007BC,     line:     add r11, r11, 1036              # r11 = 1036
-0x000B4C88,   //PC = 0x000007C0,     line:     mul r9, r9, r11                 # r9 = odd_thread * 1036
-0x00094400,   //PC = 0x000007C4,     line:     add r8, r8, r9                  # r8 = &local_queue for this thread parity
-0x0001C4B3,   //PC = 0x000007C8,     line:     atomadd r9, r8, 1               # r9 = old_count
-0x1FFC859F,   //PC = 0x000007CC,     line:     lw r11, LOCAL_QUEUE_FLUSHING   # r11 = flushing flag
-0x0000F702,   //PC = 0x000007D0,     line:     and r14, r14, 0
-0x0010F700,   //PC = 0x000007D4,     line:     add r14, r14, 16                # r14 = 16 (max queue)
-0x07E0F496,   //PC = 0x000007D8,     line:     bgt r9, r14, REJECT_INTERRUPT, true     # if old_count > 16 reject
-0x0810BD93,   //PC = 0x000007DC,     line:     beq r11, r7, NO_FLUSH, true     # r7=0; if not flushing proceed
-0xFFFFC4B3,   //PC = 0x000007E0,     line:     atomadd r9, r8, -1              # undo count increment
-0x0000CC82,   //PC = 0x000007E4,     line:     and r9, r9, 0
-0x0007CC80,   //PC = 0x000007E8,     line:     add r9, r9, 7                   # r9 = reject_ray = 7
-0x0018CC85,   //PC = 0x000007EC,     line:     sll r9, r9, 24                  # r9 = reject_ray << 24
-0x0004E586,   //PC = 0x000007F0,     line:     srl r11, r12, 4                 # r11 = dest core (message >> 4 & 0x1FFF)
-0x1FFFDD82,   //PC = 0x000007F4,     line:     and r11, r11, 0x1FFF
-0x000FE702,   //PC = 0x000007F8,     line:     and r14, r12, 0xF               # r14 = dest mailbox (message & 0xF + 16)
-0x0010F700,   //PC = 0x000007FC,     line:     add r14, r14, 16
-0x0006DD85,   //PC = 0x00000800,     line:     sll r11, r11, 6
-0x000E5D83,   //PC = 0x00000804,     line:     or r11, r11, r14
-0x00005CB1,   //PC = 0x00000808,     line:     sendflit r9, r11                # send reject
-0x0880FF93,   //PC = 0x0000080C,     line:     beq r15, r15, DONE_WITH_INTERRUPT, true
-0xFFFCC400,   //PC = 0x00000810,     line:     add r8, r8, -4                  # r8 = &tail_relative field
-0x0040C4B3,   //PC = 0x00000814,     line:     atomadd r9, r8, 64              # r9 = old tail, advance by 64
-0x03FFCC82,   //PC = 0x00000818,     line:     and r9, r9, 0x3FF               # r9 = tail & 0x3FF (ring mask)
-0x0008C400,   //PC = 0x0000081C,     line:     add r8, r8, 8                   # r8 = back to queue data base
-0x00094400,   //PC = 0x00000820,     line:     add r8, r8, r9                  # r8 = slot = queue_base + tail_relative
-0x0000F702,   //PC = 0x00000824,     line:     and r14, r14, 0
-0x0005F700,   //PC = 0x00000828,     line:     add r14, r14, 5                 # r14 = ray_ack = 5
-0x0018F705,   //PC = 0x0000082C,     line:     sll r14, r14, 24                # r14 = ray_ack << 24
-0x000FFD02,   //PC = 0x00000830,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x000A7703,   //PC = 0x00000834,     line:     or r14, r14, r10                # r14 = ray_ack << 24 | thread_id
-0x0004E586,   //PC = 0x00000838,     line:     srl r11, r12, 4                 # r11 = dest core
-0x1FFFDD82,   //PC = 0x0000083C,     line:     and r11, r11, 0x1FFF
-0x000FE482,   //PC = 0x00000840,     line:     and r9, r12, 0xF                # r9 = dest mailbox + 16
-0x0010CC80,   //PC = 0x00000844,     line:     add r9, r9, 16
-0x0006DD85,   //PC = 0x00000848,     line:     sll r11, r11, 6
-0x000E5D83,   //PC = 0x0000084C,     line:     or r11, r11, r14
-0x00005CB1,   //PC = 0x00000850,     line:     sendflit r9, r11                # send reject
-0x0880FF93,   //PC = 0x00000854,     line:     beq r15, r15, DONE_WITH_INTERRUPT, true
-0x0000CC82,   //PC = 0x00000858,     line:     and r9, r9, 0
-0x0008CC80,   //PC = 0x0000085C,     line:     add r9, r9, 8                   # r9 = wrong_core = 8
-0x0018CC85,   //PC = 0x00000860,     line:     sll r9, r9, 24                  # r9 = wrong_core << 24
-0x0004E586,   //PC = 0x00000864,     line:     srl r11, r12, 4                 # r11 = dest core
-0x1FFFDD82,   //PC = 0x00000868,     line:     and r11, r11, 0x1FFF
-0x000FE702,   //PC = 0x0000086C,     line:     and r14, r12, 0xF               # r14 = dest mailbox + 16
-0x0010F700,   //PC = 0x00000870,     line:     add r14, r14, 16
-0x0006DD85,   //PC = 0x00000874,     line:     sll r11, r11, 6
-0x000E5D83,   //PC = 0x00000878,     line:     or r11, r11, r14
-0x00005CB1,   //PC = 0x0000087C,     line:     sendflit r9, r11                # send reject
-0x0000DD82,   //PC = 0x00000880,     line:     and r11, r11, 0
-0x0001DD80,   //PC = 0x00000884,     line:     add r11, r11, 1                 # r11 = 1
-0x0564D994,   //PC = 0x00000888,     line:     bne r3, r11, SEND_RAY_LOOP, true    # if sent != 1 keep looping
-0x0000DD82,   //PC = 0x0000088C,     line:     and r11, r11, 0
-0xFFFFDD80,   //PC = 0x00000890,     line:     add r11, r11, 0xFFFF            # r11 = sentinel value
-0x0564DE94,   //PC = 0x00000894,     line:     bne r13, r11, SEND_RAY_LOOP, true   # if slot not sentinel keep looping
-0x089CFF93,   //PC = 0x00000898,     line:     beq r15, r15, DECREMENT_PENDING, true
-0x000FFD02,   //PC = 0x0000089C,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x0001D582,   //PC = 0x000008A0,     line:     and r11, r10, 1                 # r11 = thread_id & 1
-0x0020DD80,   //PC = 0x000008A4,     line:     add r11, r11, 32                # r11 = interrupt mailbox index
-0x000B0037,   //PC = 0x000008A8,     line:     intdis r11                      # disable interrupts
-0x1FF8F400,   //PC = 0x000008AC,     line:     add r8, r14, RAY_SEND_PENDING_ADDR    # r8 = &ray_send_pending
-0xFFFFC4B3,   //PC = 0x000008B0,     line:     atomadd r9, r8, -1              # decrement pending count
-0x0970FF93,   //PC = 0x000008B4,     line:     beq r15, r15, ray_done, true
-0x0018089E,   //PC = 0x000008B8,     line:     lhu r1, r1, 24                  # r1 = node->left_child
-0x0420FF93,   //PC = 0x000008BC,     line:     beq r15, r15, start_ray_traversal, true
-0x003B029C,   //PC = 0x000008C0,     line:     lbu r5, r0, 59
-0x0908BA93,   //PC = 0x000008C4,     line:     beq r5, r7, MISS_AT_ROOT, true
-0x001F0B1C,   //PC = 0x000008C8,     line:     lbu r6, r1, 31                  # node->is_right
-0x0002B305,   //PC = 0x000008CC,     line:     sll r6, r6, 2
-0x00060300,   //PC = 0x000008D0,     line:     add r6, r0, r6
-0x0012B300,   //PC = 0x000008D4,     line:     add r6, r6, 18
-0x0000341F,   //PC = 0x000008D8,     line:     lw r8, r6, 0
-0xFFFFAA80,   //PC = 0x000008DC,     line:     add r5, r5, -1
-0x0000D502,   //PC = 0x000008E0,     line:     and r10, r10, 0
-0x0001D500,   //PC = 0x000008E4,     line:     add r10, r10, 1
-0x00055505,   //PC = 0x000008E8,     line:     sll r10, r10, r5
-0x000A4403,   //PC = 0x000008EC,     line:     or r8, r8, r10
-0x0000341A,   //PC = 0x000008F0,     line:     sw r8, r6, 0
-0x003B029C,   //PC = 0x000008F4,     line:     lbu r5, r0, 59
-0xFFFFAA80,   //PC = 0x000008F8,     line:     add r5, r5, -1
-0x003B0298,   //PC = 0x000008FC,     line:     sb r5, r0, 59
-0x001C089E,   //PC = 0x00000900,     line:     lhu r1, r1, 28
-0x0420FF93,   //PC = 0x00000904,     line:     beq r15, r15, start_ray_traversal, true
-0x0000C402,   //PC = 0x00000908,     line:     and r8, r8, 0
-0xFFFFC400,   //PC = 0x0000090C,     line:     add r8, r8, 0xFFFF              # 0xFFFF as 32-bit all-ones approx; need two stores
-0x0016041A,   //PC = 0x00000910,     line:     sw r8, r0, 22                   # ray->check_right = 0xFFFFFFFF
-0x0012041A,   //PC = 0x00000914,     line:     sw r8, r0, 18                   # ray->check_left  = 0xFFFFFFFF
-0x0420FF93,   //PC = 0x00000918,     line:     beq r15, r15, start_ray_traversal, true
-0x003B029C,   //PC = 0x0000091C,     line:     lbu r5, r0, 59
-0x0001AA80,   //PC = 0x00000920,     line:     add r5, r5, 1
-0xFFFFC403,   //PC = 0x00000924,     line:     or r8, r8, 0xFFFF
-0x00054405,   //PC = 0x00000928,     line:     sll r8, r8, r5                  # mask = 0xFFFFFFFF << (ray_depth+1)... TODO: need NOT
-0xFFFFDD83,   //PC = 0x0000092C,     line:     or r11, r11, 0xFFFF
-0x000B4404,   //PC = 0x00000930,     line:     xor r8, r8, r11                 # r8 = zero_out_subtree
-0x0012011F,   //PC = 0x00000934,     line:     lw r2, r0, 18
-0x00081102,   //PC = 0x00000938,     line:     and r2, r2, r8
-0x0012011A,   //PC = 0x0000093C,     line:     sw r2, r0, 18
-0x0016019F,   //PC = 0x00000940,     line:     lw r3, r0, 22
-0x00081982,   //PC = 0x00000944,     line:     and r3, r3, r8
-0x0016019A,   //PC = 0x00000948,     line:     sw r3, r0, 22
-0x0000B302,   //PC = 0x0000094C,     line:     and r6, r6, 0
-0x0958BA13,   //PC = 0x00000950,     line:     beq r4, r7, USE_LEFT, true      # r4=left_bitfield_check, r7=0
-0x0002B300,   //PC = 0x00000954,     line:     add r6, r6, 2                   # offset by 2 if left already visited -> use right
-0x00060880,   //PC = 0x00000958,     line:     add r1, r1, r6
-0x0018089E,   //PC = 0x0000095C,     line:     lhu r1, r1, 24
-0x003B029C,   //PC = 0x00000960,     line:     lbu r5, r0, 59
-0x0001AA80,   //PC = 0x00000964,     line:     add r5, r5, 1
-0x003B0298,   //PC = 0x00000968,     line:     sb r5, r0, 59
-0x0420FF93,   //PC = 0x0000096C,     line:     beq r15, r15, start_ray_traversal, true
-0x003F049C,   //PC = 0x00000970,     line:     lbu r9, r0, 63                  # ray->active_ray
-0x0420BC94,   //PC = 0x00000974,     line:     bne r9, r7, start_ray_traversal, true   # r7=0
-0x00000422,   //PC = 0x00000978,     line:     yield r8
-0x000FFD02,   //PC = 0x0000097C,     line:     and r10, r15, 0xF               # thread_id
-0x0001D582,   //PC = 0x00000980,     line:     and r11, r10, 1                 # odd_thread
-0x0000E602,   //PC = 0x00000984,     line:     and r12, r12, 0
-0x040CE600,   //PC = 0x00000988,     line:     add r12, r12, 1036
-0x000C5D88,   //PC = 0x0000098C,     line:     mul r11, r11, r12               # offset = odd_thread * 1036
-0x2844BE00,   //PC = 0x00000990,     line:     add r12, r7, LOCAL_RAY_QUEUE
-0x000C5D80,   //PC = 0x00000994,     line:     add r11, r11, r12               # offset += self.local_ray_queue
-0x0008E600,   //PC = 0x00000998,     line:     add r12, r12, 8
-0xFFFFE733,   //PC = 0x0000099C,     line:     atomadd r14, r12, -1            # decrement count
-0x09ACF393,   //PC = 0x000009A0,     line:     beq r7, r14, SLOT_AVAILABLE_LOCAL_RAY_QUEUE, true
-0x0001E733,   //PC = 0x000009A4,     line:     atomadd r14, r12, 1
-0x0A5CFF93,   //PC = 0x000009A8,     line:     beq r15, r15, no_rays_available, true
-0xFFF8E600,   //PC = 0x000009AC,     line:     add r12, r12, -8
-0x0040E6B3,   //PC = 0x000009B0,     line:     atomadd r13, r12, 64            # slot = atomic_add(head, 64)
-0x03FFEE82,   //PC = 0x000009B4,     line:     and r13, r13, 0x3FF
-0x000D6600,   //PC = 0x000009B8,     line:     add r12, r12, r13               # queue_head + slot
-0x000CE600,   //PC = 0x000009BC,     line:     add r12, r12, 12
-0x0000649F,   //PC = 0x000009C0,     line:     lw r9, r12, 0 
-0x0000049A,   //PC = 0x000009C4,     line:     sw r9, r0, 0
-0x0004649F,   //PC = 0x000009C8,     line:     lw r9, r12, 4
-0x0004049A,   //PC = 0x000009CC,     line:     sw r9, r0, 4
-0x0008649F,   //PC = 0x000009D0,     line:     lw r9, r12, 8
-0x0008049A,   //PC = 0x000009D4,     line:     sw r9, r0, 8
-0x000C649F,   //PC = 0x000009D8,     line:     lw r9, r12, 12
-0x000C049A,   //PC = 0x000009DC,     line:     sw r9, r0, 12
-0x0010649F,   //PC = 0x000009E0,     line:     lw r9, r12, 16
-0x0010049A,   //PC = 0x000009E4,     line:     sw r9, r0, 16
-0x0014649F,   //PC = 0x000009E8,     line:     lw r9, r12, 20
-0x0014049A,   //PC = 0x000009EC,     line:     sw r9, r0, 20
-0x0018649F,   //PC = 0x000009F0,     line:     lw r9, r12, 24
-0x0018049A,   //PC = 0x000009F4,     line:     sw r9, r0, 24
-0x001C649F,   //PC = 0x000009F8,     line:     lw r9, r12, 28
-0x001C049A,   //PC = 0x000009FC,     line:     sw r9, r0, 28
-0x0020649F,   //PC = 0x00000A00,     line:     lw r9, r12, 32
-0x0020049A,   //PC = 0x00000A04,     line:     sw r9, r0, 32
-0x0024649F,   //PC = 0x00000A08,     line:     lw r9, r12, 36
-0x0024049A,   //PC = 0x00000A0C,     line:     sw r9, r0, 36
-0x0000CC82,   //PC = 0x00000A10,     line:     and r9, r9, 0
-0x0080CC80,   //PC = 0x00000A14,     line:     add r9, r9, 128                 # leaf_node_starting_point hardcoded
-0x0028049A,   //PC = 0x00000A18,     line:     sw r9, r0, 40
-0x002C649F,   //PC = 0x00000A1C,     line:     lw r9, r12, 44
-0x002C049A,   //PC = 0x00000A20,     line:     sw r9, r0, 44
-0x0030649F,   //PC = 0x00000A24,     line:     lw r9, r12, 48
-0x0030049A,   //PC = 0x00000A28,     line:     sw r9, r0, 48
-0x0034649F,   //PC = 0x00000A2C,     line:     lw r9, r12, 52
-0x0034049A,   //PC = 0x00000A30,     line:     sw r9, r0, 52
-0x0038649F,   //PC = 0x00000A34,     line:     lw r9, r12, 56
-0x0038049A,   //PC = 0x00000A38,     line:     sw r9, r0, 56
-0x003C649F,   //PC = 0x00000A3C,     line:     lw r9, r12, 60
-0x003C049A,   //PC = 0x00000A40,     line:     sw r9, r0, 60
-0x0000CC82,   //PC = 0x00000A44,     line:     and r9, r9, 0
-0x003F6498,   //PC = 0x00000A48,     line:     sb r9, r12, 63                  # clear slot
-0x0028009F,   //PC = 0x00000A4C,     line:     lw r1, r0, 40                   # node = ray->leaf_node_starting_point
-0x0420FF93,   //PC = 0x00000A50,     line:     beq r15, r15, start_ray_traversal, true  
-0x0001D582,   //PC = 0x00000A54,     line:     and r11, r10, 1
-0x0970BD94,   //PC = 0x00000A58,     line:     bne r11, r7, ray_done, true     # odd thread loops back
-0x1FFC819F,   //PC = 0x00000A5C,     line:     lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_queue_flushing)
-0x00009F02,   //PC = 0x00000A60,     line:     and r14, r3, 0                       # r14 = 0
-0x12507193,   //PC = 0x00000A64,     line:     beq r3, r14, INF_LOOP, false         
-0x1FFCF180,   //PC = 0x00000A68,     line:     add r3, r14, LOCAL_QUEUE_FLUSHING
-0x00019FB3,   //PC = 0x00000A6C,     line:     atomadd r15, r3, 1
-0x1250FF93,   //PC = 0x00000A70,     line:     beq r15, r15, INF_LOOP, true
-0x00000422,   //PC = 0x00000A74,     line:     yield r8                             # yield()
-0x0020819F,   //PC = 0x00000A78,     line:     lw r3, RAY_QUEUE_HIGH                # int queue_address_high = self.ray_queue_address_high
-0x00001FA7,   //PC = 0x00000A7C,     line:     setmembits r3                        # set_address_bits(queue_address_high)
-0x0024819F,   //PC = 0x00000A80,     line:     lw r3, RAY_QUEUE_LOW                 # int queue_address_low = self.ray_queue_address_low
-0x0001FF02,   //PC = 0x00000A84,     line:     and r14, r15, 1                      # r14 = self.is_branch_core (bit 0 of r15)
-0x7F64F708,   //PC = 0x00000A88,     line:     mul r14, r14, 32612                  # r14 *= 16924 (offset to branch queue if branch core)
-0x000E1980,   //PC = 0x00000A8C,     line:     add r3, r3, r14                      # queue_address_low += r14 (select correct queue)
-0x00081A2C,   //PC = 0x00000A90,     line:     lw_d r4, r3, 8                       # int cur_ray_count = load_dram_word(queue_address_low + 8)
-0x0B84F215,   //PC = 0x00000A94,     line:     blte r4, r14, DRAM_RAY_QUEUE_EMPTY, true  # if (cur_ray_count <= 0) goto DRAM_RAY_QUEUE_EMPTY
-0x0100F280,   //PC = 0x00000A98,     line:     add r5, r14, 256                     # r5 = 256
-0x0AB4AA15,   //PC = 0x00000A9C,     line:     blte r4, r5, RESET_PULLED_FROM_FULL_QUEUE_CNT, true  # if (cur_ray_count < 256) goto RESET_PULLED_FROM_FULL_QUEUE_CNT
-0x208CF280,   //PC = 0x00000AA0,     line:     add r5, r14, PULLED_FROM_FULL_QUEUE_CNT  # r5 = &PULLED_FROM_FULL_QUEUE_CNT
-0x0001AAB3,   //PC = 0x00000AA4,     line:     atomadd r5, r5, 1                    # uint32_t num_times_pulled = atomic_add(pulled_from_full_queue_address, 1)
-0x0001F300,   //PC = 0x00000AA8,     line:     add r6, r14, 1                       # r6 = BRANCH_BUSY_THRESHOLD (1)
-0x0AB82B35,   //PC = 0x00000AAC,     line:     blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false  # if (num_times_pulled <= BRANCH_BUSY_THRESHOLD) goto PULL_ELEM_FROM_DRAM_QUEUE
-0x1B748397,   //PC = 0x00000AB0,     line:     jmp r7, SEARCH_FOR_IDLE_CORES    # branch_core_ask_for_help()
-0x208C871A,   //PC = 0x00000AB4,     line:     sw r14, PULLED_FROM_FULL_QUEUE_CNT  # *(self->pulled_from_full_queue_address) = 0
-0x00089980,   //PC = 0x00000AB8,     line:     add r3, r3, 8                        # queue_address_low += 8 (point to count field)
-0xFFFF9A30,   //PC = 0x00000ABC,     line:     atomadd_d r4, r3, -1                 # int cur_ray_count_check = atomic_add_dram(queue_address_low + 8, -1)
-0x0ACCF216,   //PC = 0x00000AC0,     line:     bgt r4, r14, STILL_ELEM_IN_QUEUE, true  # if (cur_ray_count_check > 0) goto STILL_ELEM_IN_QUEUE
-0x00019A30,   //PC = 0x00000AC4,     line:     atomadd_d r4, r3, 1                  # atomic_add_dram(queue_address_low + 8, 1) -- undo decrement
-0x0970FF93,   //PC = 0x00000AC8,     line:     beq r15, r15, ray_done, true         # goto ray_done
-0xFFF89980,   //PC = 0x00000ACC,     line:     add r3, r3, -8                       # queue_address_low -= 8 (back to base)
-0x00409A30,   //PC = 0x00000AD0,     line:     atomadd_d r4, r3, 64                 # int head = atomic_add_dram(queue_address_low, 64) -- advance head
-0x3F649980,   //PC = 0x00000AD4,     line:     add r3, r3, 16228                      # queue_address_low += 540 (skip head/count fields, +16 base + 524 padding? -- differs from pseudocode's +16)
-0x3FFFA202,   //PC = 0x00000AD8,     line:     and r4, r4, 0x3FFF                   # head = head & 0x00003FFF
-0x00041A00,   //PC = 0x00000ADC,     line:     add r4, r3, r4                       # queue_address_low = queue_address_low + head
-0x003F22A9,   //PC = 0x00000AE0,     line:     lbu_d r5, r4, 63                     # int ready = load_dram_byte(queue_address_low + 63)
-0x0AE07293,   //PC = 0x00000AE4,     line:     beq r5, r14, WAIT_FOR_WRITE, false   # if (ready == 0) goto WAIT_FOR_WRITE  # r14=0
-0x0000232C,   //PC = 0x00000AE8,     line:     lw_d r6, r4, 0                       # load ray word [0]
-0x000423AC,   //PC = 0x00000AEC,     line:     lw_d r7, r4, 4                       # load ray word [4]
-0x0008242C,   //PC = 0x00000AF0,     line:     lw_d r8, r4, 8                       # load ray word [8]
-0x000C24AC,   //PC = 0x00000AF4,     line:     lw_d r9, r4, 12                      # load ray word [12]
-0x0010252C,   //PC = 0x00000AF8,     line:     lw_d r10, r4, 16                     # load ray word [16]
-0x001425AC,   //PC = 0x00000AFC,     line:     lw_d r11, r4, 20                     # load ray word [20]
-0x0018262C,   //PC = 0x00000B00,     line:     lw_d r12, r4, 24                     # load ray word [24]
-0x001C26AC,   //PC = 0x00000B04,     line:     lw_d r13, r4, 28                     # load ray word [28]
-0x0000032D,   //PC = 0x00000B08,     line:     sw_d r6, r0, 0                       # store to ray SRAM [0]
-0x000403AD,   //PC = 0x00000B0C,     line:     sw_d r7, r0, 4                       # store to ray SRAM [4]
-0x0008042D,   //PC = 0x00000B10,     line:     sw_d r8, r0, 8                       # store to ray SRAM [8]
-0x000C04AD,   //PC = 0x00000B14,     line:     sw_d r9, r0, 12                      # store to ray SRAM [12]
-0x0010052D,   //PC = 0x00000B18,     line:     sw_d r10, r0, 16                     # store to ray SRAM [16]
-0x001405AD,   //PC = 0x00000B1C,     line:     sw_d r11, r0, 20                     # store to ray SRAM [20]
-0x0018062D,   //PC = 0x00000B20,     line:     sw_d r12, r0, 24                     # store to ray SRAM [24]
-0x001C06AD,   //PC = 0x00000B24,     line:     sw_d r13, r0, 28                     # store to ray SRAM [28]
-0x0020232C,   //PC = 0x00000B28,     line:     lw_d r6, r4, 32                      # load ray word [32]
-0x002423AC,   //PC = 0x00000B2C,     line:     lw_d r7, r4, 36                      # load ray word [36]
-0x0028242C,   //PC = 0x00000B30,     line:     lw_d r8, r4, 40                      # load ray word [40]
-0x002C24AC,   //PC = 0x00000B34,     line:     lw_d r9, r4, 44                      # load ray word [44]
-0x0030252C,   //PC = 0x00000B38,     line:     lw_d r10, r4, 48                     # load ray word [48]
-0x003425AC,   //PC = 0x00000B3C,     line:     lw_d r11, r4, 52                     # load ray word [52]
-0x0038262C,   //PC = 0x00000B40,     line:     lw_d r12, r4, 56                     # load ray word [56]
-0x003C26AC,   //PC = 0x00000B44,     line:     lw_d r13, r4, 60                     # load ray word [60]
-0x0020032D,   //PC = 0x00000B48,     line:     sw_d r6, r0, 32                      # store to ray SRAM [32]
-0x002403AD,   //PC = 0x00000B4C,     line:     sw_d r7, r0, 36                      # store to ray SRAM [36]
-0x0028042D,   //PC = 0x00000B50,     line:     sw_d r8, r0, 40                      # store to ray SRAM [40]
-0x002C04AD,   //PC = 0x00000B54,     line:     sw_d r9, r0, 44                      # store to ray SRAM [44]
-0x0030052D,   //PC = 0x00000B58,     line:     sw_d r10, r0, 48                     # store to ray SRAM [48]
-0x003405AD,   //PC = 0x00000B5C,     line:     sw_d r11, r0, 52                     # store to ray SRAM [52]
-0x0038062D,   //PC = 0x00000B60,     line:     sw_d r12, r0, 56                     # store to ray SRAM [56]
-0x003C06AD,   //PC = 0x00000B64,     line:     sw_d r13, r0, 60                     # store to ray SRAM [60]
-0x003F272F,   //PC = 0x00000B68,     line:     sb_d r14, r4, 63                     # write_dram_byte(queue_address_low + 63, 0) -- mark slot as consumed
-0x0001F300,   //PC = 0x00000B6C,     line:     add r6, r14, 1                       # r6 = 1
-0x003F0318,   //PC = 0x00000B70,     line:     sb r6, r0, 63                        # ray->active_ray = 1
-0x0028009F,   //PC = 0x00000B74,     line:     lw r1, r0, 40                        # node = ray->leaf_node_starting_point
-0x00018885,   //PC = 0x00000B78,     line:     sll r1, r1, 1                        # r1 <<= 1 (index into lookup table, 2 bytes per entry)
-0x2744089E,   //PC = 0x00000B7C,     line:     lhu r1, r1, LEAF_CORE_LOOKUP_TABLE   # r1 = LEAF_CORE_LOOKUP_TABLE[node] -- get target leaf core
-0x0420FF93,   //PC = 0x00000B80,     line:     beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
-0x00000422,   //PC = 0x00000B84,     line:     yield r8                             # yield()
-0x0020819F,   //PC = 0x00000B88,     line:     lw r3, RAY_QUEUE_HIGH                # (reload) queue_address_high
-0x00001FA7,   //PC = 0x00000B8C,     line:     setmembits r3                        # set_address_bits(queue_address_high)
-0x0024819F,   //PC = 0x00000B90,     line:     lw r3, RAY_QUEUE_LOW                 # (reload) queue_address_low
-0x00081A2C,   //PC = 0x00000B94,     line:     lw_d r4, r3, 8                       # count = load_dram_word(emergency_queue_low + 8)
-0x0BF8F215,   //PC = 0x00000B98,     line:     blte r4, r14, CHECK_SPAWNED_RAY_POOL, true  # if (count <= 0) goto CHECK_SPAWNED_RAY_POOL
-0x00089980,   //PC = 0x00000B9C,     line:     add r3, r3, 8                        # emergency_queue_low += 8
-0x00019A30,   //PC = 0x00000BA0,     line:     atomadd_d r4, r3, 1                  # uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1)
-0x0BB07215,   //PC = 0x00000BA4,     line:     blte r4, r14, EMERGENCY_SWITCH_BEGIN, false  # if (old_cnt > 0) goto EMERGENCY_SWITCH_BEGIN -- differs: pseudocode checks <= 0 to UNDO
-0xFFFF9A30,   //PC = 0x00000BA8,     line:     atomadd_d r4, r3, -1                 # atomic_add_dram(emergency_queue_low, -1) -- undo increment
-0x0BF8FF93,   //PC = 0x00000BAC,     line:     beq r15, r15, CHECK_SPAWNED_RAY_POOL, true  # goto CHECK_SPAWNED_RAY_POOL
-0xFFF89980,   //PC = 0x00000BB0,     line:     add r3, r3, -8                       # emergency_queue_low -= 8 (back to base)
-0x00049A30,   //PC = 0x00000BB4,     line:     atomadd_d r4, r3, 4                  # uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4)
-0x00FFA202,   //PC = 0x00000BB8,     line:     and r4, r4, 0xFF                     # byte_index &= 0x000000FF
-0x00041980,   //PC = 0x00000BBC,     line:     add r3, r3, r4                       # emergency_queue_low += byte_index
-0x000C9980,   //PC = 0x00000BC0,     line:     add r3, r3, 12                       # emergency_queue_low += 12
-0x00021A2B,   //PC = 0x00000BC4,     line:     lhu_d r4, r3, 2                      # uint16_t is_ready = load_dram_byte(emergency_queue_low + 2)
-0x0BC47213,   //PC = 0x00000BC8,     line:     beq r4, r14, ENSURE_EMERGENCY_SLOT_READY_TWO, false  # if (is_ready == 0) goto ENSURE_EMERGENCY_SLOT_READY
-0x00001A2B,   //PC = 0x00000BCC,     line:     lhu_d r4, r3, 0                      # uint32_t new_node_id = load_dram_half(emergency_queue_low)
-0x0001F280,   //PC = 0x00000BD0,     line:     add r5, r14, 1                       # r5 = 1
-0x00001AAE,   //PC = 0x00000BD4,     line:     sh_d r5, r3, 0                       # store_dram_byte(emergency_queue_low + 2, 0) -- mark slot consumed; differs: pseudocode writes to +2 but asm writes to +0
-0x1FFCF280,   //PC = 0x00000BD8,     line:     add r5, r14, LOCAL_QUEUE_FLUSHING   
-0x0001AFB3,   //PC = 0x00000BDC,     line:     atomadd r15, r5, 1
-0x0010F300,   //PC = 0x00000BE0,     line:     add r6, r14, 16
-0x1FFC829F,   //PC = 0x00000BE4,     line:     lw r5, LOCAL_QUEUE_FLUSHING
-0x00000038,   //PC = 0x00000BE8,     line:     switchctx
-0x0BE4B293,   //PC = 0x00000BEC,     line:     beq r5, r6, EMERGENCY_SLOT_FLUSH_LOOP, true
-0x2090821A,   //PC = 0x00000BF0,     line:     sw r4, CORE_ID_TO_SWITCH_TO         # *(self.local_queue_flushing + 4) = new_node_id
-0x0034FF93,   //PC = 0x00000BF4,     line:     beq r15, r15, SWITCH_DRAM_QUEUE, true  # goto switch_dram_queue
-0x1AD48117,   //PC = 0x00000BF8,     line:     jmp r2, IS_IDLE_BRANCH               # is_idle_branch()
-0x2008811F,   //PC = 0x00000BFC,     line:     lw r2, SPAWNED_RAY_POOL_HIGH         # uint32_t spawned_ray_pool_high = self.spawned_ray_pool_high
-0x000017A7,   //PC = 0x00000C00,     line:     setmembits r2                        # set_address_bits(spawned_ray_pool_high)
-0x200C811F,   //PC = 0x00000C04,     line:     lw r2, SPAWNED_RAY_POOL_LOW          # uint32_t spawned_ray_pool_low = self.spawned_ray_pool_low
-0x000811AC,   //PC = 0x00000C08,     line:     lw_d r3, r2, 8                       # uint32_t count = load_dram_word(spawned_ray_pool_low + 8)
-0x0D2CF195,   //PC = 0x00000C0C,     line:     blte r3, r14, GRAB_FROM_TILE, true   # if (count <= 0) goto grab_from_tile
-0x00089100,   //PC = 0x00000C10,     line:     add r2, r2, 8                        # spawned_ray_pool_low += 8
-0xFFFF91B0,   //PC = 0x00000C14,     line:     atomadd_d r3, r2, -1                 # uint32_t old_cnt = atomic_add(spawned_ray_pool_low, -1)
-0x0C24F196,   //PC = 0x00000C18,     line:     bgt r3, r14, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true  # if (old_cnt > 0) goto CONTINUE -- differs: pseudocode checks old_cnt <= 0 to undo
-0x000191B0,   //PC = 0x00000C1C,     line:     atomadd_d r3, r2, 1                  # atomic_add(spawned_ray_pool_low, 1) -- undo decrement
-0x0D2CFF93,   //PC = 0x00000C20,     line:     beq r15, r15, GRAB_FROM_TILE, true   # goto grab_from_tile
-0xFFF89100,   //PC = 0x00000C24,     line:     add r2, r2, -8                       # spawned_ray_pool_low -= 8 (back to base)
-0x002091B0,   //PC = 0x00000C28,     line:     atomadd_d r3, r2, 32                 # uint32_t head = atomic_add(spawned_ray_pool_low, 32)
-0x1FF4821F,   //PC = 0x00000C2C,     line:     lw r4, SPAWNED_RAY_POOL_MASK         # r4 = 0x007FFFFF
-0x00041982,   //PC = 0x00000C30,     line:     and r3, r3, r4                       # head &= head_mask
-0x00031100,   //PC = 0x00000C34,     line:     add r2, r2, r3                       # spawned_ray_pool_low += head
-0x002B11A9,   //PC = 0x00000C38,     line:     lbu_d r3, r2, 43                     # uint8_t slot_ready = load_dram_byte(spawned_ray_pool_low + 43)
-0x0C387193,   //PC = 0x00000C3C,     line:     beq r3, r14, ENSURE_RAY_POOL_SLOT_READY, false  # if (slot_ready == 0) goto ENSURE_RAY_POOL_SLOT_READY
-0x000C11AC,   //PC = 0x00000C40,     line:     lw_d r3, r2, 12                      # value_one = load_dram_word(spawned_ray_pool_low + 12)  -- ox
-0x0010122C,   //PC = 0x00000C44,     line:     lw_d r4, r2, 16                      # value_two = load_dram_word(spawned_ray_pool_low + 16)  -- oy
-0x001412AC,   //PC = 0x00000C48,     line:     lw_d r5, r2, 20                      # value_three = load_dram_word(spawned_ray_pool_low + 20) -- oz
-0x0018132C,   //PC = 0x00000C4C,     line:     lw_d r6, r2, 24                      # value_four = load_dram_word(spawned_ray_pool_low + 24)  -- dx
-0x001C13AC,   //PC = 0x00000C50,     line:     lw_d r7, r2, 28                      # value_five = load_dram_word(spawned_ray_pool_low + 28)  -- dy
-0x0020142C,   //PC = 0x00000C54,     line:     lw_d r8, r2, 32                      # value_six = load_dram_word(spawned_ray_pool_low + 32)   -- dz
-0x002414AC,   //PC = 0x00000C58,     line:     lw_d r9, r2, 36                      # pix_xy = load_dram_word(spawned_ray_pool_low + 36)
-0x0028152A,   //PC = 0x00000C5C,     line:     lh_d r10, r2, 40                     # meta = load_dram_word(spawned_ray_pool_low + 40)
-0x002B172F,   //PC = 0x00000C60,     line:     sb_d r14, r2, 43                     # store_dram_byte(spawned_ray_pool_low + 43, 0) -- mark slot consumed
-0x0000019A,   //PC = 0x00000C64,     line:     sw r3, r0, 0                         # ray->ox = value_one
-0x0004021A,   //PC = 0x00000C68,     line:     sw r4, r0, 4                         # ray->oy = value_two
-0x0008029A,   //PC = 0x00000C6C,     line:     sw r5, r0, 8                         # ray->oz = value_three
-0x000C031A,   //PC = 0x00000C70,     line:     sw r6, r0, 12                        # ray->dx = value_four
-0x0010039A,   //PC = 0x00000C74,     line:     sw r7, r0, 16                        # ray->dy = value_five
-0x0014041A,   //PC = 0x00000C78,     line:     sw r8, r0, 20                        # ray->dz = value_six
-0x0034049A,   //PC = 0x00000C7C,     line:     sw r9, r0, 52                        # ray->pix_xy = pix_xy  -- differs: pseudocode writes to pix_x field, asm writes to offset 52
-0x00FFD182,   //PC = 0x00000C80,     line:     and r3, r10, 0xFF                    # ray->bounce_count = meta & 0xFF
-0x0008D206,   //PC = 0x00000C84,     line:     srl r4, r10, 8                       # r4 = meta >> 8
-0x00FFA202,   //PC = 0x00000C88,     line:     and r4, r4, 0xFF                     # ray->light_id = (meta >> 8) & 0xFF
-0x003C0198,   //PC = 0x00000C8C,     line:     sb r3, r0, 60                        # store ray->bounce_count
-0x003D0218,   //PC = 0x00000C90,     line:     sb r4, r0, 61                        # store ray->light_id
-0x000C029F,   //PC = 0x00000C94,     line:     lw r5, r0, 12                        # r5 = ray->dx
-0x0010031F,   //PC = 0x00000C98,     line:     lw r6, r0, 16                        # r6 = ray->dy
-0x0014039F,   //PC = 0x00000C9C,     line:     lw r7, r0, 20                        # r7 = ray->dz
-0x00052C0B,   //PC = 0x00000CA0,     line:     fpmul.32 r8, r5, r5                  # float len_sq = dx * dx
-0x0006348B,   //PC = 0x00000CA4,     line:     fpmul.32 r9, r6, r6                  # tmp = dy * dy
-0x00073D0B,   //PC = 0x00000CA8,     line:     fpmul.32 r10, r7, r7                 # tmp2 = dz * dz
-0x0009440A,   //PC = 0x00000CAC,     line:     fpadd r8, r8, r9                      # len_sq += tmp
-0x000A440A,   //PC = 0x00000CB0,     line:     fpadd r8, r8, r10                     # len_sq += tmp2
-0x18D88497,   //PC = 0x00000CB4,     line:     jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
-0x00082A8B,   //PC = 0x00000CB8,     line:     fpmul.32 r5, r5, r8                   # ray->dx = dx * inv_len
-0x0008330B,   //PC = 0x00000CBC,     line:     fpmul.32 r6, r6, r8                   # ray->dy = dy * inv_len
-0x00083B8B,   //PC = 0x00000CC0,     line:     fpmul.32 r7, r7, r8                   # ray->dz = dz * inv_len
-0x0000AC80,   //PC = 0x00000CC4,     line:     add r9, r5, 0                        # r9 = ray->dx (move for RECIPROCAL call)
-0x187C8517,   //PC = 0x00000CC8,     line:     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(ray->dx)  -- result in r9
-0x0018049A,   //PC = 0x00000CCC,     line:     sw r9, r0, 24                        # store ray->inv_dx
-0x0000B480,   //PC = 0x00000CD0,     line:     add r9, r6, 0                        # r9 = ray->dy
-0x187C8517,   //PC = 0x00000CD4,     line:     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(ray->dy)
-0x001C049A,   //PC = 0x00000CD8,     line:     sw r9, r0, 28                        # store ray->inv_dy
-0x0000BC80,   //PC = 0x00000CDC,     line:     add r9, r7, 0                        # r9 = ray->dz
-0x187C8517,   //PC = 0x00000CE0,     line:     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(ray->dz)
-0x0020049A,   //PC = 0x00000CE4,     line:     sw r9, r0, 32                        # store ray->inv_dz
-0x0000F702,   //PC = 0x00000CE8,     line:     and r14, r14, 0                      # r14 = 0
-0x0CFC2715,   //PC = 0x00000CEC,     line:     blte r14, r4, IS_NOT_SHADOW, false   # if (light_id == 0) goto IS_NOT_SHADOW  -- differs: pseudocode checks is_shadow != 0
-0x0000C480,   //PC = 0x00000CF0,     line:     add r9, r8, 0                        # r9 = inv_len (for shadow ray t_max = 1/|d| = distance to light)
-0x187C8517,   //PC = 0x00000CF4,     line:     jmp r10, RECIPROCAL                  # ray->t_max = reciprocal(inv_len)
-0x0D04FF93,   //PC = 0x00000CF8,     line:     beq r15, r15, FINISH_SETTING_OTHER_RAY_FIELDS, true  # goto FINISH_SETTING_OTHER_RAY_FIELDS
-0x1FF0811F,   //PC = 0x00000CFC,     line:     lw r2, INFINITY                      # r2 = 0x7F800000
-0x0024011A,   //PC = 0x00000D00,     line:     sw r2, r0, 36                        # ray->t_max = INFINITY
-0x0000F702,   //PC = 0x00000D04,     line:     and r14, r14, 0                      # r14 = 0
-0x002C071A,   //PC = 0x00000D08,     line:     sw r14, r0, 44                       # ray->check_left = 0
-0x0030071A,   //PC = 0x00000D0C,     line:     sw r14, r0, 48                       # ray->check_right = 0
-0xFFFFF680,   //PC = 0x00000D10,     line:     add r13, r14, -1                     # r13 = 0xFFFFFFFF
-0x0038069A,   //PC = 0x00000D14,     line:     sw r13, r0, 56                       # ray->tri_index = 0xFFFFFFFF
-0x0001F600,   //PC = 0x00000D18,     line:     add r12, r14, 1                      # r12 = 1
-0x003F0618,   //PC = 0x00000D1C,     line:     sb r12, r0, 63                       # ray->active_ray = 1
-0x003E0718,   //PC = 0x00000D20,     line:     sb r14, r0, 62                       # ray->ray_depth = 0  -- differs: pseudocode doesn't explicitly set ray_depth here
-0x231C809F,   //PC = 0x00000D24,     line:     lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
-0x0420FF93,   //PC = 0x00000D28,     line:     beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
-0x2098811D,   //PC = 0x00000D2C,     line:     lh r2, TILE_IS_ACTIVE                # uint16_t is_active = *(self.tile_data_sram->is_active)
-0x0000F702,   //PC = 0x00000D30,     line:     and r14, r14, 0                      # r14 = 0
-0x0D5C7113,   //PC = 0x00000D34,     line:     beq r2, r14, GET_NEW_TILE, false     # if (!is_active) goto get_new_tile
-0x2094811F,   //PC = 0x00000D38,     line:     lw r2, TILE_DATA_COUNT               # uint32_t tile_total_count = *(self.tile_data_sram->count)
-0x00FFF180,   //PC = 0x00000D3C,     line:     add r3, r14, 255                     # r3 = 255
-0x0DE49916,   //PC = 0x00000D40,     line:     bgt r2, r3, SKIP_RETURNING_TILE, true  # if (tile_total_count > 255) goto skip_returning_tile
-0x20BC811F,   //PC = 0x00000D44,     line:     lw r2, RAYS_SPAWNED_FROM_TILE        # uint32_t rays_spawned_from_tile = *(self.tile_data_sram->rays_spawned_from_tile)
-0x0007F180,   //PC = 0x00000D48,     line:     add r3, r14, 7                       # r3 = 7  # TODO, Threshold for when to return tile to queue
-0x0E901196,   //PC = 0x00000D4C,     line:     bgt r3, r2, SPAWN_FROM_TILE, false   # if (rays_spawned_from_tile < 7) goto spawn_from_tile
-0x20C0821F,   //PC = 0x00000D50,     line:     lw r4, RAYS_FORWARDED_OUT_FROM_TILE  # uint32_t rays_forwarded_out_from_tile = *(self.tile_data_sram->rays_forwarded_out_from_tile)
-0x0001A205,   //PC = 0x00000D54,     line:     sll r4, r4, 1                        # rays_forwarded_out_from_tile <<= 1
-0x0E90A116,   //PC = 0x00000D58,     line:     bgt r2, r4, SPAWN_FROM_TILE, true    # if (rays_forwarded_out_from_tile < rays_spawned_from_tile) goto spawn_from_tile
-0x00000023,   //PC = 0x00000D5C,     line:     getowner                             # get_ownership()
-0x0000F702,   //PC = 0x00000D60,     line:     and r14, r14, 0                      # r14 = 0
-0x2010811F,   //PC = 0x00000D64,     line:     lw r2, TILE_QUEUE_HIGH               # uint32_t tile_pool_high = self.tile_pool_high
-0x000017A7,   //PC = 0x00000D68,     line:     setmembits r2                        # set_address_bits(tile_pool_high)
-0x2014811F,   //PC = 0x00000D6C,     line:     lw r2, TILE_QUEUE_LOW                # uint32_t tile_pool_low = self.tile_pool_low
-0x2098819E,   //PC = 0x00000D70,     line:     lhu r3, TILE_IS_ACTIVE               # uint8_t tile_rays_spawned = *(self.tile_data_sram->is_active)  -- differs: pseudocode checks count not is_active
-0x0DE47194,   //PC = 0x00000D74,     line:     bne r3, r14, SKIP_RETURNING_TILE, false  # if (tile_rays_spawned != 0) goto skip_returning_tile  -- differs: pseudocode checks count > 255
-0x20BC819F,   //PC = 0x00000D78,     line:     lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
-0x00FFF200,   //PC = 0x00000D7C,     line:     add r4, r14, 255                     # r4 = 255
-0x0DE4A196,   //PC = 0x00000D80,     line:     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
+0x000A6603,   //PC = 0x0000053C,     line:     or r12, r12, r10                # r12 = request_word
+0x001E0B1E,   //PC = 0x00000540,     line:     lhu r6, r1, 30                  # r6 = node->core_owner
+0x0020E331,   //PC = 0x00000544,     line:     sendflit r6, r12, 32            # TODO confirm notation w/ Alex
+0x00009982,   //PC = 0x00000548,     line:     and r3, r3, 0                   # r3 = sent = 0
+0x000FFD02,   //PC = 0x0000054C,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x0010D580,   //PC = 0x00000550,     line:     add r11, r10, 16                # r11 = thread_id + 16
+0x00005E21,   //PC = 0x00000554,     line:     nonblock r12, r11               # r12 = msg_available
+0x0720BE13,   //PC = 0x00000558,     line:     beq r12, r7, CHECK_DATA_MAILBOX, true   # r7=0, nothing on shallow mailbox
+0x00005E20,   //PC = 0x0000055C,     line:     block r12, r11                  # r12 = msg
+0x0018E686,   //PC = 0x00000560,     line:     srl r13, r12, 24                # r13 = header
+0x0000DD82,   //PC = 0x00000564,     line:     and r11, r11, 0
+0x0005DD80,   //PC = 0x00000568,     line:     add r11, r11, 5                 # r11 = 5 (ack_ray)
+0x05BCDE94,   //PC = 0x0000056C,     line:     bne r13, r11, REJECT_PATH, true
+0x001E0B1E,   //PC = 0x00000570,     line:     lhu r6, r1, 30                  # r6 = node->core_owner
+0x0004E506,   //PC = 0x00000574,     line:     srl r10, r12, 4
+0x0013D505,   //PC = 0x00000578,     line:     sll r10, r10, 19
+0x000DD506,   //PC = 0x0000057C,     line:     srl r10, r10, 13
+0x000FE582,   //PC = 0x00000580,     line:     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+0x000B5503,   //PC = 0x00000584,     line:     or r10, r10, r11
+0x00008680,   //PC = 0x00000588,     line:     add r13, r0, 0                  # r13 = ray base ptr
+0x0000F702,   //PC = 0x0000058C,     line:     and r14, r14, 0                 # r14 = i = 0
+0x00006C9F,   //PC = 0x00000590,     line:     lw r9, r13, 0                   # r9 = ray word i
+0x000054B1,   //PC = 0x00000594,     line:     sendflit r9, r10            # send word to core_owner on mailbox
+0x0004EE80,   //PC = 0x00000598,     line:     add r13, r13, 4                 # r13 += 4 (next word)
+0x0001F700,   //PC = 0x0000059C,     line:     add r14, r14, 1                 # i++
+0x0000DD82,   //PC = 0x000005A0,     line:     and r11, r11, 0
+0x0010DD80,   //PC = 0x000005A4,     line:     add r11, r11, 16                # r11 = 16
+0x0590F596,   //PC = 0x000005A8,     line:     bgt r11, r14, RAY_SEND_LOOP, true   # loop while i < 16
+0x003F0398,   //PC = 0x000005AC,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
+0x00009982,   //PC = 0x000005B0,     line:     and r3, r3, 0
+0x00019980,   //PC = 0x000005B4,     line:     add r3, r3, 1                   # r3 = sent = 1
+0x0720FF93,   //PC = 0x000005B8,     line:     beq r15, r15, CHECK_DATA_MAILBOX, true
+0x00280C1E,   //PC = 0x000005BC,     line:     lhu r8, r1, 40                  # r8 = node->queue_high_bit_addr
+0x000047A7,   //PC = 0x000005C0,     line:     setmembits r8                   # set address bits to reach node's DRAM stack
+0x00240C9F,   //PC = 0x000005C4,     line:     lw r9, r1, 36                   # r9 = node->queue_low_bit_addr
+0xFFF44D2C,   //PC = 0x000005C8,     line:     lw_d r10, r9, -12               # r10 = cur_ray_count (count field is -12 from here)
+0x0000DD82,   //PC = 0x000005CC,     line:     and r11, r11, 0
+0x00FFDD80,   //PC = 0x000005D0,     line:     add r11, r11, 255               # r11 = 255
+0x05C8DD16,   //PC = 0x000005D4,     line:     bgt r10, r11, ENSURE_SPACE_IN_QUEUE, true   # spin while count > 255
+0xFFF0CC80,   //PC = 0x000005D8,     line:     add r9, r9, -16                 # r9 = queue base (tail field)
+0x0040CD30,   //PC = 0x000005DC,     line:     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
+0x3FFFD502,   //PC = 0x000005E0,     line:     and r10, r10, 0x3FFF            # r10 = tail & 0x3FFF (ring mask)
+0x3F60CD80,   //PC = 0x000005E4,     line:     add r11, r9, 16224                # r11 = queue base + 536 (start of ray slots)
+0x000A5D80,   //PC = 0x000005E8,     line:     add r11, r11, r10               # r11 = write_addr = slot base + tail offset
+0x003F5D29,   //PC = 0x000005EC,     line:     lbu_d r10, r11, 63              # r10 = slot[63] (valid byte)
+0x05ECBD14,   //PC = 0x000005F0,     line:     bne r10, r7, WAIT_FOR_SLOT_TO_OPEN, true   # spin while slot occupied (r7=0)
+0x00008680,   //PC = 0x000005F4,     line:     add r13, r0, 0                  # r13 = ray base ptr
+0x0000F702,   //PC = 0x000005F8,     line:     and r14, r14, 0                 # r14 = i = 0
+0x00006D1F,   //PC = 0x000005FC,     line:     lw r10, r13, 0                  # r10 = ray word i
+0x00005D2D,   //PC = 0x00000600,     line:     sw_d r10, r11, 0                # write to DRAM slot
+0x0004EE80,   //PC = 0x00000604,     line:     add r13, r13, 4                 # r13 += 4
+0x0004DD80,   //PC = 0x00000608,     line:     add r11, r11, 4                 # r11 write_addr += 4
+0x0001F700,   //PC = 0x0000060C,     line:     add r14, r14, 1                 # i++
+0x0000E602,   //PC = 0x00000610,     line:     and r12, r12, 0
+0x0010E600,   //PC = 0x00000614,     line:     add r12, r12, 16                # r12 = 16
+0x05FCF616,   //PC = 0x00000618,     line:     bgt r12, r14, RAY_DRAM_WRITE_LOOP, true   # loop while i < 16
+0x00240C9F,   //PC = 0x0000061C,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
+0x0014CC80,   //PC = 0x00000620,     line:     add r9, r9, 20                  # r9 = &lock field (offset 20 from queue base)
+0x0001CD30,   //PC = 0x00000624,     line:     atomadd_d r10, r9, 1            # r10 = old lock value, increment
+0x0000DD82,   //PC = 0x00000628,     line:     and r11, r11, 0                 # r11 = 0
+0x0640D593,   //PC = 0x0000062C,     line:     beq r11, r10, SKIP_UNDO_LOCK, true   # old val >= 0 means no writer held it
+0xFFFFCDB0,   //PC = 0x00000630,     line:     atomadd_d r11, r9, -1           # undo our increment
+0x00004D2C,   //PC = 0x00000634,     line:     lw_d r10, r9, 0                 # r10 = current lock value
+0x0634D596,   //PC = 0x00000638,     line:     bgt r11, r10, ENSURE_NO_WRITERS_LOOP, true   # spin while lock < 0 (writer active)
+0x0624FF93,   //PC = 0x0000063C,     line:     beq r15, r15, ENSURE_NO_WRITERS, true        # retry claim
+0x00044D2C,   //PC = 0x00000640,     line:     lw_d r10, r9, 4                 # r10 = core_owner_count
+0x0680BD13,   //PC = 0x00000644,     line:     beq r10, r7, NO_OWNER, true     # r7=0, no owners
+0x000005B4,   //PC = 0x00000648,     line:     getclk r11                      # r11 = clock
+0x0004FE06,   //PC = 0x0000064C,     line:     srl r12, r15, 4                 # r12 = core_id
+0x000B6604,   //PC = 0x00000650,     line:     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
+0x00260E9E,   //PC = 0x00000654,     line:     lhu r13, r1, 38                 # r13 = node->prev_index
+0x0660EE13,   //PC = 0x00000658,     line:     beq r12, r13, BUMP_IDX, true    # if idx == prev_idx, bump to avoid repeat
+0x0664FF93,   //PC = 0x0000065C,     line:     beq r15, r15, SKIP_BUMP, true
+0x0001E600,   //PC = 0x00000660,     line:     add r12, r12, 1                 # r12 = idx + 1
+0x000A6632,   //PC = 0x00000664,     line:     mod r12, r12, r10               # r12 = idx % core_owner_count
+0x00260E19,   //PC = 0x00000668,     line:     sh r12, r1, 38                  # node->prev_index = idx
+0x0001E605,   //PC = 0x0000066C,     line:     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
+0x000C4C80,   //PC = 0x00000670,     line:     add r9, r9, r12                 # r9 = &core_slots[idx]
+0x001C4D2C,   //PC = 0x00000674,     line:     lw_d r10, r9, 28                # r10 = core_to_cache (core_slots at +28 from lock field)
+0x00200D19,   //PC = 0x00000678,     line:     sh r10, r1, 32                  # node->core_owner = core_to_cache
+0x0708FF93,   //PC = 0x0000067C,     line:     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
+0x0000DD82,   //PC = 0x00000680,     line:     and r11, r11, 0
+0xFFFFDD80,   //PC = 0x00000684,     line:     add r11, r11, 0xFFFF            # r11 = 0xFFFF
+0x00200D99,   //PC = 0x00000688,     line:     sh r11, r1, 32                  # node->core_owner = 0xFFFF
+0x00240C9F,   //PC = 0x0000068C,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
+0xFFF44D2C,   //PC = 0x00000690,     line:     lw_d r10, r9, -12               # r10 = cur_ray_count
+0x0000DD82,   //PC = 0x00000694,     line:     and r11, r11, 0
+0x00C8DD80,   //PC = 0x00000698,     line:     add r11, r11, 200               # r11 = 200
+0x0708DD15,   //PC = 0x0000069C,     line:     blte r10, r11, SKIP_EMERGENCY_ENQUEUE, true   # if count <= 200 skip emergency
+0x421CCC80,   //PC = 0x000006A0,     line:     add r9, r9, 16924               # r9 = &on_emergency_idle_queue flag
+0x0001CD30,   //PC = 0x000006A4,     line:     atomadd_d r10, r9, 1            # r10 = old value
+0x0708BD14,   //PC = 0x000006A8,     line:     bne r10, r7, SKIP_EMERGENCY_ENQUEUE, true   # r7=0; if old != 0 someone else did it
+0x1FE8849F,   //PC = 0x000006AC,     line:     lw r9, EMERGENCY_QUEUE_HIGH     # r9 = emergency_queue_high
+0x00004FA7,   //PC = 0x000006B0,     line:     setmembits r9                   # set address bits
+0x1FEC849F,   //PC = 0x000006B4,     line:     lw r9, EMERGENCY_QUEUE_LOW      # r9 = emergency_queue_low
+0x0008CC80,   //PC = 0x000006B8,     line:     add r9, r9, 8                   # r9 = &count field
+0x0001CD30,   //PC = 0x000006BC,     line:     atomadd_d r10, r9, 1            # r10 = old count, increment
+0x0000DD82,   //PC = 0x000006C0,     line:     and r11, r11, 0
+0x0040DD80,   //PC = 0x000006C4,     line:     add r11, r11, 64                # r11 = 64 (max slots)
+0x06D0DD16,   //PC = 0x000006C8,     line:     bgt r10, r11, EMERGENCY_UNDO_AND_SPIN, true   # if old >= 64 queue full
+0x06D8FF93,   //PC = 0x000006CC,     line:     beq r15, r15, EMERGENCY_CLAIM_SLOT, true
+0xFFFFCDB0,   //PC = 0x000006D0,     line:     atomadd_d r11, r9, -1           # undo increment
+0x06BCFF93,   //PC = 0x000006D4,     line:     beq r15, r15, LOOP_EMERGENCY_QUEUE_INSERTION, true  # retry
+0xFFFCCC80,   //PC = 0x000006D8,     line:     add r9, r9, -4                  # r9 = &tail field
+0x0004CD30,   //PC = 0x000006DC,     line:     atomadd_d r10, r9, 4            # r10 = old tail, advance by 4 bytes per slot
+0x00FFD502,   //PC = 0x000006E0,     line:     and r10, r10, 0xFF              # r10 = tail & 0xFF (ring mask for 64 slots)
+0x000A4C80,   //PC = 0x000006E4,     line:     add r9, r9, r10                 # r9 = &slots[tail]
+0x0008CC80,   //PC = 0x000006E8,     line:     add r9, r9, 8                   # r9 = slot base (skip head+tail fields)
+0x00024DA9,   //PC = 0x000006EC,     line:     lbu_d r11, r9, 2                # r11 = slot->is_valid
+0x06ECBD94,   //PC = 0x000006F0,     line:     bne r11, r7, ENSURE_EMERGENCY_SLOT_READY, true  # spin while slot occupied (r7=0)
+0x002C0D9F,   //PC = 0x000006F4,     line:     lw r11, r1, 44                  # r11 = node->node_id
+0x00004DAE,   //PC = 0x000006F8,     line:     sh_d r11, r9, 0                 # slot->node_id = node_id (uint16)
+0x0000DD82,   //PC = 0x000006FC,     line:     and r11, r11, 0
+0x0001DD80,   //PC = 0x00000700,     line:     add r11, r11, 1                 # r11 = 1
+0x00024DAF,   //PC = 0x00000704,     line:     sb_d r11, r9, 2                 # slot->is_valid = 1
+0x00240C9F,   //PC = 0x00000708,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr
+0x0014CC80,   //PC = 0x0000070C,     line:     add r9, r9, 20                  # r9 = &lock field
+0xFFFFCDB0,   //PC = 0x00000710,     line:     atomadd_d r11, r9, -1           # release lock (decrement back)
+0x003F0398,   //PC = 0x00000714,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
+0x00009982,   //PC = 0x00000718,     line:     and r3, r3, 0
+0x00019980,   //PC = 0x0000071C,     line:     add r3, r3, 1                   # r3 = sent = 1
+0x000FFD02,   //PC = 0x00000720,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x00005621,   //PC = 0x00000724,     line:     nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
+0x0770BE13,   //PC = 0x00000728,     line:     beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available
+0x00008682,   //PC = 0x0000072C,     line:     and r13, r0, 0                 # r13 = slot ptr (starts at 0 = invalid sentinel)
+0x0000F702,   //PC = 0x00000730,     line:     and r14, r14, 0                 # r14 = i = 0
+0x000054A0,   //PC = 0x00000734,     line:     block r9, r10                   # r9 = ray_word from data mailbox
+0x00006C9A,   //PC = 0x00000738,     line:     sw r9, r13, 0                   # *slot = ray_word
+0x0004EE80,   //PC = 0x0000073C,     line:     add r13, r13, 4                 # slot += 4
+0x0001F700,   //PC = 0x00000740,     line:     add r14, r14, 1                 # i++
+0x0000DD82,   //PC = 0x00000744,     line:     and r11, r11, 0
+0x0010DD80,   //PC = 0x00000748,     line:     add r11, r11, 16                # r11 = 16
+0x0734F596,   //PC = 0x0000074C,     line:     bgt r11, r14, DATA_RECV_LOOP, true   # loop while i < 16
+0x0028049F,   //PC = 0x00000750,     line:     lw r9, r0, 40                   # r9 = ray->leaf_node_starting_point
+0x0001CC85,   //PC = 0x00000754,     line:     sll r9, r9, 1                   # r9 = leaf_node_index * 2 (uint16 array)
+0x272C859F,   //PC = 0x00000758,     line:     lw r11, LEAF_CORE_LOOKUP_TABLE  # r11 = base address of lookup table in SRAM
+0x00095D80,   //PC = 0x0000075C,     line:     add r11, r11, r9                # r11 = &leaf_core_ptrs[leaf_node_index]
+0x00005C9E,   //PC = 0x00000760,     line:     lhu r9, r11, 0                  # r9 = leaf_core_data_addr
+0xFFF06C9A,   //PC = 0x00000764,     line:     sw r9, r13, -16                 # *(slot - 16) = leaf_core_data_addr
+0x0000EE82,   //PC = 0x00000768,     line:     and r13, r13, 0
+0xFFFFEE83,   //PC = 0x0000076C,     line:     or r13, r13, 0xFFFF            # r13 = slot = 0xFFFF sentinel (low 16; full 32 not possible in imm)
+0x000FFD02,   //PC = 0x00000770,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x0001D582,   //PC = 0x00000774,     line:     and r11, r10, 1                 # r11 = thread_id & 1
+0x0020DD80,   //PC = 0x00000778,     line:     add r11, r11, 32                # r11 = interrupt mailbox index
+0x00005E21,   //PC = 0x0000077C,     line:     nonblock r12, r11               # r12 = nb_recv(interrupt mailbox)
+0x0868BE13,   //PC = 0x00000780,     line:     beq r12, r7, DONE_WITH_INTERRUPT, true   # r7=0, nothing available
+0x00005E20,   //PC = 0x00000784,     line:     block r12, r11                  # r12 = message
+0x0011E406,   //PC = 0x00000788,     line:     srl r8, r12, 17                 # r8 = supposed_node_id (message >> 17)
+0x0014849F,   //PC = 0x0000078C,     line:     lw r9, ROOT_NODE_ID             # r9 = self.root_node_id
+0x0840CC14,   //PC = 0x00000790,     line:     bne r8, r9, WRONG_CORE_SEND, true   # node mismatch -> wrong core
+0x282CF400,   //PC = 0x00000794,     line:     add r8, r14, LOCAL_RAY_QUEUE              # r8 = self.local_queue
+0x0008C400,   //PC = 0x00000798,     line:     add r8, r8, 8                   # r8 = skip head and tail
+0x0001D482,   //PC = 0x0000079C,     line:     and r9, r10, 1                  # r9 = thread_id & 1
+0x0000DD82,   //PC = 0x000007A0,     line:     and r11, r11, 0
+0x040CDD80,   //PC = 0x000007A4,     line:     add r11, r11, 1036              # r11 = 1036
+0x000B4C88,   //PC = 0x000007A8,     line:     mul r9, r9, r11                 # r9 = odd_thread * 1036
+0x00094400,   //PC = 0x000007AC,     line:     add r8, r8, r9                  # r8 = &local_queue for this thread parity
+0x0001C4B3,   //PC = 0x000007B0,     line:     atomadd r9, r8, 1               # r9 = old_count
+0x1FE4859F,   //PC = 0x000007B4,     line:     lw r11, LOCAL_QUEUE_FLUSHING   # r11 = flushing flag
+0x0000F702,   //PC = 0x000007B8,     line:     and r14, r14, 0
+0x0010F700,   //PC = 0x000007BC,     line:     add r14, r14, 16                # r14 = 16 (max queue)
+0x07C8F496,   //PC = 0x000007C0,     line:     bgt r9, r14, REJECT_INTERRUPT, true     # if old_count > 16 reject
+0x07F8BD93,   //PC = 0x000007C4,     line:     beq r11, r7, NO_FLUSH, true     # r7=0; if not flushing proceed
+0xFFFFC4B3,   //PC = 0x000007C8,     line:     atomadd r9, r8, -1              # undo count increment
+0x0000CC82,   //PC = 0x000007CC,     line:     and r9, r9, 0
+0x0007CC80,   //PC = 0x000007D0,     line:     add r9, r9, 7                   # r9 = reject_ray = 7
+0x0018CC85,   //PC = 0x000007D4,     line:     sll r9, r9, 24                  # r9 = reject_ray << 24
+0x0004E586,   //PC = 0x000007D8,     line:     srl r11, r12, 4                 # r11 = dest core (message >> 4 & 0x1FFF)
+0x1FFFDD82,   //PC = 0x000007DC,     line:     and r11, r11, 0x1FFF
+0x000FE702,   //PC = 0x000007E0,     line:     and r14, r12, 0xF               # r14 = dest mailbox (message & 0xF + 16)
+0x0010F700,   //PC = 0x000007E4,     line:     add r14, r14, 16
+0x0006DD85,   //PC = 0x000007E8,     line:     sll r11, r11, 6
+0x000E5D83,   //PC = 0x000007EC,     line:     or r11, r11, r14
+0x00005CB1,   //PC = 0x000007F0,     line:     sendflit r9, r11                # send reject
+0x0868FF93,   //PC = 0x000007F4,     line:     beq r15, r15, DONE_WITH_INTERRUPT, true
+0xFFFCC400,   //PC = 0x000007F8,     line:     add r8, r8, -4                  # r8 = &tail_relative field
+0x0040C4B3,   //PC = 0x000007FC,     line:     atomadd r9, r8, 64              # r9 = old tail, advance by 64
+0x03FFCC82,   //PC = 0x00000800,     line:     and r9, r9, 0x3FF               # r9 = tail & 0x3FF (ring mask)
+0x0008C400,   //PC = 0x00000804,     line:     add r8, r8, 8                   # r8 = back to queue data base
+0x00094400,   //PC = 0x00000808,     line:     add r8, r8, r9                  # r8 = slot = queue_base + tail_relative
+0x0000F702,   //PC = 0x0000080C,     line:     and r14, r14, 0
+0x0005F700,   //PC = 0x00000810,     line:     add r14, r14, 5                 # r14 = ray_ack = 5
+0x0018F705,   //PC = 0x00000814,     line:     sll r14, r14, 24                # r14 = ray_ack << 24
+0x000FFD02,   //PC = 0x00000818,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x000A7703,   //PC = 0x0000081C,     line:     or r14, r14, r10                # r14 = ray_ack << 24 | thread_id
+0x0004E586,   //PC = 0x00000820,     line:     srl r11, r12, 4                 # r11 = dest core
+0x1FFFDD82,   //PC = 0x00000824,     line:     and r11, r11, 0x1FFF
+0x000FE482,   //PC = 0x00000828,     line:     and r9, r12, 0xF                # r9 = dest mailbox + 16
+0x0010CC80,   //PC = 0x0000082C,     line:     add r9, r9, 16
+0x0006DD85,   //PC = 0x00000830,     line:     sll r11, r11, 6
+0x000E5D83,   //PC = 0x00000834,     line:     or r11, r11, r14
+0x00005CB1,   //PC = 0x00000838,     line:     sendflit r9, r11                # send reject
+0x0868FF93,   //PC = 0x0000083C,     line:     beq r15, r15, DONE_WITH_INTERRUPT, true
+0x0000CC82,   //PC = 0x00000840,     line:     and r9, r9, 0
+0x0008CC80,   //PC = 0x00000844,     line:     add r9, r9, 8                   # r9 = wrong_core = 8
+0x0018CC85,   //PC = 0x00000848,     line:     sll r9, r9, 24                  # r9 = wrong_core << 24
+0x0004E586,   //PC = 0x0000084C,     line:     srl r11, r12, 4                 # r11 = dest core
+0x1FFFDD82,   //PC = 0x00000850,     line:     and r11, r11, 0x1FFF
+0x000FE702,   //PC = 0x00000854,     line:     and r14, r12, 0xF               # r14 = dest mailbox + 16
+0x0010F700,   //PC = 0x00000858,     line:     add r14, r14, 16
+0x0006DD85,   //PC = 0x0000085C,     line:     sll r11, r11, 6
+0x000E5D83,   //PC = 0x00000860,     line:     or r11, r11, r14
+0x00005CB1,   //PC = 0x00000864,     line:     sendflit r9, r11                # send reject
+0x0000DD82,   //PC = 0x00000868,     line:     and r11, r11, 0
+0x0001DD80,   //PC = 0x0000086C,     line:     add r11, r11, 1                 # r11 = 1
+0x054CD994,   //PC = 0x00000870,     line:     bne r3, r11, SEND_RAY_LOOP, true    # if sent != 1 keep looping
+0x0000DD82,   //PC = 0x00000874,     line:     and r11, r11, 0
+0xFFFFDD80,   //PC = 0x00000878,     line:     add r11, r11, 0xFFFF            # r11 = sentinel value
+0x054CDE94,   //PC = 0x0000087C,     line:     bne r13, r11, SEND_RAY_LOOP, true   # if slot not sentinel keep looping
+0x0884FF93,   //PC = 0x00000880,     line:     beq r15, r15, DECREMENT_PENDING, true
+0x000FFD02,   //PC = 0x00000884,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x0001D582,   //PC = 0x00000888,     line:     and r11, r10, 1                 # r11 = thread_id & 1
+0x0020DD80,   //PC = 0x0000088C,     line:     add r11, r11, 32                # r11 = interrupt mailbox index
+0x000B0037,   //PC = 0x00000890,     line:     intdis r11                      # disable interrupts
+0x1FE0F400,   //PC = 0x00000894,     line:     add r8, r14, RAY_SEND_PENDING_ADDR    # r8 = &ray_send_pending
+0xFFFFC4B3,   //PC = 0x00000898,     line:     atomadd r9, r8, -1              # decrement pending count
+0x0958FF93,   //PC = 0x0000089C,     line:     beq r15, r15, ray_done, true
+0x0018089E,   //PC = 0x000008A0,     line:     lhu r1, r1, 24                  # r1 = node->left_child
+0x0408FF93,   //PC = 0x000008A4,     line:     beq r15, r15, start_ray_traversal, true
+0x003B029C,   //PC = 0x000008A8,     line:     lbu r5, r0, 59
+0x08F0BA93,   //PC = 0x000008AC,     line:     beq r5, r7, MISS_AT_ROOT, true
+0x001F0B1C,   //PC = 0x000008B0,     line:     lbu r6, r1, 31                  # node->is_right
+0x0002B305,   //PC = 0x000008B4,     line:     sll r6, r6, 2
+0x00060300,   //PC = 0x000008B8,     line:     add r6, r0, r6
+0x0012B300,   //PC = 0x000008BC,     line:     add r6, r6, 18
+0x0000341F,   //PC = 0x000008C0,     line:     lw r8, r6, 0
+0xFFFFAA80,   //PC = 0x000008C4,     line:     add r5, r5, -1
+0x0000D502,   //PC = 0x000008C8,     line:     and r10, r10, 0
+0x0001D500,   //PC = 0x000008CC,     line:     add r10, r10, 1
+0x00055505,   //PC = 0x000008D0,     line:     sll r10, r10, r5
+0x000A4403,   //PC = 0x000008D4,     line:     or r8, r8, r10
+0x0000341A,   //PC = 0x000008D8,     line:     sw r8, r6, 0
+0x003B029C,   //PC = 0x000008DC,     line:     lbu r5, r0, 59
+0xFFFFAA80,   //PC = 0x000008E0,     line:     add r5, r5, -1
+0x003B0298,   //PC = 0x000008E4,     line:     sb r5, r0, 59
+0x001C089E,   //PC = 0x000008E8,     line:     lhu r1, r1, 28
+0x0408FF93,   //PC = 0x000008EC,     line:     beq r15, r15, start_ray_traversal, true
+0x0000C402,   //PC = 0x000008F0,     line:     and r8, r8, 0
+0xFFFFC400,   //PC = 0x000008F4,     line:     add r8, r8, 0xFFFF              # 0xFFFF as 32-bit all-ones approx; need two stores
+0x0016041A,   //PC = 0x000008F8,     line:     sw r8, r0, 22                   # ray->check_right = 0xFFFFFFFF
+0x0012041A,   //PC = 0x000008FC,     line:     sw r8, r0, 18                   # ray->check_left  = 0xFFFFFFFF
+0x0408FF93,   //PC = 0x00000900,     line:     beq r15, r15, start_ray_traversal, true
+0x003B029C,   //PC = 0x00000904,     line:     lbu r5, r0, 59
+0x0001AA80,   //PC = 0x00000908,     line:     add r5, r5, 1
+0xFFFFC403,   //PC = 0x0000090C,     line:     or r8, r8, 0xFFFF
+0x00054405,   //PC = 0x00000910,     line:     sll r8, r8, r5                  # mask = 0xFFFFFFFF << (ray_depth+1)... TODO: need NOT
+0xFFFFDD83,   //PC = 0x00000914,     line:     or r11, r11, 0xFFFF
+0x000B4404,   //PC = 0x00000918,     line:     xor r8, r8, r11                 # r8 = zero_out_subtree
+0x0012011F,   //PC = 0x0000091C,     line:     lw r2, r0, 18
+0x00081102,   //PC = 0x00000920,     line:     and r2, r2, r8
+0x0012011A,   //PC = 0x00000924,     line:     sw r2, r0, 18
+0x0016019F,   //PC = 0x00000928,     line:     lw r3, r0, 22
+0x00081982,   //PC = 0x0000092C,     line:     and r3, r3, r8
+0x0016019A,   //PC = 0x00000930,     line:     sw r3, r0, 22
+0x0000B302,   //PC = 0x00000934,     line:     and r6, r6, 0
+0x0940BA13,   //PC = 0x00000938,     line:     beq r4, r7, USE_LEFT, true      # r4=left_bitfield_check, r7=0
+0x0002B300,   //PC = 0x0000093C,     line:     add r6, r6, 2                   # offset by 2 if left already visited -> use right
+0x00060880,   //PC = 0x00000940,     line:     add r1, r1, r6
+0x0018089E,   //PC = 0x00000944,     line:     lhu r1, r1, 24
+0x003B029C,   //PC = 0x00000948,     line:     lbu r5, r0, 59
+0x0001AA80,   //PC = 0x0000094C,     line:     add r5, r5, 1
+0x003B0298,   //PC = 0x00000950,     line:     sb r5, r0, 59
+0x0408FF93,   //PC = 0x00000954,     line:     beq r15, r15, start_ray_traversal, true
+0x003F049C,   //PC = 0x00000958,     line:     lbu r9, r0, 63                  # ray->active_ray
+0x0408BC94,   //PC = 0x0000095C,     line:     bne r9, r7, start_ray_traversal, true   # r7=0
+0x00000422,   //PC = 0x00000960,     line:     yield r8
+0x000FFD02,   //PC = 0x00000964,     line:     and r10, r15, 0xF               # thread_id
+0x0001D582,   //PC = 0x00000968,     line:     and r11, r10, 1                 # odd_thread
+0x0000E602,   //PC = 0x0000096C,     line:     and r12, r12, 0
+0x040CE600,   //PC = 0x00000970,     line:     add r12, r12, 1036
+0x000C5D88,   //PC = 0x00000974,     line:     mul r11, r11, r12               # offset = odd_thread * 1036
+0x282CBE00,   //PC = 0x00000978,     line:     add r12, r7, LOCAL_RAY_QUEUE
+0x000C5D80,   //PC = 0x0000097C,     line:     add r11, r11, r12               # offset += self.local_ray_queue
+0x0008E600,   //PC = 0x00000980,     line:     add r12, r12, 8
+0xFFFFE733,   //PC = 0x00000984,     line:     atomadd r14, r12, -1            # decrement count
+0x0994F393,   //PC = 0x00000988,     line:     beq r7, r14, SLOT_AVAILABLE_LOCAL_RAY_QUEUE, true
+0x0001E733,   //PC = 0x0000098C,     line:     atomadd r14, r12, 1
+0x0A44FF93,   //PC = 0x00000990,     line:     beq r15, r15, no_rays_available, true
+0xFFF8E600,   //PC = 0x00000994,     line:     add r12, r12, -8
+0x0040E6B3,   //PC = 0x00000998,     line:     atomadd r13, r12, 64            # slot = atomic_add(head, 64)
+0x03FFEE82,   //PC = 0x0000099C,     line:     and r13, r13, 0x3FF
+0x000D6600,   //PC = 0x000009A0,     line:     add r12, r12, r13               # queue_head + slot
+0x000CE600,   //PC = 0x000009A4,     line:     add r12, r12, 12
+0x0000649F,   //PC = 0x000009A8,     line:     lw r9, r12, 0 
+0x0000049A,   //PC = 0x000009AC,     line:     sw r9, r0, 0
+0x0004649F,   //PC = 0x000009B0,     line:     lw r9, r12, 4
+0x0004049A,   //PC = 0x000009B4,     line:     sw r9, r0, 4
+0x0008649F,   //PC = 0x000009B8,     line:     lw r9, r12, 8
+0x0008049A,   //PC = 0x000009BC,     line:     sw r9, r0, 8
+0x000C649F,   //PC = 0x000009C0,     line:     lw r9, r12, 12
+0x000C049A,   //PC = 0x000009C4,     line:     sw r9, r0, 12
+0x0010649F,   //PC = 0x000009C8,     line:     lw r9, r12, 16
+0x0010049A,   //PC = 0x000009CC,     line:     sw r9, r0, 16
+0x0014649F,   //PC = 0x000009D0,     line:     lw r9, r12, 20
+0x0014049A,   //PC = 0x000009D4,     line:     sw r9, r0, 20
+0x0018649F,   //PC = 0x000009D8,     line:     lw r9, r12, 24
+0x0018049A,   //PC = 0x000009DC,     line:     sw r9, r0, 24
+0x001C649F,   //PC = 0x000009E0,     line:     lw r9, r12, 28
+0x001C049A,   //PC = 0x000009E4,     line:     sw r9, r0, 28
+0x0020649F,   //PC = 0x000009E8,     line:     lw r9, r12, 32
+0x0020049A,   //PC = 0x000009EC,     line:     sw r9, r0, 32
+0x0024649F,   //PC = 0x000009F0,     line:     lw r9, r12, 36
+0x0024049A,   //PC = 0x000009F4,     line:     sw r9, r0, 36
+0x0000CC82,   //PC = 0x000009F8,     line:     and r9, r9, 0
+0x0080CC80,   //PC = 0x000009FC,     line:     add r9, r9, 128                 # leaf_node_starting_point hardcoded
+0x0028049A,   //PC = 0x00000A00,     line:     sw r9, r0, 40
+0x002C649F,   //PC = 0x00000A04,     line:     lw r9, r12, 44
+0x002C049A,   //PC = 0x00000A08,     line:     sw r9, r0, 44
+0x0030649F,   //PC = 0x00000A0C,     line:     lw r9, r12, 48
+0x0030049A,   //PC = 0x00000A10,     line:     sw r9, r0, 48
+0x0034649F,   //PC = 0x00000A14,     line:     lw r9, r12, 52
+0x0034049A,   //PC = 0x00000A18,     line:     sw r9, r0, 52
+0x0038649F,   //PC = 0x00000A1C,     line:     lw r9, r12, 56
+0x0038049A,   //PC = 0x00000A20,     line:     sw r9, r0, 56
+0x003C649F,   //PC = 0x00000A24,     line:     lw r9, r12, 60
+0x003C049A,   //PC = 0x00000A28,     line:     sw r9, r0, 60
+0x0000CC82,   //PC = 0x00000A2C,     line:     and r9, r9, 0
+0x003F6498,   //PC = 0x00000A30,     line:     sb r9, r12, 63                  # clear slot
+0x0028009F,   //PC = 0x00000A34,     line:     lw r1, r0, 40                   # node = ray->leaf_node_starting_point
+0x0408FF93,   //PC = 0x00000A38,     line:     beq r15, r15, start_ray_traversal, true  
+0x0001D582,   //PC = 0x00000A3C,     line:     and r11, r10, 1
+0x0958BD94,   //PC = 0x00000A40,     line:     bne r11, r7, ray_done, true     # odd thread loops back
+0x1FE4819F,   //PC = 0x00000A44,     line:     lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_queue_flushing)
+0x00009F02,   //PC = 0x00000A48,     line:     and r14, r3, 0                       # r14 = 0
+0x12387193,   //PC = 0x00000A4C,     line:     beq r3, r14, INF_LOOP, false         
+0x1FE4F180,   //PC = 0x00000A50,     line:     add r3, r14, LOCAL_QUEUE_FLUSHING
+0x00019FB3,   //PC = 0x00000A54,     line:     atomadd r15, r3, 1
+0x1238FF93,   //PC = 0x00000A58,     line:     beq r15, r15, INF_LOOP, true
+0x00000422,   //PC = 0x00000A5C,     line:     yield r8                             # yield()
+0x0008819F,   //PC = 0x00000A60,     line:     lw r3, RAY_QUEUE_HIGH                # int queue_address_high = self.ray_queue_address_high
+0x00001FA7,   //PC = 0x00000A64,     line:     setmembits r3                        # set_address_bits(queue_address_high)
+0x000C819F,   //PC = 0x00000A68,     line:     lw r3, RAY_QUEUE_LOW                 # int queue_address_low = self.ray_queue_address_low
+0x0001FF02,   //PC = 0x00000A6C,     line:     and r14, r15, 1                      # r14 = self.is_branch_core (bit 0 of r15)
+0x7F64F708,   //PC = 0x00000A70,     line:     mul r14, r14, 32612                  # r14 *= 16924 (offset to branch queue if branch core)
+0x000E1980,   //PC = 0x00000A74,     line:     add r3, r3, r14                      # queue_address_low += r14 (select correct queue)
+0x00081A2C,   //PC = 0x00000A78,     line:     lw_d r4, r3, 8                       # int cur_ray_count = load_dram_word(queue_address_low + 8)
+0x0B6CF215,   //PC = 0x00000A7C,     line:     blte r4, r14, DRAM_RAY_QUEUE_EMPTY, true  # if (cur_ray_count <= 0) goto DRAM_RAY_QUEUE_EMPTY
+0x0100F280,   //PC = 0x00000A80,     line:     add r5, r14, 256                     # r5 = 256
+0x0A9CAA15,   //PC = 0x00000A84,     line:     blte r4, r5, RESET_PULLED_FROM_FULL_QUEUE_CNT, true  # if (cur_ray_count < 256) goto RESET_PULLED_FROM_FULL_QUEUE_CNT
+0x2074F280,   //PC = 0x00000A88,     line:     add r5, r14, PULLED_FROM_FULL_QUEUE_CNT  # r5 = &PULLED_FROM_FULL_QUEUE_CNT
+0x0001AAB3,   //PC = 0x00000A8C,     line:     atomadd r5, r5, 1                    # uint32_t num_times_pulled = atomic_add(pulled_from_full_queue_address, 1)
+0x0001F300,   //PC = 0x00000A90,     line:     add r6, r14, 1                       # r6 = BRANCH_BUSY_THRESHOLD (1)
+0x0AA02B35,   //PC = 0x00000A94,     line:     blteu r6, r5, PULL_ELEM_FROM_DRAM_QUEUE, false  # if (num_times_pulled <= BRANCH_BUSY_THRESHOLD) goto PULL_ELEM_FROM_DRAM_QUEUE
+0x1B5C8397,   //PC = 0x00000A98,     line:     jmp r7, SEARCH_FOR_IDLE_CORES    # branch_core_ask_for_help()
+0x2074871A,   //PC = 0x00000A9C,     line:     sw r14, PULLED_FROM_FULL_QUEUE_CNT  # *(self->pulled_from_full_queue_address) = 0
+0x00089980,   //PC = 0x00000AA0,     line:     add r3, r3, 8                        # queue_address_low += 8 (point to count field)
+0xFFFF9A30,   //PC = 0x00000AA4,     line:     atomadd_d r4, r3, -1                 # int cur_ray_count_check = atomic_add_dram(queue_address_low + 8, -1)
+0x0AB4F216,   //PC = 0x00000AA8,     line:     bgt r4, r14, STILL_ELEM_IN_QUEUE, true  # if (cur_ray_count_check > 0) goto STILL_ELEM_IN_QUEUE
+0x00019A30,   //PC = 0x00000AAC,     line:     atomadd_d r4, r3, 1                  # atomic_add_dram(queue_address_low + 8, 1) -- undo decrement
+0x0958FF93,   //PC = 0x00000AB0,     line:     beq r15, r15, ray_done, true         # goto ray_done
+0xFFF89980,   //PC = 0x00000AB4,     line:     add r3, r3, -8                       # queue_address_low -= 8 (back to base)
+0x00409A30,   //PC = 0x00000AB8,     line:     atomadd_d r4, r3, 64                 # int head = atomic_add_dram(queue_address_low, 64) -- advance head
+0x3F649980,   //PC = 0x00000ABC,     line:     add r3, r3, 16228                      # queue_address_low += 540 (skip head/count fields, +16 base + 524 padding? -- differs from pseudocode's +16)
+0x3FFFA202,   //PC = 0x00000AC0,     line:     and r4, r4, 0x3FFF                   # head = head & 0x00003FFF
+0x00041A00,   //PC = 0x00000AC4,     line:     add r4, r3, r4                       # queue_address_low = queue_address_low + head
+0x003F22A9,   //PC = 0x00000AC8,     line:     lbu_d r5, r4, 63                     # int ready = load_dram_byte(queue_address_low + 63)
+0x0AC87293,   //PC = 0x00000ACC,     line:     beq r5, r14, WAIT_FOR_WRITE, false   # if (ready == 0) goto WAIT_FOR_WRITE  # r14=0
+0x0000232C,   //PC = 0x00000AD0,     line:     lw_d r6, r4, 0                       # load ray word [0]
+0x000423AC,   //PC = 0x00000AD4,     line:     lw_d r7, r4, 4                       # load ray word [4]
+0x0008242C,   //PC = 0x00000AD8,     line:     lw_d r8, r4, 8                       # load ray word [8]
+0x000C24AC,   //PC = 0x00000ADC,     line:     lw_d r9, r4, 12                      # load ray word [12]
+0x0010252C,   //PC = 0x00000AE0,     line:     lw_d r10, r4, 16                     # load ray word [16]
+0x001425AC,   //PC = 0x00000AE4,     line:     lw_d r11, r4, 20                     # load ray word [20]
+0x0018262C,   //PC = 0x00000AE8,     line:     lw_d r12, r4, 24                     # load ray word [24]
+0x001C26AC,   //PC = 0x00000AEC,     line:     lw_d r13, r4, 28                     # load ray word [28]
+0x0000032D,   //PC = 0x00000AF0,     line:     sw_d r6, r0, 0                       # store to ray SRAM [0]
+0x000403AD,   //PC = 0x00000AF4,     line:     sw_d r7, r0, 4                       # store to ray SRAM [4]
+0x0008042D,   //PC = 0x00000AF8,     line:     sw_d r8, r0, 8                       # store to ray SRAM [8]
+0x000C04AD,   //PC = 0x00000AFC,     line:     sw_d r9, r0, 12                      # store to ray SRAM [12]
+0x0010052D,   //PC = 0x00000B00,     line:     sw_d r10, r0, 16                     # store to ray SRAM [16]
+0x001405AD,   //PC = 0x00000B04,     line:     sw_d r11, r0, 20                     # store to ray SRAM [20]
+0x0018062D,   //PC = 0x00000B08,     line:     sw_d r12, r0, 24                     # store to ray SRAM [24]
+0x001C06AD,   //PC = 0x00000B0C,     line:     sw_d r13, r0, 28                     # store to ray SRAM [28]
+0x0020232C,   //PC = 0x00000B10,     line:     lw_d r6, r4, 32                      # load ray word [32]
+0x002423AC,   //PC = 0x00000B14,     line:     lw_d r7, r4, 36                      # load ray word [36]
+0x0028242C,   //PC = 0x00000B18,     line:     lw_d r8, r4, 40                      # load ray word [40]
+0x002C24AC,   //PC = 0x00000B1C,     line:     lw_d r9, r4, 44                      # load ray word [44]
+0x0030252C,   //PC = 0x00000B20,     line:     lw_d r10, r4, 48                     # load ray word [48]
+0x003425AC,   //PC = 0x00000B24,     line:     lw_d r11, r4, 52                     # load ray word [52]
+0x0038262C,   //PC = 0x00000B28,     line:     lw_d r12, r4, 56                     # load ray word [56]
+0x003C26AC,   //PC = 0x00000B2C,     line:     lw_d r13, r4, 60                     # load ray word [60]
+0x0020032D,   //PC = 0x00000B30,     line:     sw_d r6, r0, 32                      # store to ray SRAM [32]
+0x002403AD,   //PC = 0x00000B34,     line:     sw_d r7, r0, 36                      # store to ray SRAM [36]
+0x0028042D,   //PC = 0x00000B38,     line:     sw_d r8, r0, 40                      # store to ray SRAM [40]
+0x002C04AD,   //PC = 0x00000B3C,     line:     sw_d r9, r0, 44                      # store to ray SRAM [44]
+0x0030052D,   //PC = 0x00000B40,     line:     sw_d r10, r0, 48                     # store to ray SRAM [48]
+0x003405AD,   //PC = 0x00000B44,     line:     sw_d r11, r0, 52                     # store to ray SRAM [52]
+0x0038062D,   //PC = 0x00000B48,     line:     sw_d r12, r0, 56                     # store to ray SRAM [56]
+0x003C06AD,   //PC = 0x00000B4C,     line:     sw_d r13, r0, 60                     # store to ray SRAM [60]
+0x003F272F,   //PC = 0x00000B50,     line:     sb_d r14, r4, 63                     # write_dram_byte(queue_address_low + 63, 0) -- mark slot as consumed
+0x0001F300,   //PC = 0x00000B54,     line:     add r6, r14, 1                       # r6 = 1
+0x003F0318,   //PC = 0x00000B58,     line:     sb r6, r0, 63                        # ray->active_ray = 1
+0x0028009F,   //PC = 0x00000B5C,     line:     lw r1, r0, 40                        # node = ray->leaf_node_starting_point
+0x00018885,   //PC = 0x00000B60,     line:     sll r1, r1, 1                        # r1 <<= 1 (index into lookup table, 2 bytes per entry)
+0x272C089E,   //PC = 0x00000B64,     line:     lhu r1, r1, LEAF_CORE_LOOKUP_TABLE   # r1 = LEAF_CORE_LOOKUP_TABLE[node] -- get target leaf core
+0x0408FF93,   //PC = 0x00000B68,     line:     beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
+0x00000422,   //PC = 0x00000B6C,     line:     yield r8                             # yield()
+0x0008819F,   //PC = 0x00000B70,     line:     lw r3, RAY_QUEUE_HIGH                # (reload) queue_address_high
+0x00001FA7,   //PC = 0x00000B74,     line:     setmembits r3                        # set_address_bits(queue_address_high)
+0x000C819F,   //PC = 0x00000B78,     line:     lw r3, RAY_QUEUE_LOW                 # (reload) queue_address_low
+0x00081A2C,   //PC = 0x00000B7C,     line:     lw_d r4, r3, 8                       # count = load_dram_word(emergency_queue_low + 8)
+0x0BE0F215,   //PC = 0x00000B80,     line:     blte r4, r14, CHECK_SPAWNED_RAY_POOL, true  # if (count <= 0) goto CHECK_SPAWNED_RAY_POOL
+0x00089980,   //PC = 0x00000B84,     line:     add r3, r3, 8                        # emergency_queue_low += 8
+0x00019A30,   //PC = 0x00000B88,     line:     atomadd_d r4, r3, 1                  # uint32_t old_cnt = atomic_add_dram(emergency_queue_low, 1)
+0x0B987215,   //PC = 0x00000B8C,     line:     blte r4, r14, EMERGENCY_SWITCH_BEGIN, false  # if (old_cnt > 0) goto EMERGENCY_SWITCH_BEGIN -- differs: pseudocode checks <= 0 to UNDO
+0xFFFF9A30,   //PC = 0x00000B90,     line:     atomadd_d r4, r3, -1                 # atomic_add_dram(emergency_queue_low, -1) -- undo increment
+0x0BE0FF93,   //PC = 0x00000B94,     line:     beq r15, r15, CHECK_SPAWNED_RAY_POOL, true  # goto CHECK_SPAWNED_RAY_POOL
+0xFFF89980,   //PC = 0x00000B98,     line:     add r3, r3, -8                       # emergency_queue_low -= 8 (back to base)
+0x00049A30,   //PC = 0x00000B9C,     line:     atomadd_d r4, r3, 4                  # uint32_t byte_index = atomic_add_dram(emergency_queue_low, 4)
+0x00FFA202,   //PC = 0x00000BA0,     line:     and r4, r4, 0xFF                     # byte_index &= 0x000000FF
+0x00041980,   //PC = 0x00000BA4,     line:     add r3, r3, r4                       # emergency_queue_low += byte_index
+0x000C9980,   //PC = 0x00000BA8,     line:     add r3, r3, 12                       # emergency_queue_low += 12
+0x00021A2B,   //PC = 0x00000BAC,     line:     lhu_d r4, r3, 2                      # uint16_t is_ready = load_dram_byte(emergency_queue_low + 2)
+0x0BAC7213,   //PC = 0x00000BB0,     line:     beq r4, r14, ENSURE_EMERGENCY_SLOT_READY_TWO, false  # if (is_ready == 0) goto ENSURE_EMERGENCY_SLOT_READY
+0x00001A2B,   //PC = 0x00000BB4,     line:     lhu_d r4, r3, 0                      # uint32_t new_node_id = load_dram_half(emergency_queue_low)
+0x0001F280,   //PC = 0x00000BB8,     line:     add r5, r14, 1                       # r5 = 1
+0x00001AAE,   //PC = 0x00000BBC,     line:     sh_d r5, r3, 0                       # store_dram_byte(emergency_queue_low + 2, 0) -- mark slot consumed; differs: pseudocode writes to +2 but asm writes to +0
+0x1FE4F280,   //PC = 0x00000BC0,     line:     add r5, r14, LOCAL_QUEUE_FLUSHING   
+0x0001AFB3,   //PC = 0x00000BC4,     line:     atomadd r15, r5, 1
+0x0010F300,   //PC = 0x00000BC8,     line:     add r6, r14, 16
+0x1FE4829F,   //PC = 0x00000BCC,     line:     lw r5, LOCAL_QUEUE_FLUSHING
+0x00000038,   //PC = 0x00000BD0,     line:     switchctx
+0x0BCCB293,   //PC = 0x00000BD4,     line:     beq r5, r6, EMERGENCY_SLOT_FLUSH_LOOP, true
+0x2078821A,   //PC = 0x00000BD8,     line:     sw r4, CORE_ID_TO_SWITCH_TO         # *(self.local_queue_flushing + 4) = new_node_id
+0x001CFF93,   //PC = 0x00000BDC,     line:     beq r15, r15, SWITCH_DRAM_QUEUE, true  # goto switch_dram_queue
+0x1ABC8117,   //PC = 0x00000BE0,     line:     jmp r2, IS_IDLE_BRANCH               # is_idle_branch()
+0x1FF0811F,   //PC = 0x00000BE4,     line:     lw r2, SPAWNED_RAY_POOL_HIGH         # uint32_t spawned_ray_pool_high = self.spawned_ray_pool_high
+0x000017A7,   //PC = 0x00000BE8,     line:     setmembits r2                        # set_address_bits(spawned_ray_pool_high)
+0x1FF4811F,   //PC = 0x00000BEC,     line:     lw r2, SPAWNED_RAY_POOL_LOW          # uint32_t spawned_ray_pool_low = self.spawned_ray_pool_low
+0x000811AC,   //PC = 0x00000BF0,     line:     lw_d r3, r2, 8                       # uint32_t count = load_dram_word(spawned_ray_pool_low + 8)
+0x0D14F195,   //PC = 0x00000BF4,     line:     blte r3, r14, GRAB_FROM_TILE, true   # if (count <= 0) goto grab_from_tile
+0x00089100,   //PC = 0x00000BF8,     line:     add r2, r2, 8                        # spawned_ray_pool_low += 8
+0xFFFF91B0,   //PC = 0x00000BFC,     line:     atomadd_d r3, r2, -1                 # uint32_t old_cnt = atomic_add(spawned_ray_pool_low, -1)
+0x0C0CF196,   //PC = 0x00000C00,     line:     bgt r3, r14, CONTINUE_REMOVING_FROM_SPAWNED_RAY_POOL, true  # if (old_cnt > 0) goto CONTINUE -- differs: pseudocode checks old_cnt <= 0 to undo
+0x000191B0,   //PC = 0x00000C04,     line:     atomadd_d r3, r2, 1                  # atomic_add(spawned_ray_pool_low, 1) -- undo decrement
+0x0D14FF93,   //PC = 0x00000C08,     line:     beq r15, r15, GRAB_FROM_TILE, true   # goto grab_from_tile
+0xFFF89100,   //PC = 0x00000C0C,     line:     add r2, r2, -8                       # spawned_ray_pool_low -= 8 (back to base)
+0x002091B0,   //PC = 0x00000C10,     line:     atomadd_d r3, r2, 32                 # uint32_t head = atomic_add(spawned_ray_pool_low, 32)
+0x1FDC821F,   //PC = 0x00000C14,     line:     lw r4, SPAWNED_RAY_POOL_MASK         # r4 = 0x007FFFFF
+0x00041982,   //PC = 0x00000C18,     line:     and r3, r3, r4                       # head &= head_mask
+0x00031100,   //PC = 0x00000C1C,     line:     add r2, r2, r3                       # spawned_ray_pool_low += head
+0x002B11A9,   //PC = 0x00000C20,     line:     lbu_d r3, r2, 43                     # uint8_t slot_ready = load_dram_byte(spawned_ray_pool_low + 43)
+0x0C207193,   //PC = 0x00000C24,     line:     beq r3, r14, ENSURE_RAY_POOL_SLOT_READY, false  # if (slot_ready == 0) goto ENSURE_RAY_POOL_SLOT_READY
+0x000C11AC,   //PC = 0x00000C28,     line:     lw_d r3, r2, 12                      # value_one = load_dram_word(spawned_ray_pool_low + 12)  -- ox
+0x0010122C,   //PC = 0x00000C2C,     line:     lw_d r4, r2, 16                      # value_two = load_dram_word(spawned_ray_pool_low + 16)  -- oy
+0x001412AC,   //PC = 0x00000C30,     line:     lw_d r5, r2, 20                      # value_three = load_dram_word(spawned_ray_pool_low + 20) -- oz
+0x0018132C,   //PC = 0x00000C34,     line:     lw_d r6, r2, 24                      # value_four = load_dram_word(spawned_ray_pool_low + 24)  -- dx
+0x001C13AC,   //PC = 0x00000C38,     line:     lw_d r7, r2, 28                      # value_five = load_dram_word(spawned_ray_pool_low + 28)  -- dy
+0x0020142C,   //PC = 0x00000C3C,     line:     lw_d r8, r2, 32                      # value_six = load_dram_word(spawned_ray_pool_low + 32)   -- dz
+0x002414AC,   //PC = 0x00000C40,     line:     lw_d r9, r2, 36                      # pix_xy = load_dram_word(spawned_ray_pool_low + 36)
+0x0028152A,   //PC = 0x00000C44,     line:     lh_d r10, r2, 40                     # meta = load_dram_word(spawned_ray_pool_low + 40)
+0x002B172F,   //PC = 0x00000C48,     line:     sb_d r14, r2, 43                     # store_dram_byte(spawned_ray_pool_low + 43, 0) -- mark slot consumed
+0x0000019A,   //PC = 0x00000C4C,     line:     sw r3, r0, 0                         # ray->ox = value_one
+0x0004021A,   //PC = 0x00000C50,     line:     sw r4, r0, 4                         # ray->oy = value_two
+0x0008029A,   //PC = 0x00000C54,     line:     sw r5, r0, 8                         # ray->oz = value_three
+0x000C031A,   //PC = 0x00000C58,     line:     sw r6, r0, 12                        # ray->dx = value_four
+0x0010039A,   //PC = 0x00000C5C,     line:     sw r7, r0, 16                        # ray->dy = value_five
+0x0014041A,   //PC = 0x00000C60,     line:     sw r8, r0, 20                        # ray->dz = value_six
+0x0034049A,   //PC = 0x00000C64,     line:     sw r9, r0, 52                        # ray->pix_xy = pix_xy  -- differs: pseudocode writes to pix_x field, asm writes to offset 52
+0x00FFD182,   //PC = 0x00000C68,     line:     and r3, r10, 0xFF                    # ray->bounce_count = meta & 0xFF
+0x0008D206,   //PC = 0x00000C6C,     line:     srl r4, r10, 8                       # r4 = meta >> 8
+0x00FFA202,   //PC = 0x00000C70,     line:     and r4, r4, 0xFF                     # ray->light_id = (meta >> 8) & 0xFF
+0x003C0198,   //PC = 0x00000C74,     line:     sb r3, r0, 60                        # store ray->bounce_count
+0x003D0218,   //PC = 0x00000C78,     line:     sb r4, r0, 61                        # store ray->light_id
+0x000C029F,   //PC = 0x00000C7C,     line:     lw r5, r0, 12                        # r5 = ray->dx
+0x0010031F,   //PC = 0x00000C80,     line:     lw r6, r0, 16                        # r6 = ray->dy
+0x0014039F,   //PC = 0x00000C84,     line:     lw r7, r0, 20                        # r7 = ray->dz
+0x00052C0B,   //PC = 0x00000C88,     line:     fpmul.32 r8, r5, r5                  # float len_sq = dx * dx
+0x0006348B,   //PC = 0x00000C8C,     line:     fpmul.32 r9, r6, r6                  # tmp = dy * dy
+0x00073D0B,   //PC = 0x00000C90,     line:     fpmul.32 r10, r7, r7                 # tmp2 = dz * dz
+0x0009440A,   //PC = 0x00000C94,     line:     fpadd r8, r8, r9                      # len_sq += tmp
+0x000A440A,   //PC = 0x00000C98,     line:     fpadd r8, r8, r10                     # len_sq += tmp2
+0x18C08497,   //PC = 0x00000C9C,     line:     jmp r9, INV_SQRT                     # float inv_len = fast_inv_sqrt(len_sq)  -- result in r8
+0x00082A8B,   //PC = 0x00000CA0,     line:     fpmul.32 r5, r5, r8                   # ray->dx = dx * inv_len
+0x0008330B,   //PC = 0x00000CA4,     line:     fpmul.32 r6, r6, r8                   # ray->dy = dy * inv_len
+0x00083B8B,   //PC = 0x00000CA8,     line:     fpmul.32 r7, r7, r8                   # ray->dz = dz * inv_len
+0x0000AC80,   //PC = 0x00000CAC,     line:     add r9, r5, 0                        # r9 = ray->dx (move for RECIPROCAL call)
+0x18648517,   //PC = 0x00000CB0,     line:     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(ray->dx)  -- result in r9
+0x0018049A,   //PC = 0x00000CB4,     line:     sw r9, r0, 24                        # store ray->inv_dx
+0x0000B480,   //PC = 0x00000CB8,     line:     add r9, r6, 0                        # r9 = ray->dy
+0x18648517,   //PC = 0x00000CBC,     line:     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(ray->dy)
+0x001C049A,   //PC = 0x00000CC0,     line:     sw r9, r0, 28                        # store ray->inv_dy
+0x0000BC80,   //PC = 0x00000CC4,     line:     add r9, r7, 0                        # r9 = ray->dz
+0x18648517,   //PC = 0x00000CC8,     line:     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(ray->dz)
+0x0020049A,   //PC = 0x00000CCC,     line:     sw r9, r0, 32                        # store ray->inv_dz
+0x0000F702,   //PC = 0x00000CD0,     line:     and r14, r14, 0                      # r14 = 0
+0x0CE42715,   //PC = 0x00000CD4,     line:     blte r14, r4, IS_NOT_SHADOW, false   # if (light_id == 0) goto IS_NOT_SHADOW  -- differs: pseudocode checks is_shadow != 0
+0x0000C480,   //PC = 0x00000CD8,     line:     add r9, r8, 0                        # r9 = inv_len (for shadow ray t_max = 1/|d| = distance to light)
+0x18648517,   //PC = 0x00000CDC,     line:     jmp r10, RECIPROCAL                  # ray->t_max = reciprocal(inv_len)
+0x0CECFF93,   //PC = 0x00000CE0,     line:     beq r15, r15, FINISH_SETTING_OTHER_RAY_FIELDS, true  # goto FINISH_SETTING_OTHER_RAY_FIELDS
+0x1FD8811F,   //PC = 0x00000CE4,     line:     lw r2, INFINITY                      # r2 = 0x7F800000
+0x0024011A,   //PC = 0x00000CE8,     line:     sw r2, r0, 36                        # ray->t_max = INFINITY
+0x0000F702,   //PC = 0x00000CEC,     line:     and r14, r14, 0                      # r14 = 0
+0x002C071A,   //PC = 0x00000CF0,     line:     sw r14, r0, 44                       # ray->check_left = 0
+0x0030071A,   //PC = 0x00000CF4,     line:     sw r14, r0, 48                       # ray->check_right = 0
+0xFFFFF680,   //PC = 0x00000CF8,     line:     add r13, r14, -1                     # r13 = 0xFFFFFFFF
+0x0038069A,   //PC = 0x00000CFC,     line:     sw r13, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+0x0001F600,   //PC = 0x00000D00,     line:     add r12, r14, 1                      # r12 = 1
+0x003F0618,   //PC = 0x00000D04,     line:     sb r12, r0, 63                       # ray->active_ray = 1
+0x003E0718,   //PC = 0x00000D08,     line:     sb r14, r0, 62                       # ray->ray_depth = 0  -- differs: pseudocode doesn't explicitly set ray_depth here
+0x2304809F,   //PC = 0x00000D0C,     line:     lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
+0x0408FF93,   //PC = 0x00000D10,     line:     beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
+0x2080811D,   //PC = 0x00000D14,     line:     lh r2, TILE_IS_ACTIVE                # uint16_t is_active = *(self.tile_data_sram->is_active)
+0x0000F702,   //PC = 0x00000D18,     line:     and r14, r14, 0                      # r14 = 0
+0x0D447113,   //PC = 0x00000D1C,     line:     beq r2, r14, GET_NEW_TILE, false     # if (!is_active) goto get_new_tile
+0x207C811F,   //PC = 0x00000D20,     line:     lw r2, TILE_DATA_COUNT               # uint32_t tile_total_count = *(self.tile_data_sram->count)
+0x00FFF180,   //PC = 0x00000D24,     line:     add r3, r14, 255                     # r3 = 255
+0x0DCC9916,   //PC = 0x00000D28,     line:     bgt r2, r3, SKIP_RETURNING_TILE, true  # if (tile_total_count > 255) goto skip_returning_tile
+0x20A4811F,   //PC = 0x00000D2C,     line:     lw r2, RAYS_SPAWNED_FROM_TILE        # uint32_t rays_spawned_from_tile = *(self.tile_data_sram->rays_spawned_from_tile)
+0x0007F180,   //PC = 0x00000D30,     line:     add r3, r14, 7                       # r3 = 7  # TODO, Threshold for when to return tile to queue
+0x0E781196,   //PC = 0x00000D34,     line:     bgt r3, r2, SPAWN_FROM_TILE, false   # if (rays_spawned_from_tile < 7) goto spawn_from_tile
+0x20A8821F,   //PC = 0x00000D38,     line:     lw r4, RAYS_FORWARDED_OUT_FROM_TILE  # uint32_t rays_forwarded_out_from_tile = *(self.tile_data_sram->rays_forwarded_out_from_tile)
+0x0001A205,   //PC = 0x00000D3C,     line:     sll r4, r4, 1                        # rays_forwarded_out_from_tile <<= 1
+0x0E78A116,   //PC = 0x00000D40,     line:     bgt r2, r4, SPAWN_FROM_TILE, true    # if (rays_forwarded_out_from_tile < rays_spawned_from_tile) goto spawn_from_tile
+0x00000023,   //PC = 0x00000D44,     line:     getowner                             # get_ownership()
+0x0000F702,   //PC = 0x00000D48,     line:     and r14, r14, 0                      # r14 = 0
+0x1FF8811F,   //PC = 0x00000D4C,     line:     lw r2, TILE_QUEUE_HIGH               # uint32_t tile_pool_high = self.tile_pool_high
+0x000017A7,   //PC = 0x00000D50,     line:     setmembits r2                        # set_address_bits(tile_pool_high)
+0x1FFC811F,   //PC = 0x00000D54,     line:     lw r2, TILE_QUEUE_LOW                # uint32_t tile_pool_low = self.tile_pool_low
+0x2080819E,   //PC = 0x00000D58,     line:     lhu r3, TILE_IS_ACTIVE               # uint8_t tile_rays_spawned = *(self.tile_data_sram->is_active)  -- differs: pseudocode checks count not is_active
+0x0DCC7194,   //PC = 0x00000D5C,     line:     bne r3, r14, SKIP_RETURNING_TILE, false  # if (tile_rays_spawned != 0) goto skip_returning_tile  -- differs: pseudocode checks count > 255
+0x20A4819F,   //PC = 0x00000D60,     line:     lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
+0x00FFF200,   //PC = 0x00000D64,     line:     add r4, r14, 255                     # r4 = 255
+0x0DCCA196,   //PC = 0x00000D68,     line:     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
+0x00049100,   //PC = 0x00000D6C,     line:     add r2, r2, 4
+0x000491B0,   //PC = 0x00000D70,     line:     atomadd_d r3, r2, 4     # r3 = bytes_relative_tail
+0x00049100,   //PC = 0x00000D74,     line:     add r2, r2, 4
+0x00019230,   //PC = 0x00000D78,     line:     atomadd_d r4, r2, 1
+0xFFFF9982,   //PC = 0x00000D7C,     line:     and r3, r3, 0xFFFF
+0x00031100,   //PC = 0x00000D80,     line:     add r2, r2, r3
 0x00049100,   //PC = 0x00000D84,     line:     add r2, r2, 4
-0x000491B0,   //PC = 0x00000D88,     line:     atomadd_d r3, r2, 4     # r3 = bytes_relative_tail
-0x00049100,   //PC = 0x00000D8C,     line:     add r2, r2, 4
-0x00019230,   //PC = 0x00000D90,     line:     atomadd_d r4, r2, 1
-0xFFFF9982,   //PC = 0x00000D94,     line:     and r3, r3, 0xFFFF
-0x00031100,   //PC = 0x00000D98,     line:     add r2, r2, r3
-0x00049100,   //PC = 0x00000D9C,     line:     add r2, r2, 4
-0x000311A9,   //PC = 0x00000DA0,     line:     lbu_d r3, r2, 3
-0x0000F702,   //PC = 0x00000DA4,     line:     and r14, r14, 0
-0x0D9C7194,   //PC = 0x00000DA8,     line:     bne r3, r14, loop_on_putting_tile_back, false
-0x20A8819F,   //PC = 0x00000DAC,     line:     lw r3, TILE_INTER_INDEX_Y          # r3 = tile_y_index
-0x0000A202,   //PC = 0x00000DB0,     line:     and r4, r4, 0
-0x00A0A200,   //PC = 0x00000DB4,     line:     add r4, r4, 160
-0x00041988,   //PC = 0x00000DB8,     line:     mul r3, r3, r4                       # r3 = tile_y_index * 160
-0x20A4821F,   //PC = 0x00000DBC,     line:     lw r4, TILE_INTER_INDEX_X          # r4 = tile_x_index
-0x00041980,   //PC = 0x00000DC0,     line:     add r3, r3, r4                       # r3 = tile_index
-0x000011AE,   //PC = 0x00000DC4,     line:     sh_d r3, r2, 0                       # store tile_index as half at slot base
-0x2094819C,   //PC = 0x00000DC8,     line:     lbu r3, TILE_DATA_COUNT              # r3 = tile_rays_spawned (count)
-0x00029100,   //PC = 0x00000DCC,     line:     add r2, r2, 2                        # r2 = slot base + 2
-0x000011AF,   //PC = 0x00000DD0,     line:     sb_d r3, r2, 0                       # store count byte at slot+2
-0x00019100,   //PC = 0x00000DD4,     line:     add r2, r2, 1                        # r2 = slot base + 3
-0x00009982,   //PC = 0x00000DD8,     line:     and r3, r3, 0
-0x00019980,   //PC = 0x00000DDC,     line:     add r3, r3, 1                        # r3 = 1
-0x000011AF,   //PC = 0x00000DE0,     line:     sb_d r3, r2, 0                       # store is_valid = 1 at slot+3
-0x2014811F,   //PC = 0x00000DE4,     line:     lw r2, TILE_QUEUE_LOW
-0x00089100,   //PC = 0x00000DE8,     line:     add r2, r2, 8
-0x0000119F,   //PC = 0x00000DEC,     line:     lw r3, r2, 0
-0xFFF89100,   //PC = 0x00000DF0,     line:     add r2, r2, -8
-0x0000F702,   //PC = 0x00000DF4,     line:     and r14, r14, 0
-0x1018F195,   //PC = 0x00000DF8,     line:     blte r3, r14, SKIP_GRABBING_TILE_RAYS, true
-0x00089100,   //PC = 0x00000DFC,     line:     add r2, r2, 8
-0xFFFF91B0,   //PC = 0x00000E00,     line:     atomadd_d r3, r2, -1
-0x0E107196,   //PC = 0x00000E04,     line:     bgt r3, r14, DONT_SKIP_GRABBING_TILE, false
-0x000191B0,   //PC = 0x00000E08,     line:     atomadd_d r3, r2, 1
-0x1018FF93,   //PC = 0x00000E0C,     line:     beq r15, r15, SKIP_GRABBING_TILE_RAYS, true
-0xFFF89100,   //PC = 0x00000E10,     line:     add r2, r2, -8
-0x000491B0,   //PC = 0x00000E14,     line:     atomadd_d r3, r2, 4
-0xFFFFF200,   //PC = 0x00000E18,     line:     add r4, r14, 0xFFFF
-0x00041982,   //PC = 0x00000E1C,     line:     and r3, r3, r4
-0x00031100,   //PC = 0x00000E20,     line:     add r2, r2, r3
-0x000F11A9,   //PC = 0x00000E24,     line:     lbu_d r3, r2, 15                     
-0x0E247193,   //PC = 0x00000E28,     line:     beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false
-0x000C11AB,   //PC = 0x00000E2C,     line:     lhu_d r3, r2, 12                     # r3 = tile_index  (uint16 at +12)
-0x000E1229,   //PC = 0x00000E30,     line:     lbu_d r4, r2, 14                     # r4 = tile_cnt    (uint8  at +14)
-0x000F172F,   //PC = 0x00000E34,     line:     sb_d r14, r2, 15                     # is_valid = 0
-0x2094821A,   //PC = 0x00000E38,     line:     sw r4, TILE_DATA_COUNT               # store count
-0x0000AA82,   //PC = 0x00000E3C,     line:     and r5, r5, 0
-0x00A0AA80,   //PC = 0x00000E40,     line:     add r5, r5, 160
-0x00051A89,   //PC = 0x00000E44,     line:     div r5, r3, r5                       # r5 = tile_y_index = tile_index / 160
-0x00A0AB08,   //PC = 0x00000E48,     line:     mul r6, r5, 160                      # r6 = tile_y_index * 160  (temp for subtraction)
-0x00061B01,   //PC = 0x00000E4C,     line:     sub r6, r3, r6                       # r6 = tile_x_index = tile_index - tile_y_index*160
-0x20A4831A,   //PC = 0x00000E50,     line:     sw r6, TILE_INTER_INDEX_X                         # tile_x_index
-0x20A8829A,   //PC = 0x00000E54,     line:     sw r5, TILE_INTER_INDEX_Y                         # tile_y_index
-0x0004171A,   //PC = 0x00000E58,     line:     sw r14, r2, 4
-0x0008171A,   //PC = 0x00000E5C,     line:     sw r14, r2, 8
-0x000C171A,   //PC = 0x00000E60,     line:     sw r14, r2, 12
-0x0010171A,   //PC = 0x00000E64,     line:     sw r14, r2, 16
-0x000FF982,   //PC = 0x00000E68,     line:     and r3, r15, 0xF                     # r3 = thread_id
-0x00049980,   //PC = 0x00000E6C,     line:     add r3, r3, 4                        # r3 = thread_id + 4 (offset into struct past x/y)
-0x00021980,   //PC = 0x00000E70,     line:     add r3, r3, r2                       # r3 = &cur_ray_spawned_from_tile[thread_id]
-0x0000A202,   //PC = 0x00000E74,     line:     and r4, r4, 0
-0x0001A200,   //PC = 0x00000E78,     line:     add r4, r4, 1
-0x00001A18,   //PC = 0x00000E7C,     line:     sb r4, r3, 0                         # cur_ray_spawned_from_tile[thread_id] = 1
-0x20C0871A,   //PC = 0x00000E80,     line:     sw r14, RAYS_FORWARDED_OUT_FROM_TILE # rays_forwarded_out_from_tile = 0
-0x20BC871A,   //PC = 0x00000E84,     line:     sw r14, RAYS_SPAWNED_FROM_TILE       # rays_spawned_from_tile = 0
-0x00108024,   //PC = 0x00000E88,     line:     setctx 16                            # set_ctx(16)
-0x00000025,   //PC = 0x00000E8C,     line:     relinquish false                     # relinquish_ownership(0)
-0x0000F702,   //PC = 0x00000E90,     line:     and r14, r14, 0                      # r14 = 0
-0x2094F100,   //PC = 0x00000E94,     line:     add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
-0x000191B3,   //PC = 0x00000E98,     line:     atomadd r3, r2, 1                    # uint32_t ray_num_from_tile = atomic_add(tile_data_sram_address, 1)
-0x00FFF200,   //PC = 0x00000E9C,     line:     add r4, r14, 255                     # r4 = 255
-0x0D5C2196,   //PC = 0x00000EA0,     line:     bgt r3, r4, GET_NEW_TILE, false      # if (ray_num_from_tile > 255) goto get_new_tile
-0x00289100,   //PC = 0x00000EA4,     line:     add r2, r2, 40                       # tile_data_sram_address += 28 (point to rays_spawned counter)
-0x000197B3,   //PC = 0x00000EA8,     line:     atomadd r15, r2, 1                   # atomic_add(tile_data_sram_address, 1) -- increment rays spawned
-0xFFD89100,   //PC = 0x00000EAC,     line:     add r2, r2, -40                       # tile_data_sram_address -= 28 
-0x000F9A02,   //PC = 0x00000EB0,     line:     and r4, r3, 0xF                      # uint32_t intra_tile_x = ray_num_from_tile & 0xF
-0x00049A86,   //PC = 0x00000EB4,     line:     srl r5, r3, 4                        # uint32_t intra_tile_y = ray_num_from_tile >> 4
-0x20A4831F,   //PC = 0x00000EB8,     line:     lw r6, TILE_INTER_INDEX_X                        # uint32_t inter_tile_x = *(self.tile_data_sram->tile_x_index)
-0x20A8839F,   //PC = 0x00000EBC,     line:     lw r7, TILE_INTER_INDEX_Y                       # uint32_t inter_tile_y = *(self.tile_data_sram->tile_y_index)
-0x0004B305,   //PC = 0x00000EC0,     line:     sll r6, r6, 4                        # inter_tile_x <<= 4
-0x0004BB85,   //PC = 0x00000EC4,     line:     sll r7, r7, 4                        # inter_tile_y <<= 4
-0x00043300,   //PC = 0x00000EC8,     line:     add r6, r6, r4                       # uint32_t pix_x = inter_tile_x + intra_tile_x
-0x00053B80,   //PC = 0x00000ECC,     line:     add r7, r7, r5                       # uint32_t pix_y = inter_tile_y + intra_tile_y
-0x00340319,   //PC = 0x00000ED0,     line:     sh r6, r0, 52                        # ray->pix_x = pix_x
-0x00360399,   //PC = 0x00000ED4,     line:     sh r7, r0, 54                        # ray->pix_y = pix_y
-0x2048811F,   //PC = 0x00000ED8,     line:     lw r2, INT_TO_FLOAT_TABLE_HIGH       # uint32_t itof_table_high = self.itof_table_high
-0x000017A7,   //PC = 0x00000EDC,     line:     setmembits r2                        # set_address_bits(itof_table_high)
-0x204C811F,   //PC = 0x00000EE0,     line:     lw r2, INT_TO_FLOAT_TABLE_LOW        # uint32_t itof_table_low = self.itof_table_low
-0x0002B305,   //PC = 0x00000EE4,     line:     sll r6, r6, 2                        # uint32_t x_offset = pix_x << 2
-0x0002BB85,   //PC = 0x00000EE8,     line:     sll r7, r7, 2                        # uint32_t y_offset = pix_y << 2
-0x00061300,   //PC = 0x00000EEC,     line:     add r6, r2, r6                       # r6 = itof_table_low + x_offset
-0x00071380,   //PC = 0x00000EF0,     line:     add r7, r2, r7                       # r7 = itof_table_low + y_offset
-0x000031AC,   //PC = 0x00000EF4,     line:     lw_d r3, r6, 0                       # float fpix_x = load_dram_word(itof_table_low + x_offset)
-0x00003A2C,   //PC = 0x00000EF8,     line:     lw_d r4, r7, 0                       # float fpix_y = load_dram_word(itof_table_low + y_offset)
-0x2070829F,   //PC = 0x00000EFC,     line:     lw r5, CAM_X                         # float cam_cx = *(self.cam_x)  -- differs: pseudocode uses cam_cx here, asm uses CAM_X
-0x0000029A,   //PC = 0x00000F00,     line:     sw r5, r0, 0                         # ray->ox = cam_x  -- storing camera origin
-0x2074831F,   //PC = 0x00000F04,     line:     lw r6, CAM_Y                         # float cam_cy = *(self.cam_y)
-0x0004031A,   //PC = 0x00000F08,     line:     sw r6, r0, 4                         # ray->oy = cam_y
-0x2078831F,   //PC = 0x00000F0C,     line:     lw r6, CAM_Z                         # float cam_cy = *(self.cam_y)
-0x0008031A,   //PC = 0x00000F10,     line:     sw r6, r0, 8                         # ray->oy = cam_y
-0x207C829F,   //PC = 0x00000F14,     line:     lw r5, CAM_CX
-0x2080831F,   //PC = 0x00000F18,     line:     lw r6, CAM_CY
-0x2084839F,   //PC = 0x00000F1C,     line:     lw r7, CAM_INV_FOCAL
-0x00051C0C,   //PC = 0x00000F20,     line:     fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - CAM_CX
-0x0006248C,   //PC = 0x00000F24,     line:     fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - CAM_CY
-0x0007410B,   //PC = 0x00000F28,     line:     fpmul.32 r2, r8, r7                  # r2 = dx_cam *= inv_focal
-0x0007498B,   //PC = 0x00000F2C,     line:     fpmul.32 r3, r9, r7                  # r3 = dy_cam *= inv_focal
-0x1FEC821F,   //PC = 0x00000F30,     line:     lw r4, NEG_ONE                       # r4 = dz_cam = -1.0
-0x232C829F,   //PC = 0x00000F34,     line:     lw r5, CAM_RIGHT_X
-0x2338831F,   //PC = 0x00000F38,     line:     lw r6, CAM_UP_X
-0x2320839F,   //PC = 0x00000F3C,     line:     lw r7, CAM_DX
-0x0005128B,   //PC = 0x00000F40,     line:     fpmul.32 r5, r2, r5                  # dx_cam * right.x
-0x00061B0B,   //PC = 0x00000F44,     line:     fpmul.32 r6, r3, r6                  # dy_cam * up.x
-0x0007238B,   //PC = 0x00000F48,     line:     fpmul.32 r7, r4, r7                  # dz_cam * forward.x
-0x00062A8A,   //PC = 0x00000F4C,     line:     fpadd.32 r5, r5, r6
-0x00072C0C,   //PC = 0x00000F50,     line:     fpsub.32 r8, r5, r7                  # r8 = dx_world
-0x2330829F,   //PC = 0x00000F54,     line:     lw r5, CAM_RIGHT_Y
-0x233C831F,   //PC = 0x00000F58,     line:     lw r6, CAM_UP_Y
-0x2324839F,   //PC = 0x00000F5C,     line:     lw r7, CAM_DY
-0x0005128B,   //PC = 0x00000F60,     line:     fpmul.32 r5, r2, r5
-0x00061B0B,   //PC = 0x00000F64,     line:     fpmul.32 r6, r3, r6
-0x0007238B,   //PC = 0x00000F68,     line:     fpmul.32 r7, r4, r7
-0x00062A8A,   //PC = 0x00000F6C,     line:     fpadd.32 r5, r5, r6
-0x00072C8C,   //PC = 0x00000F70,     line:     fpsub.32 r9, r5, r7                  # r9 = dy_world
-0x2334829F,   //PC = 0x00000F74,     line:     lw r5, CAM_RIGHT_Z
-0x2340831F,   //PC = 0x00000F78,     line:     lw r6, CAM_UP_Z
-0x2328839F,   //PC = 0x00000F7C,     line:     lw r7, CAM_DZ
-0x0005128B,   //PC = 0x00000F80,     line:     fpmul.32 r5, r2, r5
-0x00061B0B,   //PC = 0x00000F84,     line:     fpmul.32 r6, r3, r6
-0x0007238B,   //PC = 0x00000F88,     line:     fpmul.32 r7, r4, r7
-0x00062A8A,   //PC = 0x00000F8C,     line:     fpadd.32 r5, r5, r6
-0x00072D0C,   //PC = 0x00000F90,     line:     fpsub.32 r10, r5, r7                 # r10 = dz_world
-0x0000C100,   //PC = 0x00000F94,     line:     add r2, r8, 0                        # r2 = dx_world
-0x0000C980,   //PC = 0x00000F98,     line:     add r3, r9, 0                        # r3 = dy_world
-0x0000D200,   //PC = 0x00000F9C,     line:     add r4, r10, 0                       # r4 = dz_world
-0x0002128B,   //PC = 0x00000FA0,     line:     fpmul.32 r5, r2, r2                  # dx²
-0x00031B0B,   //PC = 0x00000FA4,     line:     fpmul.32 r6, r3, r3                  # dy²
-0x0004238B,   //PC = 0x00000FA8,     line:     fpmul.32 r7, r4, r4                  # dz²
-0x00062A8A,   //PC = 0x00000FAC,     line:     fpadd.32 r5, r5, r6
-0x00072C0A,   //PC = 0x00000FB0,     line:     fpadd.32 r8, r5, r7                  # r8 = len_sq (INV_SQRT input)
-0x18D88497,   //PC = 0x00000FB4,     line:     jmp r9, INV_SQRT                     # r8 in/out (= inv_len on return), r9 link, r10+ clobbered
-0x0002448B,   //PC = 0x00000FB8,     line:     fpmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
-0x187C8517,   //PC = 0x00000FBC,     line:     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
-0x0018049A,   //PC = 0x00000FC0,     line:     sw r9, r0, 24                        # store ray->inv_dx
-0x0003448B,   //PC = 0x00000FC4,     line:     fpmul.32 r9, r8, r3                   # inv_dy intermediate
-0x187C8517,   //PC = 0x00000FC8,     line:     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(inv_len * dy)
-0x001C049A,   //PC = 0x00000FCC,     line:     sw r9, r0, 28                        # store ray->inv_dy
-0x0004448B,   //PC = 0x00000FD0,     line:     fpmul.32 r9, r8, r4                   # inv_dz intermediate
-0x187C8517,   //PC = 0x00000FD4,     line:     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(inv_len * dz)
-0x0020049A,   //PC = 0x00000FD8,     line:     sw r9, r0, 32                        # store ray->inv_dz
-0x000C011A,   //PC = 0x00000FDC,     line:     sw r2, r0, 12                        # ray->dx = dx (unnormalized -- differs: pseudocode normalizes before storing)
-0x0010019A,   //PC = 0x00000FE0,     line:     sw r3, r0, 16                        # ray->dy = dy
-0x0014021A,   //PC = 0x00000FE4,     line:     sw r4, r0, 20                        # ray->dz = dz
-0x1FF0811F,   //PC = 0x00000FE8,     line:     lw r2, INFINITY                      # r2 = 0x7F800000
-0x0024011A,   //PC = 0x00000FEC,     line:     sw r2, r0, 36                        # ray->t_max = INFINITY
-0x0000F702,   //PC = 0x00000FF0,     line:     and r14, r14, 0                      # r14 = 0
-0x002C071A,   //PC = 0x00000FF4,     line:     sw r14, r0, 44                       # ray->check_left = 0
-0x0030071A,   //PC = 0x00000FF8,     line:     sw r14, r0, 48                       # ray->check_right = 0
-0x003C071A,   //PC = 0x00000FFC,     line:     sw r14, r0, 60                       # ray->bounce_count = 0
-0x0001F680,   //PC = 0x00001000,     line:     add r13, r14, 1                      # r13 = 1
-0xFFFFF600,   //PC = 0x00001004,     line:     add r12, r14, -1                     # r12 = 0xFFFFFFFF
-0x0038061A,   //PC = 0x00001008,     line:     sw r12, r0, 56                       # ray->tri_index = 0xFFFFFFFF
-0x003F0698,   //PC = 0x0000100C,     line:     sb r13, r0, 63                       # ray->active_ray = 1
-0x231C809F,   //PC = 0x00001010,     line:     lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
-0x0420FF93,   //PC = 0x00001014,     line:     beq r15, r15, start_ray_traversal, true   # goto start_ray_traversal
-0x00000422,   //PC = 0x00001018,     line:     yield r8                             # yield()
-0x2028811F,   //PC = 0x0000101C,     line:     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
-0x000017A7,   //PC = 0x00001020,     line:     setmembits r2                        # set_address_bits(finished_ray_high)
-0x202C811F,   //PC = 0x00001024,     line:     lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
-0x0000112C,   //PC = 0x00001028,     line:     lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
-0x1FE4819F,   //PC = 0x0000102C,     line:     lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
-0x09709914,   //PC = 0x00001030,     line:     bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
-0x00000422,   //PC = 0x00001034,     line:     yield r8                             # yield()
-0x00000023,   //PC = 0x00001038,     line:     getowner                             # get_thread_ownership()
-0x000E8024,   //PC = 0x0000103C,     line:     setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
-0x00008025,   //PC = 0x00001040,     line:     relinquish true                         # relinquish_ownership(1)
-0x000007A2,   //PC = 0x00001044,     line:     yield r15                            # yield()
-0x2020801F,   //PC = 0x00001048,     line:     lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
-0x000007A7,   //PC = 0x0000104C,     line:     setmembits r0                        # set_address_bits(pixel_addr_high)
-0x2024801F,   //PC = 0x00001050,     line:     lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
-0x0004F886,   //PC = 0x00001054,     line:     srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
-0x000FF902,   //PC = 0x00001058,     line:     and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
-0x000F8888,   //PC = 0x0000105C,     line:     mul r1, r1, 15                       # pix_index *= 15
-0x00088886,   //PC = 0x00001060,     line:     srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
-0x00010000,   //PC = 0x00001064,     line:     add r0, r0, r1                       # pixel_addr_low += pix_increment
-0x0000F702,   //PC = 0x00001068,     line:     and r14, r14, 0                      # r14 = 0
-0x00008882,   //PC = 0x0000106C,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
-0x0002F100,   //PC = 0x00001070,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
-0x2344F200,   //PC = 0x00001074,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
-0x000FFA82,   //PC = 0x00001078,     line:     and r5, r15, 0xF                     # r5 = thread_index
-0x0006AA85,   //PC = 0x0000107C,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
-0x00052200,   //PC = 0x00001080,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
-0x0000271A,   //PC = 0x00001084,     line:     sw r14, r4, 0                        # carried_r = 0.0f
-0x0004271A,   //PC = 0x00001088,     line:     sw r14, r4, 4                        # carried_g = 0.0f
-0x0008271A,   //PC = 0x0000108C,     line:     sw r14, r4, 8                        # carried_b = 0.0f
-0x00069285,   //PC = 0x00001090,     line:     sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
-0x00050280,   //PC = 0x00001094,     line:     add r5, r0, r5                       # bounce_addr += pixel_addr_low
-0x00002B2C,   //PC = 0x00001098,     line:     lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
-0x00042BAC,   //PC = 0x0000109C,     line:     lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
-0x00082C2C,   //PC = 0x000010A0,     line:     lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
-0x000C2CAC,   //PC = 0x000010A4,     line:     lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
-0x000C231A,   //PC = 0x000010A8,     line:     sw r6, r4, 12                        # scratch->sr = sr
-0x0010239A,   //PC = 0x000010AC,     line:     sw r7, r4, 16                        # scratch->sg = sg
-0x0014241A,   //PC = 0x000010B0,     line:     sw r8, r4, 20                        # scratch->sb = sb
-0x0018249A,   //PC = 0x000010B4,     line:     sw r9, r4, 24                        # scratch->metallic = metallic
-0x001C271A,   //PC = 0x000010B8,     line:     sw r14, r4, 28                       # acc_r = 0.0f
-0x0020271A,   //PC = 0x000010BC,     line:     sw r14, r4, 32                       # acc_g = 0.0f
-0x0024271A,   //PC = 0x000010C0,     line:     sw r14, r4, 36                       # acc_b = 0.0f
-0x0010AA80,   //PC = 0x000010C4,     line:     add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
-0x0000B302,   //PC = 0x000010C8,     line:     and r6, r6, 0                        # uint32_t light = 0
-0x000C2CAC,   //PC = 0x000010CC,     line:     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
-0xFFFFC403,   //PC = 0x000010D0,     line:     or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
-0x11184493,   //PC = 0x000010D4,     line:     beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
-0x187C8517,   //PC = 0x000010D8,     line:     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
-0x00002BAC,   //PC = 0x000010DC,     line:     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
-0x00042C2C,   //PC = 0x000010E0,     line:     lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
-0x00082D2C,   //PC = 0x000010E4,     line:     lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
-0x00093B8B,   //PC = 0x000010E8,     line:     fpmul.32 r7, r7, r9                   # lr *= atten
-0x0009440B,   //PC = 0x000010EC,     line:     fpmul.32 r8, r8, r9                   # lg *= atten
-0x0009550B,   //PC = 0x000010F0,     line:     fpmul.32 r10, r10, r9                 # lb *= atten
-0x001C259F,   //PC = 0x000010F4,     line:     lw r11, r4, 28                       # r11 = acc_r
-0x0020261F,   //PC = 0x000010F8,     line:     lw r12, r4, 32                       # r12 = acc_g
-0x0024269F,   //PC = 0x000010FC,     line:     lw r13, r4, 36                       # r13 = acc_b
-0x00075D8A,   //PC = 0x00001100,     line:     fpadd.32 r11, r11, r7                 # acc_r += lr 
-0x0008660A,   //PC = 0x00001104,     line:     fpadd.32 r12, r12, r8                 # acc_g += lg
-0x000A6E8A,   //PC = 0x00001108,     line:     fpadd.32 r13, r13, r10               # acc_b += lb
-0x001C259A,   //PC = 0x0000110C,     line:     sw r11, r4, 28                       # store acc_r
-0x0020261A,   //PC = 0x00001110,     line:     sw r12, r4, 32                       # store acc_g
-0x0024269A,   //PC = 0x00001114,     line:     sw r13, r4, 36                       # store acc_b
-0x0010AA80,   //PC = 0x00001118,     line:     add r5, r5, 16                       # shadow_addr += 16 (next light slot)
-0x0001B300,   //PC = 0x0000111C,     line:     add r6, r6, 1                        # light += 1
-0x0003F380,   //PC = 0x00001120,     line:     add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
-0x10CCB396,   //PC = 0x00001124,     line:     bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
-0x001C231F,   //PC = 0x00001128,     line:     lw r6, r4, 28                        # r6 = acc_r
-0x0020239F,   //PC = 0x0000112C,     line:     lw r7, r4, 32                        # r7 = acc_g
-0x0024241F,   //PC = 0x00001130,     line:     lw r8, r4, 36                        # r8 = acc_b
-0x000C249F,   //PC = 0x00001134,     line:     lw r9, r4, 12                        # r9 = sr
-0x0010251F,   //PC = 0x00001138,     line:     lw r10, r4, 16                       # r10 = sg
-0x0014259F,   //PC = 0x0000113C,     line:     lw r11, r4, 20                       # r11 = sb
-0x0018261F,   //PC = 0x00001140,     line:     lw r12, r4, 24                       # r12 = metallic
-0x1FE0869F,   //PC = 0x00001144,     line:     lw r13, ONE                          # r13 = 1.0f
-0x000C6E8C,   //PC = 0x00001148,     line:     fpsub.32 r13, r13, r12                   # float inv_metallic = 1.0f - metallic
-0x0009330B,   //PC = 0x0000114C,     line:     fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
-0x000A3B8B,   //PC = 0x00001150,     line:     fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
-0x000B440B,   //PC = 0x00001154,     line:     fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
-0x000D330B,   //PC = 0x00001158,     line:     fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
-0x000D3B8B,   //PC = 0x0000115C,     line:     fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
-0x000D440B,   //PC = 0x00001160,     line:     fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
-0x0000269F,   //PC = 0x00001164,     line:     lw r13, r4, 0                        # r13 = carried_r
-0x00096E8B,   //PC = 0x00001168,     line:     fpmul.32 r13, r13, r9                 # carried_r *= sr
-0x000C6E8B,   //PC = 0x0000116C,     line:     fpmul.32 r13, r13, r12               # carried_r *= metallic
-0x000D330A,   //PC = 0x00001170,     line:     fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
-0x0000231A,   //PC = 0x00001174,     line:     sw r6, r4, 0                         # store new carried_r
-0x0004269F,   //PC = 0x00001178,     line:     lw r13, r4, 4                        # r13 = carried_g
-0x000A6E8B,   //PC = 0x0000117C,     line:     fpmul.32 r13, r13, r10               # carried_g *= sg
-0x000C6E8B,   //PC = 0x00001180,     line:     fpmul.32 r13, r13, r12               # carried_g *= metallic
-0x000D3B8A,   //PC = 0x00001184,     line:     fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
-0x0004239A,   //PC = 0x00001188,     line:     sw r7, r4, 4                         # store new carried_g
-0x0008269F,   //PC = 0x0000118C,     line:     lw r13, r4, 8                        # r13 = carried_b
-0x000B6E8B,   //PC = 0x00001190,     line:     fpmul.32 r13, r13, r11               # carried_b *= sb
-0x000C6E8B,   //PC = 0x00001194,     line:     fpmul.32 r13, r13, r12               # carried_b *= metallic
-0x000D440A,   //PC = 0x00001198,     line:     fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
-0x0008241A,   //PC = 0x0000119C,     line:     sw r8, r4, 8                         # store new carried_b
-0xFFFF9100,   //PC = 0x000011A0,     line:     add r2, r2, -1                       # bounce -= 1
-0x10909715,   //PC = 0x000011A4,     line:     blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
-0x1FE0869F,   //PC = 0x000011A8,     line:     lw r13, ONE                          # r13 = 1.0f
-0x0000251F,   //PC = 0x000011AC,     line:     lw r10, r4, 0                        # r10 = carried_r
-0x0004259F,   //PC = 0x000011B0,     line:     lw r11, r4, 4                        # r11 = carried_g
-0x0008261F,   //PC = 0x000011B4,     line:     lw r12, r4, 8                        # r12 = carried_b
-0x000D550A,   //PC = 0x000011B8,     line:     fpadd.32 r10, r10, r13               # carried_r += 1.0f
-0x000D5D8A,   //PC = 0x000011BC,     line:     fpadd.32 r11, r11, r13               # carried_g += 1.0f
-0x000D660A,   //PC = 0x000011C0,     line:     fpadd.32 r12, r12, r13               # carried_b += 1.0f
-0x000ED506,   //PC = 0x000011C4,     line:     srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
-0x000EDD86,   //PC = 0x000011C8,     line:     srl r11, r11, 14                     # carried_g >>= 14
-0x000EE606,   //PC = 0x000011CC,     line:     srl r12, r12, 14                     # carried_b >>= 14
-0x01FFD502,   //PC = 0x000011D0,     line:     and r10, r10, 0x1FF                  # carried_r &= 0x1FF
-0x01FFDD82,   //PC = 0x000011D4,     line:     and r11, r11, 0x1FF                  # carried_g &= 0x1FF
-0x01FFE602,   //PC = 0x000011D8,     line:     and r12, r12, 0x1FF                  # carried_b &= 0x1FF
-0x20D0551C,   //PC = 0x000011DC,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
-0x20D05D9C,   //PC = 0x000011E0,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
-0x20D0661C,   //PC = 0x000011E4,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
-0x2030869F,   //PC = 0x000011E8,     line:     lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
-0x00006FA7,   //PC = 0x000011EC,     line:     setmembits r13                       # set_address_bits(pixel_addr_high)
-0x2034869F,   //PC = 0x000011F0,     line:     lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
-0x0004FF06,   //PC = 0x000011F4,     line:     srl r14, r15, 4                      # r14 = core_id >> 4
-0x000FF708,   //PC = 0x000011F8,     line:     mul r14, r14, 15                     # r14 *= 15
-0x000FF482,   //PC = 0x000011FC,     line:     and r9, r14, 0xF                     # r9 = thread_index
-0x000E4F00,   //PC = 0x00001200,     line:     add r14, r9, r14                     # r14 += thread_index
-0x0002F705,   //PC = 0x00001204,     line:     sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
-0x000E6E80,   //PC = 0x00001208,     line:     add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
-0x20008C88,   //PC = 0x0000120C,     line:     mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
-0x003CCC88,   //PC = 0x00001210,     line:     mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
-0x00096E80,   //PC = 0x00001214,     line:     add r13, r13, r9                     # pixel_addr_low += r9
-0x00006D18,   //PC = 0x00001218,     line:     sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
-0x00016D98,   //PC = 0x0000121C,     line:     sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
-0x00026E18,   //PC = 0x00001220,     line:     sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
-0x00018880,   //PC = 0x00001224,     line:     add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
-0x20008E88,   //PC = 0x00001228,     line:     mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
-0x0F00EE88,   //PC = 0x0000122C,     line:     mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
-0x000D0000,   //PC = 0x00001230,     line:     add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
-0x0000F702,   //PC = 0x00001234,     line:     and r14, r14, 0                      # r14 = 0
-0x001EF700,   //PC = 0x00001238,     line:     add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
-0x2018869F,   //PC = 0x0000123C,     line:     lw r13, PIXEL_DONE_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
-0x00006FA7,   //PC = 0x00001240,     line:     setmembits r13                       # set_address_bits(finished_pixel_high)
-0x201C869F,   //PC = 0x00001244,     line:     lw r13, PIXEL_DONE_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
-0x0001EEB0,   //PC = 0x00001248,     line:     atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
-0x10708F16,   //PC = 0x0000124C,     line:     bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
-0x00000422,   //PC = 0x00001250,     line:     yield r8                            # yield()
-0x1250FF93,   //PC = 0x00001254,     line:     beq r15, r15, INF_LOOP, true         # goto inf_loop
-0x0000091F,   //PC = 0x00001258,     line:     lw r2, r1, 0                        
-0x0000019F,   //PC = 0x0000125C,     line:     lw r3, r0, 0
-0x0003110C,   //PC = 0x00001260,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
-0x0018029F,   //PC = 0x00001264,     line:     lw r5, r0, 24
-0x0005110B,   //PC = 0x00001268,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
-0x00040B1F,   //PC = 0x0000126C,     line:     lw r6, r1, 4
-0x0003318C,   //PC = 0x00001270,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
-0x0005198B,   //PC = 0x00001274,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
-0x00031612,   //PC = 0x00001278,     line:     fpminmax.32 r12, r2, r3, false         # float tmin = min(t1, t2)
-0x00039192,   //PC = 0x0000127C,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
-0x0024011F,   //PC = 0x00001280,     line:     lw r2, r0, 36
-0x00031692,   //PC = 0x00001284,     line:     fpminmax.32 r13, r2, r3, false          # tmax = min(tmax, ray->t_max)
-0x000D630F,   //PC = 0x00001288,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
-0x1FE8851F,   //PC = 0x0000128C,     line:     lw r10, EPSILON                 # float epsilon = self.epsilon
-0x000D540F,   //PC = 0x00001290,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
-0x00083582,   //PC = 0x00001294,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-0x050C5B95,   //PC = 0x00001298,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
-0x0008091F,   //PC = 0x0000129C,     line:     lw r2, r1, 8
-0x0004019F,   //PC = 0x000012A0,     line:     lw r3, r0, 4
-0x0003110C,   //PC = 0x000012A4,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
-0x001C029F,   //PC = 0x000012A8,     line:     lw r5, r0, 28
-0x0005110B,   //PC = 0x000012AC,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
-0x000C0B1F,   //PC = 0x000012B0,     line:     lw r6, r1, 12
-0x0003318C,   //PC = 0x000012B4,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
-0x0005198B,   //PC = 0x000012B8,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
-0x00031292,   //PC = 0x000012BC,     line:     fpminmax.32 r5, r2, r3, false         # float tmin = min(t1, t2)
-0x00039192,   //PC = 0x000012C0,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
-0x00036E92,   //PC = 0x000012C4,     line:     fpminmax.32 r13, r13, r3, false          # tmax = min(tmax, ray->t_max)
-0x0005E612,   //PC = 0x000012C8,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, t1)
-0x000D630F,   //PC = 0x000012CC,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
-0x000D540F,   //PC = 0x000012D0,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
-0x00083582,   //PC = 0x000012D4,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-0x050C5B95,   //PC = 0x000012D8,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
-0x0010091F,   //PC = 0x000012DC,     line:     lw r2, r1, 16                           # r2 = node->z_min
-0x0008019F,   //PC = 0x000012E0,     line:     lw r3, r0, 8                            # r3 = ray->oz
-0x0003110C,   //PC = 0x000012E4,     line:     fpsub.32 r2, r2, r3                     # r2 = node->z_min - ray->oz
-0x0020029F,   //PC = 0x000012E8,     line:     lw r5, r0, 32                           # r5 = ray->inv_dz
-0x0005110B,   //PC = 0x000012EC,     line:     fpmul.32 r2, r2, r5                     # tz1 = (node->z_min - ray->oz) * ray->inv_dz
-0x00140B1F,   //PC = 0x000012F0,     line:     lw r6, r1, 20                           # r6 = node->z_max
-0x0003318C,   //PC = 0x000012F4,     line:     fpsub.32 r3, r6, r3                     # r3 = node->z_max - ray->oz
-0x0005198B,   //PC = 0x000012F8,     line:     fpmul.32 r3, r3, r5                     # tz2 = (node->z_max - ray->oz) * ray->inv_dz
-0x00031292,   //PC = 0x000012FC,     line:     fpminmax.32 r5, r2, r3, false           # r5 = min(tz1, tz2)
-0x00039192,   //PC = 0x00001300,     line:     fpminmax.32 r3, r2, r3, true            # r3 = max(tz1, tz2)
-0x00036E92,   //PC = 0x00001304,     line:     fpminmax.32 r13, r13, r3, false         # tmax = min(tmax, max(tz1, tz2))
-0x0005E612,   //PC = 0x00001308,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, min(tz1, tz2))
-0x000D630F,   //PC = 0x0000130C,     line:     fplt.32 r6, r12, r13                    # r6 = tmin < tmax
-0x000D540F,   //PC = 0x00001310,     line:     fplt.32 r8, r10, r13                     # r8 = epsilon < tmax
-0x00083582,   //PC = 0x00001314,     line:     and r11, r6, r8                         # r11 = (tmin <= tmax) && (0.0 < tmax)
-0x050CFF93,   //PC = 0x00001318,     line:     beq r15, r15, AABB_INTERSECT_RETURN, true # return r11
-0x0036009E,   //PC = 0x0000131C,     line:     lhu r1, r0, 54                      # r1 = ray->pix_y
-0x0A008888,   //PC = 0x00001320,     line:     mul r1, r1, 2560                    # r1 = pix_y * 2560
-0x0034011E,   //PC = 0x00001324,     line:     lhu r2, r0, 52                      # r2 = ray->pix_x
-0x00011080,   //PC = 0x00001328,     line:     add r1, r2, r1                      # r1 = pix_y * 2560 + pix_x = pix_index #I have the pix index in r2
-0x00088885,   //PC = 0x0000132C,     line:     sll r1, r1, 8                       # r1 = pix_index << 8 (each pixel has 256 bytes of results)
-0x2020811F,   //PC = 0x00001330,     line:     lw r2, RAY_RESULT_HIGH              # r2 = RAY_RESULT_HIGH
-0x000017A7,   //PC = 0x00001334,     line:     setmembits r2                        # set_address_bits(result_addr_high)
-0x2024811F,   //PC = 0x00001338,     line:     lw r2, RAY_RESULT_LOW               # r2 = result_addr_low
-0x00011080,   //PC = 0x0000133C,     line:     add r1, r2, r1                      # r1 = result_addr_low + pix_index
-0x003C011C,   //PC = 0x00001340,     line:     lbu r2, r0, 60                      # r2 = ray->bounce_count
-0x00069105,   //PC = 0x00001344,     line:     sll r2, r2, 6                       # r2 = bounce_count << 6 (each bounce has 64 bytes)
-0x00020880,   //PC = 0x00001348,     line:     add r1, r1, r2                      # r1 = result_addr + pix_index + bounce_offset #I now have the address of the bounce + shadow array (4 16 byte packs)
-0x003D011C,   //PC = 0x0000134C,     line:     lbu r2, r0, 61                      # r2 = ray->light_id
-0x0000F702,   //PC = 0x00001350,     line:     and r14, r14, 0                     # r14 = 0
-0x17D0F114,   //PC = 0x00001354,     line:     bne r2, r14, SHADOW_RAY, true       # if (ray->light_id != 0) goto shadow_ray
-0xFFFFEE83,   //PC = 0x00001358,     line:     or r13, r13, 0xFFFF             # r13 = 0xFFFFFFFF
-0x0038011F,   //PC = 0x0000135C,     line:     lw r2, r0, 56                       # r2 = ray->tri_index
-0x136C9694,   //PC = 0x00001360,     line:     bne r13, r2, RAY_HIT_A_TRI_IN_COMPLETE, true  # if (ray->tri_index != 0xFFFFFFFF) goto RAY_HIT_A_TRI_IN_COMPLETE
-0x003F0718,   //PC = 0x00001364,     line:     sb r14, r0, 63                      # ray->active_ray = 0
-0x0970FF93,   //PC = 0x00001368,     line:     beq r15, r15, ray_done, true        # goto ray_done
-0x2040819F,   //PC = 0x0000136C,     line:     lw r3, TRIANGLE_ARRAY_HIGH          # r3 = self.triangle_address_high
-0x00001FA7,   //PC = 0x00001370,     line:     setmembits r3                        # set_address_bits(tri_addr_high)
-0x2044819F,   //PC = 0x00001374,     line:     lw r3, TRIANGLE_ARRAY_LOW           # r3 = tri_addr_low
-0x00059105,   //PC = 0x00001378,     line:     sll r2, r2, 5                       # r2 = tri_index << 5 (* 32 bytes per triangle)
-0x00031100,   //PC = 0x0000137C,     line:     add r2, r2, r3                      # r2 = tri_addr_low + tri_offset #r2 = tri index
-0x000011AC,   //PC = 0x00001380,     line:     lw_d r3, r2, 0                      # r3 = tri_red = load_dram_word(tri_addr_low) #tri_red
-0x0004122C,   //PC = 0x00001384,     line:     lw_d r4, r2, 4                      # r4 = tri_green #tri_green
-0x000812AC,   //PC = 0x00001388,     line:     lw_d r5, r2, 8                      # r5 = tri_blue #tri_blue
-0x000C132C,   //PC = 0x0000138C,     line:     lw_d r6, r2, 12                     # r6 = tri_roughness #tri_roughness
-0x0028031A,   //PC = 0x00001390,     line:     sw r6, r0, 40                       # ray->leaf_node_starting_point = roughness (temp storage)
-0x0010132C,   //PC = 0x00001394,     line:     lw_d r6, r2, 16                     # r6 = tri_metallic
-0x001413AC,   //PC = 0x00001398,     line:     lw_d r7, r2, 20                     # r7 = norm_x
-0x0018142C,   //PC = 0x0000139C,     line:     lw_d r8, r2, 24                     # r8 = norm_y
-0x001C14AC,   //PC = 0x000013A0,     line:     lw_d r9, r2, 28                     # r9 = norm_z
-0x0020049A,   //PC = 0x000013A4,     line:     sw r9, r0, 32                       # ray->inv_dz = norm_z (temp storage)
-0x2028851F,   //PC = 0x000013A8,     line:     lw r10, RAYS_COMPLETED_HIGH         # r10 = RAY_RESULT_HIGH (restore membits to result buffer)
-0x000057A7,   //PC = 0x000013AC,     line:     setmembits r10                       # set_address_bits(result_addr_high)
-0x000009AD,   //PC = 0x000013B0,     line:     sw_d r3, r1, 0                      # store_dram_word(result_addr_low, tri_red)
-0x00040A2D,   //PC = 0x000013B4,     line:     sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, tri_green)
-0x00080AAD,   //PC = 0x000013B8,     line:     sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, tri_blue)
-0x00100B2D,   //PC = 0x000013BC,     line:     sw_d r6, r1, 16                     # store_dram_word(result_addr_low + 16, tri_metallic) (note: skips offset 12 which is len_sq/tri_index union)
-0x0000019F,   //PC = 0x000013C0,     line:     lw r3, r0, 0                        # r3 = ray->ox //r3 = ox
-0x000C021F,   //PC = 0x000013C4,     line:     lw r4, r0, 12                       # r4 = ray->inv_dx
-0x0024029F,   //PC = 0x000013C8,     line:     lw r5, r0, 36                           # r5 = ray->t_max //r5 = tmax
-0x0005220B,   //PC = 0x000013CC,     line:     fpmul.32 r4, r4, r5                 # r4 = inv_dx * t_max... wait, this should be dx * t_max
-0x0003220A,   //PC = 0x000013D0,     line:     fpadd.32 r4, r4, r3                 # r4 = ox + dx * t_max = hit_x //r4 = hit_x
-0x0004031F,   //PC = 0x000013D4,     line:     lw r6, r0, 4                        # r6 = ray->oy //r6 = oy
-0x0010051F,   //PC = 0x000013D8,     line:     lw r10, r0, 16                      # r10 = ray->inv_dy... should be dy (offset 16)
-0x0005550B,   //PC = 0x000013DC,     line:     fpmul.32 r10, r10, r5               # r10 = dy * t_max
-0x0006550A,   //PC = 0x000013E0,     line:     fpadd.32 r10, r10, r6               # r10 = oy + dy * t_max = hit_y //r10 = hit_y
-0x0008059F,   //PC = 0x000013E4,     line:     lw r11, r0, 8                       # r11 = ray->oz //r11 - oz
-0x0014061F,   //PC = 0x000013E8,     line:     lw r12, r0, 20                      # r12 = ray->dz (offset 20)
-0x000C2E0B,   //PC = 0x000013EC,     line:     fpmul.32 r12, r5, r12               # r12 = t_max * dz
-0x000C5E0A,   //PC = 0x000013F0,     line:     fpadd.32 r12, r11, r12              # r12 = oz + dz * t_max = hit_z //r12 = hit_z
-0x22D0869F,   //PC = 0x000013F4,     line:     lw r13, LIGHT0_X                    # r13 = light0.x
-0x00046E8C,   //PC = 0x000013F8,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
-0x00076E8B,   //PC = 0x000013FC,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
-0x22D4871F,   //PC = 0x00001400,     line:     lw r14, LIGHT0_Y                    # r14 = light0.y
-0x000A770C,   //PC = 0x00001404,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
-0x0008770B,   //PC = 0x00001408,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
-0x000E6E8A,   //PC = 0x0000140C,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
-0x22D8871F,   //PC = 0x00001410,     line:     lw r14, LIGHT0_Z                    # r14 = light0.z
-0x000C770C,   //PC = 0x00001414,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
-0x0009770B,   //PC = 0x00001418,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
-0x000D768A,   //PC = 0x0000141C,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 0
-0x0000F702,   //PC = 0x00001420,     line:     and r14, r14, 0                     # r14 = 0 (for max with 0.0)
-0x000EEE92,   //PC = 0x00001424,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
-0x001C0EAD,   //PC = 0x00001428,     line:     sw_d r13, r1, 28                    # store_dram_word(result_addr_low + 28, ndotl) -> slot 1 offset 12
-0x22E8869F,   //PC = 0x0000142C,     line:     lw r13, LIGHT1_X                    # r13 = light1.x
-0x00046E8C,   //PC = 0x00001430,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
-0x00076E8B,   //PC = 0x00001434,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
-0x22EC871F,   //PC = 0x00001438,     line:     lw r14, LIGHT1_Y                    # r14 = light1.y
-0x000A770C,   //PC = 0x0000143C,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
-0x0008770B,   //PC = 0x00001440,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
-0x000E6E8A,   //PC = 0x00001444,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
-0x22F0871F,   //PC = 0x00001448,     line:     lw r14, LIGHT1_Z                    # r14 = light1.z
-0x000C770C,   //PC = 0x0000144C,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
-0x0009770B,   //PC = 0x00001450,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
-0x000D768A,   //PC = 0x00001454,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 1
-0x0000F702,   //PC = 0x00001458,     line:     and r14, r14, 0                     # r14 = 0
-0x000EEE92,   //PC = 0x0000145C,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
-0x002C0EAD,   //PC = 0x00001460,     line:     sw_d r13, r1, 44                    # store_dram_word(result_addr_low + 44, ndotl) -> slot 2 offset 12
-0x2300869F,   //PC = 0x00001464,     line:     lw r13, LIGHT2_X                    # r13 = light2.x
-0x00046E8C,   //PC = 0x00001468,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
-0x00076E8B,   //PC = 0x0000146C,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
-0x2304871F,   //PC = 0x00001470,     line:     lw r14, LIGHT2_Y                    # r14 = light2.y
-0x000A770C,   //PC = 0x00001474,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
-0x0008770B,   //PC = 0x00001478,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
-0x000E6E8A,   //PC = 0x0000147C,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
-0x2308871F,   //PC = 0x00001480,     line:     lw r14, LIGHT2_Z                    # r14 = light2.z
-0x000C770C,   //PC = 0x00001484,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
-0x0009770B,   //PC = 0x00001488,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
-0x000D768A,   //PC = 0x0000148C,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 2
-0x0000F702,   //PC = 0x00001490,     line:     and r14, r14, 0                     # r14 = 0
-0x000EEE92,   //PC = 0x00001494,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
-0x003C0EAD,   //PC = 0x00001498,     line:     sw_d r13, r1, 60                    # store_dram_word(result_addr_low + 60, ndotl) -> slot 3 offset 12
-0x2008869F,   //PC = 0x0000149C,     line:     lw r13, SPAWNED_RAY_POOL_HIGH       # r13 = self.new_ray_pool_high
-0x00006FA7,   //PC = 0x000014A0,     line:     setmembits r13                       # set_address_bits(new_ray_pool_high)
-0x200C869F,   //PC = 0x000014A4,     line:     lw r13, SPAWNED_RAY_POOL_LOW        # r13 = new_ray_pool_low
-0x0008EE80,   //PC = 0x000014A8,     line:     add r13, r13, 8                     # r13 = new_ray_pool_low + 8 (point to count field)
-0x0003EDB0,   //PC = 0x000014AC,     line:     atomadd_d r11, r13, 3               # r11 = atomic_add_dram(count, 3) - reserve 3 slots
-0x1FDC849F,   //PC = 0x000014B0,     line:     lw r9, MAX_RAYS_IN_RAY_POOL         # r9 = 260000
-0x14C0DC96,   //PC = 0x000014B4,     line:     bgt r9, r11, ENOUGH_SPACE_IN_RAY_POOL, true  # if (cur_num_new_rays <= 260000) goto ENOUGH_SPACE
-0xFFFDEFB0,   //PC = 0x000014B8,     line:     atomadd_d r15, r13, -3              # undo reservation: atomic_add_dram(count, -3)
-0x14ACFF93,   //PC = 0x000014BC,     line:     beq r15, r15, ENSURE_SPACE_RAY_POOL, true     # goto ensure_space_ray_pool (spin)
-0xFFFCEE80,   //PC = 0x000014C0,     line:     add r13, r13, -4                    # r13 = new_ray_pool_low + 4 (point to tail field)
-0x0020EDB0,   //PC = 0x000014C4,     line:     atomadd_d r11, r13, 32             # r11 = atomic_add_dram(tail, 32) - claim first slot
-0x1FF4849F,   //PC = 0x000014C8,     line:     lw r9, SPAWNED_RAY_POOL_MASK        # r9 = tail_mask
-0x000B4D82,   //PC = 0x000014CC,     line:     and r11, r9, r11                    # r11 = tail & mask
-0x000D5E80,   //PC = 0x000014D0,     line:     add r13, r11, r13                   # r13 = pool_base + tail_relative
-0x0008EE80,   //PC = 0x000014D4,     line:     add r13, r13, 8                     # r13 = slot_base (skip head+tail fields)
-0x001F6DA9,   //PC = 0x000014D8,     line:     lbu_d r11, r13, 31                  # r11 = load_dram_byte(slot_base + 31) - check if slot empty
-0x14D87594,   //PC = 0x000014DC,     line:     bne r11, r14, WAIT_FOR_SLOT_0_TO_OPEN, false  # while (slot_base[31] != 0) spin
-0x00006A2D,   //PC = 0x000014E0,     line:     sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
-0x00046D2D,   //PC = 0x000014E4,     line:     sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
-0x00086E2D,   //PC = 0x000014E8,     line:     sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
-0x22D0859F,   //PC = 0x000014EC,     line:     lw r11, LIGHT0_X                    # r11 = light0.x
-0x00045D8C,   //PC = 0x000014F0,     line:     fpsub.32 r11, r11, r4               # r11 = light0.x - hit_x = sdx
-0x000C6DAD,   //PC = 0x000014F4,     line:     sw_d r11, r13, 12                   # store_dram_word(slot_base + 12, sdx)
-0x22D4859F,   //PC = 0x000014F8,     line:     lw r11, LIGHT0_Y                    # r11 = light0.y
-0x000A5D8C,   //PC = 0x000014FC,     line:     fpsub.32 r11, r11, r10              # r11 = light0.y - hit_y = sdy
-0x00106DAD,   //PC = 0x00001500,     line:     sw_d r11, r13, 16                   # store_dram_word(slot_base + 16, sdy)
-0x22D8859F,   //PC = 0x00001504,     line:     lw r11, LIGHT0_Z                    # r11 = light0.z
-0x000C5D8C,   //PC = 0x00001508,     line:     fpsub.32 r11, r11, r12              # r11 = light0.z - hit_z = sdz
-0x00146DAD,   //PC = 0x0000150C,     line:     sw_d r11, r13, 20                   # store_dram_word(slot_base + 20, sdz)
-0x0034059F,   //PC = 0x00001510,     line:     lw r11, r0, 52                      # r11 = pix_x | (pix_y << 16) packed
-0x00186DAD,   //PC = 0x00001514,     line:     sw_d r11, r13, 24                   # store_dram_word(slot_base + 24, pix_xy)
-0x0001F480,   //PC = 0x00001518,     line:     add r9, r14, 1                      # r9 = 1 (light_id for light 0)
-0x001D6CAF,   //PC = 0x0000151C,     line:     sb_d r9, r13, 29                    # store_dram_byte(slot_base + 29, light_id=1) (meta >> 8)
-0x003C059B,   //PC = 0x00001520,     line:     lb r11, r0, 60                      # r11 = ray->bounce_count
-0x001C6DAF,   //PC = 0x00001524,     line:     sb_d r11, r13, 28                   # store_dram_byte(slot_base + 28, bounce_count) (meta & 0xFF)
-0x001F6CAF,   //PC = 0x00001528,     line:     sb_d r9, r13, 31                    # store_dram_byte(slot_base + 31, 1) - mark slot as ready
-0x200C859F,   //PC = 0x0000152C,     line:     lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
-0x0004DD80,   //PC = 0x00001530,     line:     add r11, r11, 4                     # r11 = pool + 4 (tail field)
-0x0020DCB0,   //PC = 0x00001534,     line:     atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 1
-0x0008DD80,   //PC = 0x00001538,     line:     add r11, r11, 8                     # r11 = pool + 12 (data start)
-0x1FF4869F,   //PC = 0x0000153C,     line:     lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
-0x000D4C82,   //PC = 0x00001540,     line:     and r9, r9, r13                     # r9 = tail & mask
-0x00095E80,   //PC = 0x00001544,     line:     add r13, r11, r9                    # r13 = slot_base for slot 1
-0x001F6D9C,   //PC = 0x00001548,     line:     lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
-0x15485F14,   //PC = 0x0000154C,     line:     bne r14, r11, WAIT_FOR_SLOT_1_TO_OPEN, false  # while (slot[31] != 0) spin
-0x00006A2D,   //PC = 0x00001550,     line:     sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
-0x00046D2D,   //PC = 0x00001554,     line:     sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
-0x00086E2D,   //PC = 0x00001558,     line:     sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
-0x22E8859F,   //PC = 0x0000155C,     line:     lw r11, LIGHT1_X                    # r11 = light1.x
-0x00045D8C,   //PC = 0x00001560,     line:     fpsub.32 r11, r11, r4               # r11 = light1.x - hit_x
-0x000C6DAD,   //PC = 0x00001564,     line:     sw_d r11, r13, 12                   # store sdx
-0x22EC859F,   //PC = 0x00001568,     line:     lw r11, LIGHT1_Y                    # r11 = light1.y
-0x000A5D8C,   //PC = 0x0000156C,     line:     fpsub.32 r11, r11, r10              # r11 = light1.y - hit_y
-0x00106DAD,   //PC = 0x00001570,     line:     sw_d r11, r13, 16                   # store sdy
-0x22F0859F,   //PC = 0x00001574,     line:     lw r11, LIGHT1_Z                    # r11 = light1.z
-0x000C5D8C,   //PC = 0x00001578,     line:     fpsub.32 r11, r11, r12              # r11 = light1.z - hit_z
-0x00146DAD,   //PC = 0x0000157C,     line:     sw_d r11, r13, 20                   # store sdz
-0x0034059F,   //PC = 0x00001580,     line:     lw r11, r0, 52                      # r11 = pix_xy
-0x00186DAD,   //PC = 0x00001584,     line:     sw_d r11, r13, 24                   # store pix_xy
-0x0002F480,   //PC = 0x00001588,     line:     add r9, r14, 2                      # r9 = 2 (light_id for light 1)
-0x001D6CAF,   //PC = 0x0000158C,     line:     sb_d r9, r13, 29                    # store light_id = 2
-0x003C059B,   //PC = 0x00001590,     line:     lb r11, r0, 60                      # r11 = bounce_count
-0x001C6DAF,   //PC = 0x00001594,     line:     sb_d r11, r13, 28                   # store bounce_count
-0x0001F480,   //PC = 0x00001598,     line:     add r9, r14, 1                      # r9 = 1 (ready marker)
-0x001F6CAF,   //PC = 0x0000159C,     line:     sb_d r9, r13, 31                    # mark slot as ready
-0x200C859F,   //PC = 0x000015A0,     line:     lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
-0x0004DD80,   //PC = 0x000015A4,     line:     add r11, r11, 4                     # r11 = pool + 4 (tail field)
-0x0020DCB0,   //PC = 0x000015A8,     line:     atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 2
-0x0008DD80,   //PC = 0x000015AC,     line:     add r11, r11, 8                     # r11 = pool + 12
-0x1FF4869F,   //PC = 0x000015B0,     line:     lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
-0x000D4C82,   //PC = 0x000015B4,     line:     and r9, r9, r13                     # r9 = tail & mask
-0x00095E80,   //PC = 0x000015B8,     line:     add r13, r11, r9                    # r13 = slot_base for slot 2
-0x001F6D9C,   //PC = 0x000015BC,     line:     lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
-0x15BC5F14,   //PC = 0x000015C0,     line:     bne r14, r11, WAIT_FOR_SLOT_2_TO_OPEN, false  # spin until slot empty
-0x00006A2D,   //PC = 0x000015C4,     line:     sw_d r4, r13, 0                     # store hit_x
-0x00046D2D,   //PC = 0x000015C8,     line:     sw_d r10, r13, 4                    # store hit_y
-0x00086E2D,   //PC = 0x000015CC,     line:     sw_d r12, r13, 8                    # store hit_z
-0x2300859F,   //PC = 0x000015D0,     line:     lw r11, LIGHT2_X                    # r11 = light2.x
-0x00045D8C,   //PC = 0x000015D4,     line:     fpsub.32 r11, r11, r4               # r11 = light2.x - hit_x
-0x000C6DAD,   //PC = 0x000015D8,     line:     sw_d r11, r13, 12                   # store sdx
-0x2304859F,   //PC = 0x000015DC,     line:     lw r11, LIGHT2_Y                    # r11 = light2.y
-0x000A5D8C,   //PC = 0x000015E0,     line:     fpsub.32 r11, r11, r10              # r11 = light2.y - hit_y
-0x00106DAD,   //PC = 0x000015E4,     line:     sw_d r11, r13, 16                   # store sdy
-0x2308859F,   //PC = 0x000015E8,     line:     lw r11, LIGHT2_Z                    # r11 = light2.z
-0x000C5D8C,   //PC = 0x000015EC,     line:     fpsub.32 r11, r11, r12              # r11 = light2.z - hit_z
-0x00146DAD,   //PC = 0x000015F0,     line:     sw_d r11, r13, 20                   # store sdz
-0x0034059F,   //PC = 0x000015F4,     line:     lw r11, r0, 52                      # r11 = pix_xy
-0x00186DAD,   //PC = 0x000015F8,     line:     sw_d r11, r13, 24                   # store pix_xy
-0x0003F480,   //PC = 0x000015FC,     line:     add r9, r14, 3                      # r9 = 3 (light_id for light 2)
-0x001D6CAF,   //PC = 0x00001600,     line:     sb_d r9, r13, 29                    # store light_id = 3
-0x003C059B,   //PC = 0x00001604,     line:     lb r11, r0, 60                      # r11 = bounce_count
-0x001C6DAF,   //PC = 0x00001608,     line:     sb_d r11, r13, 28                   # store bounce_count
-0x0001F480,   //PC = 0x0000160C,     line:     add r9, r14, 1                      # r9 = 1 (ready marker)
-0x001F6CAF,   //PC = 0x00001610,     line:     sb_d r9, r13, 31                    # mark slot as ready
-0x0003F680,   //PC = 0x00001614,     line:     add r13, r14, 3                     # r13 = 3 (max bounce threshold + 1)
-0x1634DE94,   //PC = 0x00001618,     line:     bne r13, r11, GENERATE_BOUNCE_RAY, true  # if bounce_count != 3 goto GENERATE_BOUNCE_RAY
-0x003F0718,   //PC = 0x0000161C,     line:     sb r14, r0, 63                      # ray->active_ray = 0
-0x2028809F,   //PC = 0x00001620,     line:     lw r1, RAYS_COMPLETED_HIGH          # r1 = self.ray_result_addr_high
-0x00000FA7,   //PC = 0x00001624,     line:     setmembits r1                        # set_address_bits(finished_ray_high)
-0x202C809F,   //PC = 0x00001628,     line:     lw r1, RAYS_COMPLETED_LOW           # r1 = self.ray_result_addr_low
-0x00018FB0,   //PC = 0x0000162C,     line:     atomadd_d r15, r1, 1               # atomic_add(finished_ray_low, 1)
-0x0970FF93,   //PC = 0x00001630,     line:     beq r15, r15, ray_done, true        # goto ray_done
-0x2068809F,   //PC = 0x00001634,     line:     lw r1, RANDOM_TABLE_HIGH            # r1 = self.random_table_addr_high
-0x00000FA7,   //PC = 0x00001638,     line:     setmembits r1                        # set_address_bits(random_table_high)
-0x206C809F,   //PC = 0x0000163C,     line:     lw r1, RANDOM_TABLE_LOW             # r1 = random_table_low
-0x00108930,   //PC = 0x00001640,     line:     atomadd_d r2, r1, 16               # r2 = atomic_add_dram(random_table_low, 16) - advance index by 16 (not 12 as in C, TODO?)
-0x1FD8819F,   //PC = 0x00001644,     line:     lw r3, RANDOM_TABLE_MASK            # r3 = mask
-0x00031102,   //PC = 0x00001648,     line:     and r2, r2, r3                      # r2 = index & mask
-0x00048880,   //PC = 0x0000164C,     line:     add r1, r1, 4                       # r1 = random_table_low + 4 (skip count field)
-0x00020880,   //PC = 0x00001650,     line:     add r1, r1, r2                      # r1 = &random_table[index]
-0x0000092C,   //PC = 0x00001654,     line:     lw_d r2, r1, 0                      # r2 = random1 (raw bits)
-0x000409AC,   //PC = 0x00001658,     line:     lw_d r3, r1, 4                      # r3 = random2 (raw bits)
-0x00080B2C,   //PC = 0x0000165C,     line:     lw_d r6, r1, 8                      # r6 = random3 (raw bits)
-0x007FF080,   //PC = 0x00001660,     line:     add r1, r14, 0x7F                   # r1 = 0x7F (exponent for 1.0)
-0x00178885,   //PC = 0x00001664,     line:     sll r1, r1, 23                      # r1 = 0x3F800000 (and_mask: clears sign+exp, keeps mantissa)
-0x1FD4829F,   //PC = 0x00001668,     line:     lw r5, RANDOM_FLOAT_AND_MASK         # r5 = 0x3F800000 (or_mask: forces exponent to 127)
-0x00020903,   //PC = 0x0000166C,     line:     or r2, r1, r2                      # r2 |= or_mask (clear top bits)
-0x00030983,   //PC = 0x00001670,     line:     or r3, r1, r3                      # r3 |= or_mask
-0x00060B03,   //PC = 0x00001674,     line:     or r6, r1, r6                      # r6 |= or_mask
-0x00051102,   //PC = 0x00001678,     line:     and r2, r2, r5                       # r2 &= and_mask (force to [1.0, 2.0))
-0x00051982,   //PC = 0x0000167C,     line:     and r3, r3, r5                       # r3 &= and_mask
-0x00053302,   //PC = 0x00001680,     line:     and r6, r6, r5                       # r6 &= and_mask
-0x1FD0809F,   //PC = 0x00001684,     line:     lw r1, ONE_POINT_FIVE               # r1 = 1.5f
-0x0001110C,   //PC = 0x00001688,     line:     fpsub.32 r2, r2, r1                 # random1 -= 1.5 -> [-0.5, 0.5)
-0x0001198C,   //PC = 0x0000168C,     line:     fpsub.32 r3, r3, r1                 # random2 -= 1.5
-0x0001330C,   //PC = 0x00001690,     line:     fpsub.32 r6, r6, r1                 # random3 -= 1.5
-0x003C029B,   //PC = 0x00001694,     line:     lb r5, r0, 60                       # r5 = ray->bounce_count
-0x0001AA80,   //PC = 0x00001698,     line:     add r5, r5, 1                       # bounce_count += 1
-0x003C0298,   //PC = 0x0000169C,     line:     sb r5, r0, 60                       # ray->bounce_count = bounce_count
-0x003E0718,   //PC = 0x000016A0,     line:     sb r14, r0, 62                      # ray->ray_depth = 0
-0x002C071A,   //PC = 0x000016A4,     line:     sw r14, r0, 44                      # ray->check_left = 0
-0x0030071A,   //PC = 0x000016A8,     line:     sw r14, r0, 48                      # ray->check_right = 0
-0x0028071A,   //PC = 0x000016AC,     line:     sw r14, r0, 40                      # ray->leaf_node_starting_point = 0 (will be set to 128 elsewhere TODO)
-0xFFFF8883,   //PC = 0x000016B0,     line:     or r1, r1, 0xFFFF                   # r1 = 0xFFFFFFFF (no hit sentinel) NOTE: r1 still holds 1.5, this sign-extends
-0x0038009A,   //PC = 0x000016B4,     line:     sw r1, r0, 56                       # ray->tri_index = 0xFFFFFFFF
-0x0000021A,   //PC = 0x000016B8,     line:     sw r4, r0, 0                        # ray->ox = hit_x
-0x0004051A,   //PC = 0x000016BC,     line:     sw r10, r0, 4                       # ray->oy = hit_y
-0x0008061A,   //PC = 0x000016C0,     line:     sw r12, r0, 8                       # ray->oz = hit_z
-0x0020049F,   //PC = 0x000016C4,     line:     lw r9, r0, 32                       # r9 = norm_z (stored earlier at offset 32)
-0x000C021F,   //PC = 0x000016C8,     line:     lw r4, r0, 12                       # r4 = ray->dx
-0x0010051F,   //PC = 0x000016CC,     line:     lw r10, r0, 16                      # r10 = ray->dy
-0x0014061F,   //PC = 0x000016D0,     line:     lw r12, r0, 20                      # r12 = ray->dz
-0x0004388B,   //PC = 0x000016D4,     line:     fpmul.32 r1, r7, r4                 # r1 = norm_x * dx
-0x000A428B,   //PC = 0x000016D8,     line:     fpmul.32 r5, r8, r10                # r5 = norm_y * dy
-0x000C4D8B,   //PC = 0x000016DC,     line:     fpmul.32 r11, r9, r12              # r11 = norm_z * dz
-0x0005088A,   //PC = 0x000016E0,     line:     fpadd.32 r1, r1, r5                 # r1 = norm_x*dx + norm_y*dy
-0x000B088A,   //PC = 0x000016E4,     line:     fpadd.32 r1, r1, r11               # r1 = dot(d, n)
-0x0001088A,   //PC = 0x000016E8,     line:     fpadd.32 r1, r1, r1                 # r1 = 2 * dot(d, n)
-0x00070D8B,   //PC = 0x000016EC,     line:     fpmul.32 r11, r1, r7               # r11 = 2*dot * norm_x
-0x000B220C,   //PC = 0x000016F0,     line:     fpsub.32 r4, r4, r11               # r4 = dx - 2*dot*norm_x (reflected dx)
-0x00080D8B,   //PC = 0x000016F4,     line:     fpmul.32 r11, r1, r8               # r11 = 2*dot * norm_y
-0x000B550C,   //PC = 0x000016F8,     line:     fpsub.32 r10, r10, r11             # r10 = dy - 2*dot*norm_y (reflected dy)
-0x00090D8B,   //PC = 0x000016FC,     line:     fpmul.32 r11, r1, r9               # r11 = 2*dot * norm_z
-0x000B660C,   //PC = 0x00001700,     line:     fpsub.32 r12, r12, r11             # r12 = dz - 2*dot*norm_z (reflected dz)
-0x0028059F,   //PC = 0x00001704,     line:     lw r11, r0, 40                      # r11 = roughness (stored at offset 40 earlier)
-0x000B110B,   //PC = 0x00001708,     line:     fpmul.32 r2, r2, r11               # random1 *= roughness
-0x000B198B,   //PC = 0x0000170C,     line:     fpmul.32 r3, r3, r11               # random2 *= roughness
-0x000B330B,   //PC = 0x00001710,     line:     fpmul.32 r6, r6, r11               # random3 *= roughness
-0x0004120A,   //PC = 0x00001714,     line:     fpadd.32 r4, r2, r4                 # bdx = reflected_dx + random1
-0x000A1D0A,   //PC = 0x00001718,     line:     fpadd.32 r10, r3, r10              # bdy = reflected_dy + random2
-0x000C360A,   //PC = 0x0000171C,     line:     fpadd.32 r12, r6, r12              # bdz = reflected_dz + random3
-0x0004208B,   //PC = 0x00001720,     line:     fpmul.32 r1, r4, r4                 # r1 = bdx * bdx
-0x000A510B,   //PC = 0x00001724,     line:     fpmul.32 r2, r10, r10              # r2 = bdy * bdy
-0x000C618B,   //PC = 0x00001728,     line:     fpmul.32 r3, r12, r12               # r3 = bdz * bdz
-0x0003088A,   //PC = 0x0000172C,     line:     fpadd.32 r1, r1, r3                 # r1 = bdx^2 + bdz^2
-0x0002088A,   //PC = 0x00001730,     line:     fpadd.32 r1, r1, r2                 # r1 = len_sq = bdx^2 + bdy^2 + bdz^2
-0x0000C280,   //PC = 0x00001734,     line:     add r5, r8, 0                       # r5 = norm_y (save before INV_SQRT clobbers r8)
-0x0000CB00,   //PC = 0x00001738,     line:     add r6, r9, 0                       # r6 = norm_z (save before INV_SQRT clobbers r9)
-0x0000D100,   //PC = 0x0000173C,     line:     add r2, r10, 0                      # r2 = bdy (save)
-0x0000E180,   //PC = 0x00001740,     line:     add r3, r12, 0                      # r3 = bdz (save)
-0x00008C00,   //PC = 0x00001744,     line:     add r8, r1, 0                       # r8 = len_sq (INV_SQRT input)
-0x18D88497,   //PC = 0x00001748,     line:     jmp r9, INV_SQRT                    # r8 = inv_sqrt(len_sq), returns in r8
-0x0008110B,   //PC = 0x0000174C,     line:     fpmul.32 r2, r2, r8                 # bdy *= inv_sqrt
-0x0008198B,   //PC = 0x00001750,     line:     fpmul.32 r3, r3, r8                 # bdz *= inv_sqrt
-0x0008220B,   //PC = 0x00001754,     line:     fpmul.32 r4, r4, r8                 # bdx *= inv_sqrt
-0x00043C8B,   //PC = 0x00001758,     line:     fpmul.32 r9, r7, r4                 # r9 = norm_x * bdx
-0x0005150B,   //PC = 0x0000175C,     line:     fpmul.32 r10, r2, r5                # r10 = norm_y * bdy (r5=norm_y saved above)
-0x0003358B,   //PC = 0x00001760,     line:     fpmul.32 r11, r6, r3               # r11 = norm_z * bdz (r6=norm_z saved above)
-0x000A4C8A,   //PC = 0x00001764,     line:     fpadd.32 r9, r9, r10               # r9 = norm_x*bdx + norm_y*bdy
-0x000B4C8A,   //PC = 0x00001768,     line:     fpadd.32 r9, r9, r11               # r9 = check = dot(bd, n)
-0x0000D502,   //PC = 0x0000176C,     line:     and r10, r10, 0                     # r10 = 0 (for comparison with 0.0)
-0x000A4D8F,   //PC = 0x00001770,     line:     fplt.32 r11, r9, r10                   # r11 = (check < 0.0)
-0x1794D594,   //PC = 0x00001774,     line:     bne r11, r10, SKIP_FLIP, true       # if check >= 0 skip flip 
-0x00094C8A,   //PC = 0x00001778,     line:     fpadd.32 r9, r9, r9                 # r9 = 2 * check
-0x00093D0B,   //PC = 0x0000177C,     line:     fpmul.32 r10, r7, r9               # r10 = 2*check * norm_x
-0x00092D8B,   //PC = 0x00001780,     line:     fpmul.32 r11, r5, r9               # r11 = 2*check * norm_y
-0x0009360B,   //PC = 0x00001784,     line:     fpmul.32 r12, r6, r9               # r12 = 2*check * norm_z
-0x000A220C,   //PC = 0x00001788,     line:     fpsub.32 r4, r4, r10               # bdx -= 2*check*norm_x
-0x000B110C,   //PC = 0x0000178C,     line:     fpsub.32 r2, r2, r11               # bdy -= 2*check*norm_y
-0x000C198C,   //PC = 0x00001790,     line:     fpsub.32 r3, r3, r12               # bdz -= 2*check*norm_z
-0x000C021A,   //PC = 0x00001794,     line:     sw r4, r0, 12                       # ray->dx = bdx
-0x0010011A,   //PC = 0x00001798,     line:     sw r2, r0, 16                       # ray->dy = bdy
-0x0014019A,   //PC = 0x0000179C,     line:     sw r3, r0, 20                       # ray->dz = bdz
-0x1FF0861F,   //PC = 0x000017A0,     line:     lw r12, INFINITY                    # r12 = 0x7F7FFFFF (float_max)
-0x0024061A,   //PC = 0x000017A4,     line:     sw r12, r0, 36                      # ray->t_max = float_max
-0x0000A480,   //PC = 0x000017A8,     line:     add r9, r4, 0                       # r9 = bdx (RECIPROCAL input)
-0x187C8517,   //PC = 0x000017AC,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdx)
-0x0018049A,   //PC = 0x000017B0,     line:     sw r9, r0, 24                       # ray->inv_dx = reciprocal(bdx)
-0x00009480,   //PC = 0x000017B4,     line:     add r9, r2, 0                       # r9 = bdy
-0x187C8517,   //PC = 0x000017B8,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdy)
-0x001C049A,   //PC = 0x000017BC,     line:     sw r9, r0, 28                       # ray->inv_dy = reciprocal(bdy)
-0x00009C80,   //PC = 0x000017C0,     line:     add r9, r3, 0                       # r9 = bdz
-0x187C8517,   //PC = 0x000017C4,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdz)
-0x0020049A,   //PC = 0x000017C8,     line:     sw r9, r0, 32                       # ray->inv_dz = reciprocal(bdz)
-0x0970FF93,   //PC = 0x000017CC,     line:     beq r15, r15, ray_done, true        # goto ray_done
-0x00049185,   //PC = 0x000017D0,     line:     sll r3, r2, 4                       # r3 = light_id << 4 (each shadow slot is 16 bytes)
-0x00030880,   //PC = 0x000017D4,     line:     add r1, r1, r3                      # r1 = result_addr_low + shadow * 16 (advance to correct shadow slot)
-0x0038021F,   //PC = 0x000017D8,     line:     lw r4, r0, 56                       # r4 = ray->tri_index
-0xFFFFF683,   //PC = 0x000017DC,     line:     or r13, r14, 0xFFFF             # r13 = 0xFFFFFFFF
-0x17F4A693,   //PC = 0x000017E0,     line:     beq r13, r4, SHADOW_RAY_MUST_BE_CALCULATED, true  # if (ray->tri_index == 0xFFFFFFFF) ray missed, calc lighting
-0x1FE0821F,   //PC = 0x000017E4,     line:     lw r4, ONE                          # r4 = 0x3F800000 = 1.0f
-0x000C0A2D,   //PC = 0x000017E8,     line:     sw_d r4, r1, 12                     # store_dram_word(result_addr_low + 12, 1.0) - blocked sentinel
-0x003F0718,   //PC = 0x000017EC,     line:     sb r14, r0, 63                      # ray->active_ray = 0
-0x0970FF93,   //PC = 0x000017F0,     line:     beq r15, r15, ray_done, true        # goto ray_done
-0x000C0B2C,   //PC = 0x000017F4,     line:     lw_d r6, r1, 12                     # r6 = ndotl = load_dram_word(result_addr_low + 12)
-0xFFFF9100,   //PC = 0x000017F8,     line:     add r2, r2, -1                      # shadow = light_id - 1 (0-indexed)
-0x00189108,   //PC = 0x000017FC,     line:     mul r2, r2, 24                      # shadow *= 24 (bytes per light struct)
-0x22D09100,   //PC = 0x00001800,     line:     add r2, r2, LIGHT0_X               # r2 = &light_array[shadow] (base of this light)
-0x000C119F,   //PC = 0x00001804,     line:     lw r3, r2, 12                       # r3 = light_r
-0x0010121F,   //PC = 0x00001808,     line:     lw r4, r2, 16                       # r4 = light_g
-0x0014129F,   //PC = 0x0000180C,     line:     lw r5, r2, 20                       # r5 = light_b
-0x0006198B,   //PC = 0x00001810,     line:     fpmul.32 r3, r3, r6                 # light_r *= ndotl
-0x0006220B,   //PC = 0x00001814,     line:     fpmul.32 r4, r4, r6                 # light_g *= ndotl
-0x00062A8B,   //PC = 0x00001818,     line:     fpmul.32 r5, r5, r6                 # light_b *= ndotl
-0x000009AD,   //PC = 0x0000181C,     line:     sw_d r3, r1, 0                      # store_dram_word(result_addr_low, light_r)
-0x00040A2D,   //PC = 0x00001820,     line:     sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, light_g)
-0x00080AAD,   //PC = 0x00001824,     line:     sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, light_b)
-0x0000119F,   //PC = 0x00001828,     line:     lw r3, r2, 0                        # r3 = light_x (position, offset 0)
-0x0004121F,   //PC = 0x0000182C,     line:     lw r4, r2, 4                        # r4 = light_y
-0x0008129F,   //PC = 0x00001830,     line:     lw r5, r2, 8                        # r5 = light_z
-0x0000031F,   //PC = 0x00001834,     line:     lw r6, r0, 0                        # r6 = ray->ox (hit point origin)
-0x0004039F,   //PC = 0x00001838,     line:     lw r7, r0, 4                        # r7 = ray->oy
-0x0008041F,   //PC = 0x0000183C,     line:     lw r8, r0, 8                        # r8 = ray->oz
-0x0006198C,   //PC = 0x00001840,     line:     fpsub.32 r3, r3, r6                 # r3 = light_x - ox
-0x0007220C,   //PC = 0x00001844,     line:     fpsub.32 r4, r4, r7                 # r4 = light_y - oy
-0x00082A8C,   //PC = 0x00001848,     line:     fpsub.32 r5, r5, r8                 # r5 = light_z - oz
-0x0003198B,   //PC = 0x0000184C,     line:     fpmul.32 r3, r3, r3                 # r3 = (light_x - ox)^2
-0x0004220B,   //PC = 0x00001850,     line:     fpmul.32 r4, r4, r4                 # r4 = (light_y - oy)^2
-0x00052A8B,   //PC = 0x00001854,     line:     fpmul.32 r5, r5, r5                 # r5 = (light_z - oz)^2
-0x0004198A,   //PC = 0x00001858,     line:     fpadd.32 r3, r3, r4                 # r3 = dx^2 + dy^2
-0x0005198A,   //PC = 0x0000185C,     line:     fpadd.32 r3, r3, r5                 # r3 = len_sq = dx^2 + dy^2 + dz^2
-0x000C09AD,   //PC = 0x00001860,     line:     sw_d r3, r1, 12                     # store_dram_word(result_addr_low + 12, len_sq)
-0x003F0718,   //PC = 0x00001864,     line:     sb r14, r0, 63                      # ray->active_ray = 0
-0x2028809F,   //PC = 0x00001868,     line:     lw r1, RAYS_COMPLETED_HIGH          # r1 = self.ray_result_addr_high
-0x00000FA7,   //PC = 0x0000186C,     line:     setmembits r1                        # set_address_bits(finished_ray_high)
-0x202C809F,   //PC = 0x00001870,     line:     lw r1, RAYS_COMPLETED_LOW           # r1 = self.ray_result_addr_low
-0x00018FB0,   //PC = 0x00001874,     line:     atomadd_d r15, r1, 1               # atomic_add(finished_ray_low, 1)
-0x0970FF93,   //PC = 0x00001878,     line:     beq r15, r15, ray_done, true        # goto ray_done
-0x1FCC859F,   //PC = 0x0000187C,     line:     lw r11, NEG_MAX                     # r11 = 0x80000000
-0x00095E02,   //PC = 0x00001880,     line:     and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
-0xFFFFDD84,   //PC = 0x00001884,     line:     xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
-0x00095D82,   //PC = 0x00001888,     line:     and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
-0x0017CE86,   //PC = 0x0000188C,     line:     srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
-0x00FEEE81,   //PC = 0x00001890,     line:     sub r13, r13, 254                   # r13 = new_exp = 254 - exp
-0x000CCC86,   //PC = 0x00001894,     line:     srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
-0x1FFCCC82,   //PC = 0x00001898,     line:     and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
-0x2050871F,   //PC = 0x0000189C,     line:     lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
-0x00007727,   //PC = 0x000018A0,     line:     setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
-0x2054871F,   //PC = 0x000018A4,     line:     lw r14, DIV_TABLE_LOW               # r14 = div_table_low
-0x00097700,   //PC = 0x000018A8,     line:     add r14, r14, r9                    # r14 = &div_table[index]
-0x000074AC,   //PC = 0x000018AC,     line:     lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
-0x0017EF05,   //PC = 0x000018B0,     line:     sll r14, r13, 23                    # r14 = new_exp << 23
-0x00097483,   //PC = 0x000018B4,     line:     or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
-0x00FEEE81,   //PC = 0x000018B8,     line:     sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
-0x00095E8B,   //PC = 0x000018BC,     line:     fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
-0x1FC8859F,   //PC = 0x000018C0,     line:     lw r11, TWO                         # r11 = 2.0f
-0x000D5E8C,   //PC = 0x000018C4,     line:     fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
-0x000D4C8B,   //PC = 0x000018C8,     line:     fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
-0x000C4C83,   //PC = 0x000018CC,     line:     or r9, r9, r12                      # r9 |= sign (restore sign bit)
-0x00007727,   //PC = 0x000018D0,     line:     setmembits r14, r14                 # restore membits
-0x000A0797,   //PC = 0x000018D4,     line:     jmp r15, r10                        # return (result in r9)
-0x000BC506,   //PC = 0x000018D8,     line:     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
-0x2058859F,   //PC = 0x000018DC,     line:     lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
-0x00005DA7,   //PC = 0x000018E0,     line:     setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
-0x205C861F,   //PC = 0x000018E4,     line:     lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
-0x0017C686,   //PC = 0x000018E8,     line:     srl r13, r8, 23
-0x017DEE81,   //PC = 0x000018EC,     line:     sub r13, r13, 381
-0x0001EE86,   //PC = 0x000018F0,     line:     srl r13, r13, 1
-0x0017EE85,   //PC = 0x000018F4,     line:     sll r13, r13, 23
-0x1FFFD502,   //PC = 0x000018F8,     line:     and r10, r10, 0x1FFF
-0x0002D505,   //PC = 0x000018FC,     line:     sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
-0x000A6600,   //PC = 0x00001900,     line:     add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
-0x0000662C,   //PC = 0x00001904,     line:     lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
-0x000D6603,   //PC = 0x00001908,     line:     or r12, r12, r13
-0x1FC4869F,   //PC = 0x0000190C,     line:     lw r13, HALF                        # r13 = 0.5f
-0x00086E8B,   //PC = 0x00001910,     line:     fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
-0x1FD0871F,   //PC = 0x00001914,     line:     lw r14, ONE_POINT_FIVE              # r14 = 1.5f
-0x000C6E8B,   //PC = 0x00001918,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
-0x000C6E8B,   //PC = 0x0000191C,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
-0x000D740C,   //PC = 0x00001920,     line:     fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
-0x000C440B,   //PC = 0x00001924,     line:     fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
-0x00005FA7,   //PC = 0x00001928,     line:     setmembits r11                      # restore old membits (r11 holds saved value)
-0x00090797,   //PC = 0x0000192C,     line:     jmp r15, r9                              # return (result in r8)    
-0x0000C200,   //PC = 0x00001930,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
-0x0001FB02,   //PC = 0x00001934,     line:     and r6, r15, 1                          # r6 = self.thread_id & 1 (is_odd_thread)
-0x0020B300,   //PC = 0x00001938,     line:     add r6, r6, 32                          # r6 = interrupt channel = 32 + is_odd_thread
-0x00060037,   //PC = 0x0000193C,     line:     intdis r6                               # disable_interrupts(channel)
-0x000033A1,   //PC = 0x00001940,     line:     nonblock r7, r6                             # r7 = nb_recv(channel) (0 if no message waiting)
-0x0000F702,   //PC = 0x00001944,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x1954BF14,   //PC = 0x00001948,     line:     bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
-0x00060026,   //PC = 0x0000194C,     line:     intena r6                               # enable_interrupts(channel) (nothing to do)
-0x00040797,   //PC = 0x00001950,     line:     jmp r15, r4                             # return
-0x000033A0,   //PC = 0x00001954,     line:     block r7, r6                                # r7 = blocking_recv(channel) (full flit value)
-0x1FC0841F,   //PC = 0x00001958,     line:     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
-0x00083C02,   //PC = 0x0000195C,     line:     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
-0x0011BE86,   //PC = 0x00001960,     line:     srl r13, r7, 17                         # r13 = node_id = flit >> 17
-0x002C849F,   //PC = 0x00001964,     line:     lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
-0x19A4CE93,   //PC = 0x00001968,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
-0x2000CC80,   //PC = 0x0000196C,     line:     add r9, r9, 8192
-0x19A4CE93,   //PC = 0x00001970,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == receiver_node_id goto NODE_IDS_MATCH
-0x0008F500,   //PC = 0x00001974,     line:     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
-0x0018D505,   //PC = 0x00001978,     line:     sll r10, r10, 24                        # r10 = wrong_core << 24
-0x000FBD82,   //PC = 0x0000197C,     line:     and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
-0xFFF0BE02,   //PC = 0x00001980,     line:     and r12, r7, 0xFFF0                      # r12 = core_id high nibble
-0x000FE605,   //PC = 0x00001984,     line:     sll r12, r12, 15
-0x000FE606,   //PC = 0x00001988,     line:     srl r12, r12, 15
-0x0002E605,   //PC = 0x0000198C,     line:     sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
-0x0010DD80,   //PC = 0x00001990,     line:     add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
-0x000B6583,   //PC = 0x00001994,     line:     or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
-0x00005D31,   //PC = 0x00001998,     line:     sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
-0x00060026,   //PC = 0x0000199C,     line:     intena r6                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x000019A0,     line:     jmp r15, r4                             # return
-0x1FFC839F,   //PC = 0x000019A4,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
-0x19743F14,   //PC = 0x000019A8,     line:     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
-0x003F039C,   //PC = 0x000019AC,     line:     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
-0x00008480,   //PC = 0x000019B0,     line:     add r9, r0, 0                           # r9 = local_queue = ray base address
-0x1A203F14,   //PC = 0x000019B4,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
-0x002C851F,   //PC = 0x000019B8,     line:     lw r10, ROOT_NODE_ID             # r10 = sender node id
-0x19CCD693,   //PC = 0x000019BC,     line:     beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
-0x2844F480,   //PC = 0x000019C0,     line:     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
-0x020CCC80,   //PC = 0x000019C4,     line:     add r9, r9, 524
-0x19D0FF93,   //PC = 0x000019C8,     line:     beq r15, r15, CHECK_IF_SPACE_IN_QUEUE, true  # unconditional goto CHECK_IF_SPACE_IN_QUEUE
-0x2844F480,   //PC = 0x000019CC,     line:     add r9, r14, LOCAL_RAY_QUEUE                # r9 = sender ray queue base address
-0x0008CC80,   //PC = 0x000019D0,     line:     add r9, r9, 8                           # r9 = &queue.count (skip head and tail fields)
-0x0001CBB3,   //PC = 0x000019D4,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
-0x0010F600,   //PC = 0x000019D8,     line:     add r12, r14, 16                        # r12 = 16 (max queue entries)
-0x1A0CBE16,   //PC = 0x000019DC,     line:     bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
-0xFFFFCBB3,   //PC = 0x000019E0,     line:     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
-0x0007F380,   //PC = 0x000019E4,     line:     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
-0x0018BB85,   //PC = 0x000019E8,     line:     sll r7, r7, 24                          # r7 = reject_ray << 24
-0x00F0C482,   //PC = 0x000019EC,     line:     and r9, r8, 0xF0                        # r9 = core_id high nibble
-0x0002CC85,   //PC = 0x000019F0,     line:     sll r9, r9, 2                           # r9 = high nibble shifted to channel position
-0x000FC402,   //PC = 0x000019F4,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
-0x0010C400,   //PC = 0x000019F8,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
-0x00084C83,   //PC = 0x000019FC,     line:     or r9, r9, r8                           # r9 = destination flit
-0x00004BB1,   //PC = 0x00001A00,     line:     sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
-0x00060026,   //PC = 0x00001A04,     line:     intena r6                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x00001A08,     line:     jmp r15, r4                             # return
-0xFFFCCC80,   //PC = 0x00001A0C,     line:     add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
-0x0040CBB3,   //PC = 0x00001A10,     line:     atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
-0x03FFBB82,   //PC = 0x00001A14,     line:     and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
-0x00074B80,   //PC = 0x00001A18,     line:     add r7, r9, r7                          # r7 = queue_base + tail_relative
-0x0008BB80,   //PC = 0x00001A1C,     line:     add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
-0x0005F480,   //PC = 0x00001A20,     line:     add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
-0x0018CC85,   //PC = 0x00001A24,     line:     sll r9, r9, 24                          # r9 = ray_ack << 24
-0x000F4C83,   //PC = 0x00001A28,     line:     or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
-0x00F0C502,   //PC = 0x00001A2C,     line:     and r10, r8, 0xF0                       # r10 = core_id high nibble
-0x0002D505,   //PC = 0x00001A30,     line:     sll r10, r10, 2                         # r10 = high nibble shifted to channel position
-0x000FC402,   //PC = 0x00001A34,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
-0x0010C400,   //PC = 0x00001A38,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
-0x00085503,   //PC = 0x00001A3C,     line:     or r10, r10, r8                         # r10 = destination flit
-0x000054B1,   //PC = 0x00001A40,     line:     sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
-0x000FFC02,   //PC = 0x00001A44,     line:     and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
-0x0010C400,   //PC = 0x00001A48,     line:     add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
-0x000044A0,   //PC = 0x00001A4C,     line:     block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
-0x00004520,   //PC = 0x00001A50,     line:     block r10, r8                           # r10 = ray_data[1]
-0x000045A0,   //PC = 0x00001A54,     line:     block r11, r8                           # r11 = ray_data[2]
-0x00004620,   //PC = 0x00001A58,     line:     block r12, r8                           # r12 = ray_data[3]
-0x00003C9A,   //PC = 0x00001A5C,     line:     sw r9, r7, 0                            # slot[0]  = ray_data[0]
-0x00043D1A,   //PC = 0x00001A60,     line:     sw r10, r7, 4                           # slot[4]  = ray_data[1]
-0x00083D9A,   //PC = 0x00001A64,     line:     sw r11, r7, 8                           # slot[8]  = ray_data[2]
-0x000C3E1A,   //PC = 0x00001A68,     line:     sw r12, r7, 12                          # slot[12] = ray_data[3]
-0x000044A0,   //PC = 0x00001A6C,     line:     block r9, r8                            # r9  = ray_data[4]
-0x00004520,   //PC = 0x00001A70,     line:     block r10, r8                           # r10 = ray_data[5]
-0x000045A0,   //PC = 0x00001A74,     line:     block r11, r8                           # r11 = ray_data[6]
-0x00004620,   //PC = 0x00001A78,     line:     block r12, r8                           # r12 = ray_data[7]
-0x00103C9A,   //PC = 0x00001A7C,     line:     sw r9, r7, 16                           # slot[16] = ray_data[4]
-0x00143D1A,   //PC = 0x00001A80,     line:     sw r10, r7, 20                          # slot[20] = ray_data[5]
-0x00183D9A,   //PC = 0x00001A84,     line:     sw r11, r7, 24                          # slot[24] = ray_data[6]
-0x001C3E1A,   //PC = 0x00001A88,     line:     sw r12, r7, 28                          # slot[28] = ray_data[7]
-0x000044A0,   //PC = 0x00001A8C,     line:     block r9, r8                            # r9  = ray_data[8]
-0x00004520,   //PC = 0x00001A90,     line:     block r10, r8                           # r10 = ray_data[9]
-0x000045A0,   //PC = 0x00001A94,     line:     block r11, r8                           # r11 = ray_data[10]
-0x00004620,   //PC = 0x00001A98,     line:     block r12, r8                           # r12 = ray_data[11]
-0x00203C9A,   //PC = 0x00001A9C,     line:     sw r9, r7, 32                           # slot[32] = ray_data[8]
-0x00243D1A,   //PC = 0x00001AA0,     line:     sw r10, r7, 36                          # slot[36] = ray_data[9]
-0x00283D9A,   //PC = 0x00001AA4,     line:     sw r11, r7, 40                          # slot[40] = ray_data[10]
-0x002C3E1A,   //PC = 0x00001AA8,     line:     sw r12, r7, 44                          # slot[44] = ray_data[11]
-0x000044A0,   //PC = 0x00001AAC,     line:     block r9, r8                            # r9  = ray_data[12]
-0x00004520,   //PC = 0x00001AB0,     line:     block r10, r8                           # r10 = ray_data[13]
-0x000045A0,   //PC = 0x00001AB4,     line:     block r11, r8                           # r11 = ray_data[14]
-0x00004620,   //PC = 0x00001AB8,     line:     block r12, r8                           # r12 = ray_data[15]
-0x00303C9A,   //PC = 0x00001ABC,     line:     sw r9, r7, 48                           # slot[48] = ray_data[12]
-0x00343D1A,   //PC = 0x00001AC0,     line:     sw r10, r7, 52                          # slot[52] = ray_data[13]
-0x00383D9A,   //PC = 0x00001AC4,     line:     sw r11, r7, 56                          # slot[56] = ray_data[14]
-0x003C3E1A,   //PC = 0x00001AC8,     line:     sw r12, r7, 60                          # slot[60] = ray_data[15]
-0x00060026,   //PC = 0x00001ACC,     line:     intena r6                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x00001AD0,     line:     jmp r15, r4                             # return
-0x000001B4,   //PC = 0x00001AD4,     line:     getclk r3                               # r3 = current_cycle = get_cycle_count()
-0x20C8821F,   //PC = 0x00001AD8,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
-0x00041981,   //PC = 0x00001ADC,     line:     sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
-0x0000F702,   //PC = 0x00001AE0,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x1FBC829F,   //PC = 0x00001AE4,     line:     lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
-0x1AF02996,   //PC = 0x00001AE8,     line:     bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
-0x00020797,   //PC = 0x00001AEC,     line:     jmp r15, r2                             # return 0 (not enough time has passed)
-0x20CC821F,   //PC = 0x00001AF0,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
-0x1AFC7213,   //PC = 0x00001AF4,     line:     beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
-0x00020797,   //PC = 0x00001AF8,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
-0x000002B4,   //PC = 0x00001AFC,     line:     getclk r5                               # r5 = current_cycle (fresh timestamp)
-0x20C8829A,   //PC = 0x00001B00,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
-0x20C4829F,   //PC = 0x00001B04,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
-0x20C4871A,   //PC = 0x00001B08,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
-0x0010AA85,   //PC = 0x00001B0C,     line:     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
-0x00032A89,   //PC = 0x00001B10,     line:     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
-0x1FB8821F,   //PC = 0x00001B14,     line:     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-0x1B202A15,   //PC = 0x00001B18,     line:     blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
-0x00020797,   //PC = 0x00001B1C,     line:     jmp r15, r2                             # return 0 (not idle enough to enqueue)
-0x20CCF300,   //PC = 0x00001B20,     line:     add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
-0x0001B333,   //PC = 0x00001B24,     line:     atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1)
-0x1B30F313,   //PC = 0x00001B28,     line:     beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE
-0x00020797,   //PC = 0x00001B2C,     line:     jmp r15, r2                             # return 
-0x2060819F,   //PC = 0x00001B30,     line:     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
-0x000039A7,   //PC = 0x00001B34,     line:     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
-0x2064821F,   //PC = 0x00001B38,     line:     lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
-0x0008A200,   //PC = 0x00001B3C,     line:     add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
-0x0001A2B0,   //PC = 0x00001B40,     line:     atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
-0xFFFCA200,   //PC = 0x00001B44,     line:     add r4, r4, -4                          # r4 = &idle_queue.tail_relative
-0x0004A2B0,   //PC = 0x00001B48,     line:     atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
-0x0010A200,   //PC = 0x00001B4C,     line:     add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
-0x7FFFAA82,   //PC = 0x00001B50,     line:     and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
-0x00052200,   //PC = 0x00001B54,     line:     add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
-0x000222AB,   //PC = 0x00001B58,     line:     lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
-0x1B582F14,   //PC = 0x00001B5C,     line:     bne r14, r5, IDLE_CORE_INSERT_SPINLOCK, false  # spin until is_valid == 0 (slot is free)
-0x0004FA86,   //PC = 0x00001B60,     line:     srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
-0x000022AE,   //PC = 0x00001B64,     line:     sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
-0x0001F280,   //PC = 0x00001B68,     line:     add r5, r14, 1                          # r5 = 1
-0x000222AE,   //PC = 0x00001B6C,     line:     sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
-0x00020797,   //PC = 0x00001B70,     line:     jmp r15, r2                             # return
-0x0000F702,   //PC = 0x00001B74,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
-0x2060829F,   //PC = 0x00001B78,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
-0x3CAC829A,   //PC = 0x00001B7C,     line:     sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
-0x38A4F280,   //PC = 0x00001B80,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
-0x00002AA7,   //PC = 0x00001B84,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
-0x2064831F,   //PC = 0x00001B88,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
-0xFFFFC403,   //PC = 0x00001B8C,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
-0xFFFFB4B0,   //PC = 0x00001B90,     line:     atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
-0x0000B200,   //PC = 0x00001B94,     line:     add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
-0x1C647496,   //PC = 0x00001B98,     line:     bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
-0x0001B4B0,   //PC = 0x00001B9C,     line:     atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
-0x000C33AC,   //PC = 0x00001BA0,     line:     lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
-0x0010332C,   //PC = 0x00001BA4,     line:     lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
-0x00003FA7,   //PC = 0x00001BA8,     line:     setmembits r7                       # set_address_bits(parent_node_high)
-0x001834AA,   //PC = 0x00001BAC,     line:     lh_d r9, r6, 24                     #r9 = is_left
-0x001A352A,   //PC = 0x00001BB0,     line:     lh_d r10, r6, 26                    #r10 = height
-0x000035AC,   //PC = 0x00001BB4,     line:     lw_d r11, r6, 0                     #r11 = parent_high
-0x3CA4859A,   //PC = 0x00001BB8,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
-0x0004362C,   //PC = 0x00001BBC,     line:     lw_d r12, r6, 4                     #r12 = parent_low
-0x3CA8861A,   //PC = 0x00001BC0,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
-0xFFFFEE83,   //PC = 0x00001BC4,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
-0x1C9C6D93,   //PC = 0x00001BC8,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
-0x00005FA7,   //PC = 0x00001BCC,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x1BE04F13,   //PC = 0x00001BD0,     line:     beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
-0x0010632C,   //PC = 0x00001BD4,     line:     lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
-0x001463AC,   //PC = 0x00001BD8,     line:     lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
-0x1BE8FF93,   //PC = 0x00001BDC,     line:     beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
-0x0008632C,   //PC = 0x00001BE0,     line:     lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
-0x000C63AC,   //PC = 0x00001BE4,     line:     lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
-0x00002B1A,   //PC = 0x00001BE8,     line:     sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
-0x00042B9A,   //PC = 0x00001BEC,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
-0x00082D19,   //PC = 0x00001BF0,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
-0x000CAA80,   //PC = 0x00001BF4,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
-0x38A4F680,   //PC = 0x00001BF8,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
-0x1C8C2E93,   //PC = 0x00001BFC,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
-0xFFF4AA80,   //PC = 0x00001C00,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
-0x00002A1F,   //PC = 0x00001C04,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
-0x000027A7,   //PC = 0x00001C08,     line:     setmembits r4                       # set_address_bits(dfs_node_high)
-0x00042A1F,   //PC = 0x00001C0C,     line:     lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
-0x00082E9E,   //PC = 0x00001C10,     line:     lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
-0x1C50F693,   //PC = 0x00001C14,     line:     beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
-0xFFFFEE80,   //PC = 0x00001C18,     line:     add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
-0x001025AC,   //PC = 0x00001C1C,     line:     lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
-0x0014262C,   //PC = 0x00001C20,     line:     lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
-0x00002D9A,   //PC = 0x00001C24,     line:     sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
-0x00042E1A,   //PC = 0x00001C28,     line:     sw r12, r5, 4                       # dfs_stack[top].low = right_low
+0x000311A9,   //PC = 0x00000D88,     line:     lbu_d r3, r2, 3
+0x0000F702,   //PC = 0x00000D8C,     line:     and r14, r14, 0
+0x0D847194,   //PC = 0x00000D90,     line:     bne r3, r14, loop_on_putting_tile_back, false
+0x2090819F,   //PC = 0x00000D94,     line:     lw r3, TILE_INTER_INDEX_Y          # r3 = tile_y_index
+0x0000A202,   //PC = 0x00000D98,     line:     and r4, r4, 0
+0x00A0A200,   //PC = 0x00000D9C,     line:     add r4, r4, 160
+0x00041988,   //PC = 0x00000DA0,     line:     mul r3, r3, r4                       # r3 = tile_y_index * 160
+0x208C821F,   //PC = 0x00000DA4,     line:     lw r4, TILE_INTER_INDEX_X          # r4 = tile_x_index
+0x00041980,   //PC = 0x00000DA8,     line:     add r3, r3, r4                       # r3 = tile_index
+0x000011AE,   //PC = 0x00000DAC,     line:     sh_d r3, r2, 0                       # store tile_index as half at slot base
+0x207C819C,   //PC = 0x00000DB0,     line:     lbu r3, TILE_DATA_COUNT              # r3 = tile_rays_spawned (count)
+0x00029100,   //PC = 0x00000DB4,     line:     add r2, r2, 2                        # r2 = slot base + 2
+0x000011AF,   //PC = 0x00000DB8,     line:     sb_d r3, r2, 0                       # store count byte at slot+2
+0x00019100,   //PC = 0x00000DBC,     line:     add r2, r2, 1                        # r2 = slot base + 3
+0x00009982,   //PC = 0x00000DC0,     line:     and r3, r3, 0
+0x00019980,   //PC = 0x00000DC4,     line:     add r3, r3, 1                        # r3 = 1
+0x000011AF,   //PC = 0x00000DC8,     line:     sb_d r3, r2, 0                       # store is_valid = 1 at slot+3
+0x1FFC811F,   //PC = 0x00000DCC,     line:     lw r2, TILE_QUEUE_LOW
+0x00089100,   //PC = 0x00000DD0,     line:     add r2, r2, 8
+0x0000119F,   //PC = 0x00000DD4,     line:     lw r3, r2, 0
+0xFFF89100,   //PC = 0x00000DD8,     line:     add r2, r2, -8
+0x0000F702,   //PC = 0x00000DDC,     line:     and r14, r14, 0
+0x1000F195,   //PC = 0x00000DE0,     line:     blte r3, r14, SKIP_GRABBING_TILE_RAYS, true
+0x00089100,   //PC = 0x00000DE4,     line:     add r2, r2, 8
+0xFFFF91B0,   //PC = 0x00000DE8,     line:     atomadd_d r3, r2, -1
+0x0DF87196,   //PC = 0x00000DEC,     line:     bgt r3, r14, DONT_SKIP_GRABBING_TILE, false
+0x000191B0,   //PC = 0x00000DF0,     line:     atomadd_d r3, r2, 1
+0x1000FF93,   //PC = 0x00000DF4,     line:     beq r15, r15, SKIP_GRABBING_TILE_RAYS, true
+0xFFF89100,   //PC = 0x00000DF8,     line:     add r2, r2, -8
+0x000491B0,   //PC = 0x00000DFC,     line:     atomadd_d r3, r2, 4
+0xFFFFF200,   //PC = 0x00000E00,     line:     add r4, r14, 0xFFFF
+0x00041982,   //PC = 0x00000E04,     line:     and r3, r3, r4
+0x00031100,   //PC = 0x00000E08,     line:     add r2, r2, r3
+0x000F11A9,   //PC = 0x00000E0C,     line:     lbu_d r3, r2, 15                     
+0x0E0C7193,   //PC = 0x00000E10,     line:     beq r3, r14, WAIT_FOR_TILE_SLOT_TO_OPEN, false
+0x000C11AB,   //PC = 0x00000E14,     line:     lhu_d r3, r2, 12                     # r3 = tile_index  (uint16 at +12)
+0x000E1229,   //PC = 0x00000E18,     line:     lbu_d r4, r2, 14                     # r4 = tile_cnt    (uint8  at +14)
+0x000F172F,   //PC = 0x00000E1C,     line:     sb_d r14, r2, 15                     # is_valid = 0
+0x207C821A,   //PC = 0x00000E20,     line:     sw r4, TILE_DATA_COUNT               # store count
+0x0000AA82,   //PC = 0x00000E24,     line:     and r5, r5, 0
+0x00A0AA80,   //PC = 0x00000E28,     line:     add r5, r5, 160
+0x00051A89,   //PC = 0x00000E2C,     line:     div r5, r3, r5                       # r5 = tile_y_index = tile_index / 160
+0x00A0AB08,   //PC = 0x00000E30,     line:     mul r6, r5, 160                      # r6 = tile_y_index * 160  (temp for subtraction)
+0x00061B01,   //PC = 0x00000E34,     line:     sub r6, r3, r6                       # r6 = tile_x_index = tile_index - tile_y_index*160
+0x208C831A,   //PC = 0x00000E38,     line:     sw r6, TILE_INTER_INDEX_X                         # tile_x_index
+0x2090829A,   //PC = 0x00000E3C,     line:     sw r5, TILE_INTER_INDEX_Y                         # tile_y_index
+0x0004171A,   //PC = 0x00000E40,     line:     sw r14, r2, 4
+0x0008171A,   //PC = 0x00000E44,     line:     sw r14, r2, 8
+0x000C171A,   //PC = 0x00000E48,     line:     sw r14, r2, 12
+0x0010171A,   //PC = 0x00000E4C,     line:     sw r14, r2, 16
+0x000FF982,   //PC = 0x00000E50,     line:     and r3, r15, 0xF                     # r3 = thread_id
+0x00049980,   //PC = 0x00000E54,     line:     add r3, r3, 4                        # r3 = thread_id + 4 (offset into struct past x/y)
+0x00021980,   //PC = 0x00000E58,     line:     add r3, r3, r2                       # r3 = &cur_ray_spawned_from_tile[thread_id]
+0x0000A202,   //PC = 0x00000E5C,     line:     and r4, r4, 0
+0x0001A200,   //PC = 0x00000E60,     line:     add r4, r4, 1
+0x00001A18,   //PC = 0x00000E64,     line:     sb r4, r3, 0                         # cur_ray_spawned_from_tile[thread_id] = 1
+0x20A8871A,   //PC = 0x00000E68,     line:     sw r14, RAYS_FORWARDED_OUT_FROM_TILE # rays_forwarded_out_from_tile = 0
+0x20A4871A,   //PC = 0x00000E6C,     line:     sw r14, RAYS_SPAWNED_FROM_TILE       # rays_spawned_from_tile = 0
+0x00108024,   //PC = 0x00000E70,     line:     setctx 16                            # set_ctx(16)
+0x00000025,   //PC = 0x00000E74,     line:     relinquish false                     # relinquish_ownership(0)
+0x0000F702,   //PC = 0x00000E78,     line:     and r14, r14, 0                      # r14 = 0
+0x207CF100,   //PC = 0x00000E7C,     line:     add r2, r14, TILE_DATA_COUNT         # uint16_t tile_data_sram_address = &(self.tile_data_sram->count)
+0x000191B3,   //PC = 0x00000E80,     line:     atomadd r3, r2, 1                    # uint32_t ray_num_from_tile = atomic_add(tile_data_sram_address, 1)
+0x00FFF200,   //PC = 0x00000E84,     line:     add r4, r14, 255                     # r4 = 255
+0x0D442196,   //PC = 0x00000E88,     line:     bgt r3, r4, GET_NEW_TILE, false      # if (ray_num_from_tile > 255) goto get_new_tile
+0x00289100,   //PC = 0x00000E8C,     line:     add r2, r2, 40                       # tile_data_sram_address += 28 (point to rays_spawned counter)
+0x000197B3,   //PC = 0x00000E90,     line:     atomadd r15, r2, 1                   # atomic_add(tile_data_sram_address, 1) -- increment rays spawned
+0xFFD89100,   //PC = 0x00000E94,     line:     add r2, r2, -40                       # tile_data_sram_address -= 28 
+0x000F9A02,   //PC = 0x00000E98,     line:     and r4, r3, 0xF                      # uint32_t intra_tile_x = ray_num_from_tile & 0xF
+0x00049A86,   //PC = 0x00000E9C,     line:     srl r5, r3, 4                        # uint32_t intra_tile_y = ray_num_from_tile >> 4
+0x208C831F,   //PC = 0x00000EA0,     line:     lw r6, TILE_INTER_INDEX_X                        # uint32_t inter_tile_x = *(self.tile_data_sram->tile_x_index)
+0x2090839F,   //PC = 0x00000EA4,     line:     lw r7, TILE_INTER_INDEX_Y                       # uint32_t inter_tile_y = *(self.tile_data_sram->tile_y_index)
+0x0004B305,   //PC = 0x00000EA8,     line:     sll r6, r6, 4                        # inter_tile_x <<= 4
+0x0004BB85,   //PC = 0x00000EAC,     line:     sll r7, r7, 4                        # inter_tile_y <<= 4
+0x00043300,   //PC = 0x00000EB0,     line:     add r6, r6, r4                       # uint32_t pix_x = inter_tile_x + intra_tile_x
+0x00053B80,   //PC = 0x00000EB4,     line:     add r7, r7, r5                       # uint32_t pix_y = inter_tile_y + intra_tile_y
+0x00340319,   //PC = 0x00000EB8,     line:     sh r6, r0, 52                        # ray->pix_x = pix_x
+0x00360399,   //PC = 0x00000EBC,     line:     sh r7, r0, 54                        # ray->pix_y = pix_y
+0x2030811F,   //PC = 0x00000EC0,     line:     lw r2, INT_TO_FLOAT_TABLE_HIGH       # uint32_t itof_table_high = self.itof_table_high
+0x000017A7,   //PC = 0x00000EC4,     line:     setmembits r2                        # set_address_bits(itof_table_high)
+0x2034811F,   //PC = 0x00000EC8,     line:     lw r2, INT_TO_FLOAT_TABLE_LOW        # uint32_t itof_table_low = self.itof_table_low
+0x0002B305,   //PC = 0x00000ECC,     line:     sll r6, r6, 2                        # uint32_t x_offset = pix_x << 2
+0x0002BB85,   //PC = 0x00000ED0,     line:     sll r7, r7, 2                        # uint32_t y_offset = pix_y << 2
+0x00061300,   //PC = 0x00000ED4,     line:     add r6, r2, r6                       # r6 = itof_table_low + x_offset
+0x00071380,   //PC = 0x00000ED8,     line:     add r7, r2, r7                       # r7 = itof_table_low + y_offset
+0x000031AC,   //PC = 0x00000EDC,     line:     lw_d r3, r6, 0                       # float fpix_x = load_dram_word(itof_table_low + x_offset)
+0x00003A2C,   //PC = 0x00000EE0,     line:     lw_d r4, r7, 0                       # float fpix_y = load_dram_word(itof_table_low + y_offset)
+0x2058829F,   //PC = 0x00000EE4,     line:     lw r5, CAM_X                         # float cam_cx = *(self.cam_x)  -- differs: pseudocode uses cam_cx here, asm uses CAM_X
+0x0000029A,   //PC = 0x00000EE8,     line:     sw r5, r0, 0                         # ray->ox = cam_x  -- storing camera origin
+0x205C831F,   //PC = 0x00000EEC,     line:     lw r6, CAM_Y                         # float cam_cy = *(self.cam_y)
+0x0004031A,   //PC = 0x00000EF0,     line:     sw r6, r0, 4                         # ray->oy = cam_y
+0x2060831F,   //PC = 0x00000EF4,     line:     lw r6, CAM_Z                         # float cam_cy = *(self.cam_y)
+0x0008031A,   //PC = 0x00000EF8,     line:     sw r6, r0, 8                         # ray->oy = cam_y
+0x2064829F,   //PC = 0x00000EFC,     line:     lw r5, CAM_CX
+0x2068831F,   //PC = 0x00000F00,     line:     lw r6, CAM_CY
+0x206C839F,   //PC = 0x00000F04,     line:     lw r7, CAM_INV_FOCAL
+0x00051C0C,   //PC = 0x00000F08,     line:     fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - CAM_CX
+0x0006248C,   //PC = 0x00000F0C,     line:     fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - CAM_CY
+0x0007410B,   //PC = 0x00000F10,     line:     fpmul.32 r2, r8, r7                  # r2 = dx_cam *= inv_focal
+0x0007498B,   //PC = 0x00000F14,     line:     fpmul.32 r3, r9, r7                  # r3 = dy_cam *= inv_focal
+0x1FD4821F,   //PC = 0x00000F18,     line:     lw r4, NEG_ONE                       # r4 = dz_cam = -1.0
+0x2314829F,   //PC = 0x00000F1C,     line:     lw r5, CAM_RIGHT_X
+0x2320831F,   //PC = 0x00000F20,     line:     lw r6, CAM_UP_X
+0x2308839F,   //PC = 0x00000F24,     line:     lw r7, CAM_DX
+0x0005128B,   //PC = 0x00000F28,     line:     fpmul.32 r5, r2, r5                  # dx_cam * right.x
+0x00061B0B,   //PC = 0x00000F2C,     line:     fpmul.32 r6, r3, r6                  # dy_cam * up.x
+0x0007238B,   //PC = 0x00000F30,     line:     fpmul.32 r7, r4, r7                  # dz_cam * forward.x
+0x00062A8A,   //PC = 0x00000F34,     line:     fpadd.32 r5, r5, r6
+0x00072C0C,   //PC = 0x00000F38,     line:     fpsub.32 r8, r5, r7                  # r8 = dx_world
+0x2318829F,   //PC = 0x00000F3C,     line:     lw r5, CAM_RIGHT_Y
+0x2324831F,   //PC = 0x00000F40,     line:     lw r6, CAM_UP_Y
+0x230C839F,   //PC = 0x00000F44,     line:     lw r7, CAM_DY
+0x0005128B,   //PC = 0x00000F48,     line:     fpmul.32 r5, r2, r5
+0x00061B0B,   //PC = 0x00000F4C,     line:     fpmul.32 r6, r3, r6
+0x0007238B,   //PC = 0x00000F50,     line:     fpmul.32 r7, r4, r7
+0x00062A8A,   //PC = 0x00000F54,     line:     fpadd.32 r5, r5, r6
+0x00072C8C,   //PC = 0x00000F58,     line:     fpsub.32 r9, r5, r7                  # r9 = dy_world
+0x231C829F,   //PC = 0x00000F5C,     line:     lw r5, CAM_RIGHT_Z
+0x2328831F,   //PC = 0x00000F60,     line:     lw r6, CAM_UP_Z
+0x2310839F,   //PC = 0x00000F64,     line:     lw r7, CAM_DZ
+0x0005128B,   //PC = 0x00000F68,     line:     fpmul.32 r5, r2, r5
+0x00061B0B,   //PC = 0x00000F6C,     line:     fpmul.32 r6, r3, r6
+0x0007238B,   //PC = 0x00000F70,     line:     fpmul.32 r7, r4, r7
+0x00062A8A,   //PC = 0x00000F74,     line:     fpadd.32 r5, r5, r6
+0x00072D0C,   //PC = 0x00000F78,     line:     fpsub.32 r10, r5, r7                 # r10 = dz_world
+0x0000C100,   //PC = 0x00000F7C,     line:     add r2, r8, 0                        # r2 = dx_world
+0x0000C980,   //PC = 0x00000F80,     line:     add r3, r9, 0                        # r3 = dy_world
+0x0000D200,   //PC = 0x00000F84,     line:     add r4, r10, 0                       # r4 = dz_world
+0x0002128B,   //PC = 0x00000F88,     line:     fpmul.32 r5, r2, r2                  # dx²
+0x00031B0B,   //PC = 0x00000F8C,     line:     fpmul.32 r6, r3, r3                  # dy²
+0x0004238B,   //PC = 0x00000F90,     line:     fpmul.32 r7, r4, r4                  # dz²
+0x00062A8A,   //PC = 0x00000F94,     line:     fpadd.32 r5, r5, r6
+0x00072C0A,   //PC = 0x00000F98,     line:     fpadd.32 r8, r5, r7                  # r8 = len_sq (INV_SQRT input)
+0x18C08497,   //PC = 0x00000F9C,     line:     jmp r9, INV_SQRT                     # r8 in/out (= inv_len on return), r9 link, r10+ clobbered
+0x0002448B,   //PC = 0x00000FA0,     line:     fpmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
+0x18648517,   //PC = 0x00000FA4,     line:     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
+0x0018049A,   //PC = 0x00000FA8,     line:     sw r9, r0, 24                        # store ray->inv_dx
+0x0003448B,   //PC = 0x00000FAC,     line:     fpmul.32 r9, r8, r3                   # inv_dy intermediate
+0x18648517,   //PC = 0x00000FB0,     line:     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(inv_len * dy)
+0x001C049A,   //PC = 0x00000FB4,     line:     sw r9, r0, 28                        # store ray->inv_dy
+0x0004448B,   //PC = 0x00000FB8,     line:     fpmul.32 r9, r8, r4                   # inv_dz intermediate
+0x18648517,   //PC = 0x00000FBC,     line:     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(inv_len * dz)
+0x0020049A,   //PC = 0x00000FC0,     line:     sw r9, r0, 32                        # store ray->inv_dz
+0x000C011A,   //PC = 0x00000FC4,     line:     sw r2, r0, 12                        # ray->dx = dx (unnormalized -- differs: pseudocode normalizes before storing)
+0x0010019A,   //PC = 0x00000FC8,     line:     sw r3, r0, 16                        # ray->dy = dy
+0x0014021A,   //PC = 0x00000FCC,     line:     sw r4, r0, 20                        # ray->dz = dz
+0x1FD8811F,   //PC = 0x00000FD0,     line:     lw r2, INFINITY                      # r2 = 0x7F800000
+0x0024011A,   //PC = 0x00000FD4,     line:     sw r2, r0, 36                        # ray->t_max = INFINITY
+0x0000F702,   //PC = 0x00000FD8,     line:     and r14, r14, 0                      # r14 = 0
+0x002C071A,   //PC = 0x00000FDC,     line:     sw r14, r0, 44                       # ray->check_left = 0
+0x0030071A,   //PC = 0x00000FE0,     line:     sw r14, r0, 48                       # ray->check_right = 0
+0x003C071A,   //PC = 0x00000FE4,     line:     sw r14, r0, 60                       # ray->bounce_count = 0
+0x0001F680,   //PC = 0x00000FE8,     line:     add r13, r14, 1                      # r13 = 1
+0xFFFFF600,   //PC = 0x00000FEC,     line:     add r12, r14, -1                     # r12 = 0xFFFFFFFF
+0x0038061A,   //PC = 0x00000FF0,     line:     sw r12, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+0x003F0698,   //PC = 0x00000FF4,     line:     sb r13, r0, 63                       # ray->active_ray = 1
+0x2304809F,   //PC = 0x00000FF8,     line:     lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
+0x0408FF93,   //PC = 0x00000FFC,     line:     beq r15, r15, start_ray_traversal, true   # goto start_ray_traversal
+0x00000422,   //PC = 0x00001000,     line:     yield r8                             # yield()
+0x2010811F,   //PC = 0x00001004,     line:     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
+0x000017A7,   //PC = 0x00001008,     line:     setmembits r2                        # set_address_bits(finished_ray_high)
+0x2014811F,   //PC = 0x0000100C,     line:     lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
+0x0000112C,   //PC = 0x00001010,     line:     lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
+0x1FCC819F,   //PC = 0x00001014,     line:     lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
+0x09589914,   //PC = 0x00001018,     line:     bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
+0x00000422,   //PC = 0x0000101C,     line:     yield r8                             # yield()
+0x00000023,   //PC = 0x00001020,     line:     getowner                             # get_thread_ownership()
+0x000E8024,   //PC = 0x00001024,     line:     setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
+0x00008025,   //PC = 0x00001028,     line:     relinquish true                         # relinquish_ownership(1)
+0x000007A2,   //PC = 0x0000102C,     line:     yield r15                            # yield()
+0x2008801F,   //PC = 0x00001030,     line:     lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
+0x000007A7,   //PC = 0x00001034,     line:     setmembits r0                        # set_address_bits(pixel_addr_high)
+0x200C801F,   //PC = 0x00001038,     line:     lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
+0x0004F886,   //PC = 0x0000103C,     line:     srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
+0x000FF902,   //PC = 0x00001040,     line:     and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
+0x000F8888,   //PC = 0x00001044,     line:     mul r1, r1, 15                       # pix_index *= 15
+0x00088886,   //PC = 0x00001048,     line:     srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
+0x00010000,   //PC = 0x0000104C,     line:     add r0, r0, r1                       # pixel_addr_low += pix_increment
+0x0000F702,   //PC = 0x00001050,     line:     and r14, r14, 0                      # r14 = 0
+0x00008882,   //PC = 0x00001054,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
+0x0002F100,   //PC = 0x00001058,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
+0x232CF200,   //PC = 0x0000105C,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+0x000FFA82,   //PC = 0x00001060,     line:     and r5, r15, 0xF                     # r5 = thread_index
+0x0006AA85,   //PC = 0x00001064,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
+0x00052200,   //PC = 0x00001068,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
+0x0000271A,   //PC = 0x0000106C,     line:     sw r14, r4, 0                        # carried_r = 0.0f
+0x0004271A,   //PC = 0x00001070,     line:     sw r14, r4, 4                        # carried_g = 0.0f
+0x0008271A,   //PC = 0x00001074,     line:     sw r14, r4, 8                        # carried_b = 0.0f
+0x00069285,   //PC = 0x00001078,     line:     sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
+0x00050280,   //PC = 0x0000107C,     line:     add r5, r0, r5                       # bounce_addr += pixel_addr_low
+0x00002B2C,   //PC = 0x00001080,     line:     lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
+0x00042BAC,   //PC = 0x00001084,     line:     lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
+0x00082C2C,   //PC = 0x00001088,     line:     lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
+0x000C2CAC,   //PC = 0x0000108C,     line:     lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
+0x000C231A,   //PC = 0x00001090,     line:     sw r6, r4, 12                        # scratch->sr = sr
+0x0010239A,   //PC = 0x00001094,     line:     sw r7, r4, 16                        # scratch->sg = sg
+0x0014241A,   //PC = 0x00001098,     line:     sw r8, r4, 20                        # scratch->sb = sb
+0x0018249A,   //PC = 0x0000109C,     line:     sw r9, r4, 24                        # scratch->metallic = metallic
+0x001C271A,   //PC = 0x000010A0,     line:     sw r14, r4, 28                       # acc_r = 0.0f
+0x0020271A,   //PC = 0x000010A4,     line:     sw r14, r4, 32                       # acc_g = 0.0f
+0x0024271A,   //PC = 0x000010A8,     line:     sw r14, r4, 36                       # acc_b = 0.0f
+0x0010AA80,   //PC = 0x000010AC,     line:     add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
+0x0000B302,   //PC = 0x000010B0,     line:     and r6, r6, 0                        # uint32_t light = 0
+0x000C2CAC,   //PC = 0x000010B4,     line:     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
+0xFFFFC403,   //PC = 0x000010B8,     line:     or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
+0x11004493,   //PC = 0x000010BC,     line:     beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+0x18648517,   //PC = 0x000010C0,     line:     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
+0x00002BAC,   //PC = 0x000010C4,     line:     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
+0x00042C2C,   //PC = 0x000010C8,     line:     lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
+0x00082D2C,   //PC = 0x000010CC,     line:     lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
+0x00093B8B,   //PC = 0x000010D0,     line:     fpmul.32 r7, r7, r9                   # lr *= atten
+0x0009440B,   //PC = 0x000010D4,     line:     fpmul.32 r8, r8, r9                   # lg *= atten
+0x0009550B,   //PC = 0x000010D8,     line:     fpmul.32 r10, r10, r9                 # lb *= atten
+0x001C259F,   //PC = 0x000010DC,     line:     lw r11, r4, 28                       # r11 = acc_r
+0x0020261F,   //PC = 0x000010E0,     line:     lw r12, r4, 32                       # r12 = acc_g
+0x0024269F,   //PC = 0x000010E4,     line:     lw r13, r4, 36                       # r13 = acc_b
+0x00075D8A,   //PC = 0x000010E8,     line:     fpadd.32 r11, r11, r7                 # acc_r += lr 
+0x0008660A,   //PC = 0x000010EC,     line:     fpadd.32 r12, r12, r8                 # acc_g += lg
+0x000A6E8A,   //PC = 0x000010F0,     line:     fpadd.32 r13, r13, r10               # acc_b += lb
+0x001C259A,   //PC = 0x000010F4,     line:     sw r11, r4, 28                       # store acc_r
+0x0020261A,   //PC = 0x000010F8,     line:     sw r12, r4, 32                       # store acc_g
+0x0024269A,   //PC = 0x000010FC,     line:     sw r13, r4, 36                       # store acc_b
+0x0010AA80,   //PC = 0x00001100,     line:     add r5, r5, 16                       # shadow_addr += 16 (next light slot)
+0x0001B300,   //PC = 0x00001104,     line:     add r6, r6, 1                        # light += 1
+0x0003F380,   //PC = 0x00001108,     line:     add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
+0x10B4B396,   //PC = 0x0000110C,     line:     bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
+0x001C231F,   //PC = 0x00001110,     line:     lw r6, r4, 28                        # r6 = acc_r
+0x0020239F,   //PC = 0x00001114,     line:     lw r7, r4, 32                        # r7 = acc_g
+0x0024241F,   //PC = 0x00001118,     line:     lw r8, r4, 36                        # r8 = acc_b
+0x000C249F,   //PC = 0x0000111C,     line:     lw r9, r4, 12                        # r9 = sr
+0x0010251F,   //PC = 0x00001120,     line:     lw r10, r4, 16                       # r10 = sg
+0x0014259F,   //PC = 0x00001124,     line:     lw r11, r4, 20                       # r11 = sb
+0x0018261F,   //PC = 0x00001128,     line:     lw r12, r4, 24                       # r12 = metallic
+0x1FC8869F,   //PC = 0x0000112C,     line:     lw r13, ONE                          # r13 = 1.0f
+0x000C6E8C,   //PC = 0x00001130,     line:     fpsub.32 r13, r13, r12                   # float inv_metallic = 1.0f - metallic
+0x0009330B,   //PC = 0x00001134,     line:     fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
+0x000A3B8B,   //PC = 0x00001138,     line:     fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
+0x000B440B,   //PC = 0x0000113C,     line:     fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
+0x000D330B,   //PC = 0x00001140,     line:     fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
+0x000D3B8B,   //PC = 0x00001144,     line:     fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
+0x000D440B,   //PC = 0x00001148,     line:     fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
+0x0000269F,   //PC = 0x0000114C,     line:     lw r13, r4, 0                        # r13 = carried_r
+0x00096E8B,   //PC = 0x00001150,     line:     fpmul.32 r13, r13, r9                 # carried_r *= sr
+0x000C6E8B,   //PC = 0x00001154,     line:     fpmul.32 r13, r13, r12               # carried_r *= metallic
+0x000D330A,   //PC = 0x00001158,     line:     fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+0x0000231A,   //PC = 0x0000115C,     line:     sw r6, r4, 0                         # store new carried_r
+0x0004269F,   //PC = 0x00001160,     line:     lw r13, r4, 4                        # r13 = carried_g
+0x000A6E8B,   //PC = 0x00001164,     line:     fpmul.32 r13, r13, r10               # carried_g *= sg
+0x000C6E8B,   //PC = 0x00001168,     line:     fpmul.32 r13, r13, r12               # carried_g *= metallic
+0x000D3B8A,   //PC = 0x0000116C,     line:     fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+0x0004239A,   //PC = 0x00001170,     line:     sw r7, r4, 4                         # store new carried_g
+0x0008269F,   //PC = 0x00001174,     line:     lw r13, r4, 8                        # r13 = carried_b
+0x000B6E8B,   //PC = 0x00001178,     line:     fpmul.32 r13, r13, r11               # carried_b *= sb
+0x000C6E8B,   //PC = 0x0000117C,     line:     fpmul.32 r13, r13, r12               # carried_b *= metallic
+0x000D440A,   //PC = 0x00001180,     line:     fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+0x0008241A,   //PC = 0x00001184,     line:     sw r8, r4, 8                         # store new carried_b
+0xFFFF9100,   //PC = 0x00001188,     line:     add r2, r2, -1                       # bounce -= 1
+0x10789715,   //PC = 0x0000118C,     line:     blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
+0x1FC8869F,   //PC = 0x00001190,     line:     lw r13, ONE                          # r13 = 1.0f
+0x0000251F,   //PC = 0x00001194,     line:     lw r10, r4, 0                        # r10 = carried_r
+0x0004259F,   //PC = 0x00001198,     line:     lw r11, r4, 4                        # r11 = carried_g
+0x0008261F,   //PC = 0x0000119C,     line:     lw r12, r4, 8                        # r12 = carried_b
+0x000D550A,   //PC = 0x000011A0,     line:     fpadd.32 r10, r10, r13               # carried_r += 1.0f
+0x000D5D8A,   //PC = 0x000011A4,     line:     fpadd.32 r11, r11, r13               # carried_g += 1.0f
+0x000D660A,   //PC = 0x000011A8,     line:     fpadd.32 r12, r12, r13               # carried_b += 1.0f
+0x000ED506,   //PC = 0x000011AC,     line:     srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
+0x000EDD86,   //PC = 0x000011B0,     line:     srl r11, r11, 14                     # carried_g >>= 14
+0x000EE606,   //PC = 0x000011B4,     line:     srl r12, r12, 14                     # carried_b >>= 14
+0x01FFD502,   //PC = 0x000011B8,     line:     and r10, r10, 0x1FF                  # carried_r &= 0x1FF
+0x01FFDD82,   //PC = 0x000011BC,     line:     and r11, r11, 0x1FF                  # carried_g &= 0x1FF
+0x01FFE602,   //PC = 0x000011C0,     line:     and r12, r12, 0x1FF                  # carried_b &= 0x1FF
+0x20B8551C,   //PC = 0x000011C4,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
+0x20B85D9C,   //PC = 0x000011C8,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
+0x20B8661C,   //PC = 0x000011CC,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
+0x2018869F,   //PC = 0x000011D0,     line:     lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
+0x00006FA7,   //PC = 0x000011D4,     line:     setmembits r13                       # set_address_bits(pixel_addr_high)
+0x201C869F,   //PC = 0x000011D8,     line:     lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
+0x0004FF06,   //PC = 0x000011DC,     line:     srl r14, r15, 4                      # r14 = core_id >> 4
+0x000FF708,   //PC = 0x000011E0,     line:     mul r14, r14, 15                     # r14 *= 15
+0x000FF482,   //PC = 0x000011E4,     line:     and r9, r14, 0xF                     # r9 = thread_index
+0x000E4F00,   //PC = 0x000011E8,     line:     add r14, r9, r14                     # r14 += thread_index
+0x0002F705,   //PC = 0x000011EC,     line:     sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
+0x000E6E80,   //PC = 0x000011F0,     line:     add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
+0x20008C88,   //PC = 0x000011F4,     line:     mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
+0x003CCC88,   //PC = 0x000011F8,     line:     mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
+0x00096E80,   //PC = 0x000011FC,     line:     add r13, r13, r9                     # pixel_addr_low += r9
+0x00006D18,   //PC = 0x00001200,     line:     sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
+0x00016D98,   //PC = 0x00001204,     line:     sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
+0x00026E18,   //PC = 0x00001208,     line:     sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
+0x00018880,   //PC = 0x0000120C,     line:     add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
+0x20008E88,   //PC = 0x00001210,     line:     mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
+0x0F00EE88,   //PC = 0x00001214,     line:     mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
+0x000D0000,   //PC = 0x00001218,     line:     add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
+0x0000F702,   //PC = 0x0000121C,     line:     and r14, r14, 0                      # r14 = 0
+0x001EF700,   //PC = 0x00001220,     line:     add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
+0x2000869F,   //PC = 0x00001224,     line:     lw r13, PIXEL_DONE_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
+0x00006FA7,   //PC = 0x00001228,     line:     setmembits r13                       # set_address_bits(finished_pixel_high)
+0x2004869F,   //PC = 0x0000122C,     line:     lw r13, PIXEL_DONE_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
+0x0001EEB0,   //PC = 0x00001230,     line:     atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
+0x10588F16,   //PC = 0x00001234,     line:     bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
+0x00000422,   //PC = 0x00001238,     line:     yield r8                            # yield()
+0x1238FF93,   //PC = 0x0000123C,     line:     beq r15, r15, INF_LOOP, true         # goto inf_loop
+0x0000091F,   //PC = 0x00001240,     line:     lw r2, r1, 0                        
+0x0000019F,   //PC = 0x00001244,     line:     lw r3, r0, 0
+0x0003110C,   //PC = 0x00001248,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+0x0018029F,   //PC = 0x0000124C,     line:     lw r5, r0, 24
+0x0005110B,   //PC = 0x00001250,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+0x00040B1F,   //PC = 0x00001254,     line:     lw r6, r1, 4
+0x0003318C,   //PC = 0x00001258,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+0x0005198B,   //PC = 0x0000125C,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+0x00031612,   //PC = 0x00001260,     line:     fpminmax.32 r12, r2, r3, false         # float tmin = min(t1, t2)
+0x00039192,   //PC = 0x00001264,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+0x0024011F,   //PC = 0x00001268,     line:     lw r2, r0, 36
+0x00031692,   //PC = 0x0000126C,     line:     fpminmax.32 r13, r2, r3, false          # tmax = min(tmax, ray->t_max)
+0x000D630F,   //PC = 0x00001270,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+0x1FD0851F,   //PC = 0x00001274,     line:     lw r10, EPSILON                 # float epsilon = self.epsilon
+0x000D540F,   //PC = 0x00001278,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+0x00083582,   //PC = 0x0000127C,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+0x04F45B95,   //PC = 0x00001280,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+0x0008091F,   //PC = 0x00001284,     line:     lw r2, r1, 8
+0x0004019F,   //PC = 0x00001288,     line:     lw r3, r0, 4
+0x0003110C,   //PC = 0x0000128C,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+0x001C029F,   //PC = 0x00001290,     line:     lw r5, r0, 28
+0x0005110B,   //PC = 0x00001294,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+0x000C0B1F,   //PC = 0x00001298,     line:     lw r6, r1, 12
+0x0003318C,   //PC = 0x0000129C,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+0x0005198B,   //PC = 0x000012A0,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+0x00031292,   //PC = 0x000012A4,     line:     fpminmax.32 r5, r2, r3, false         # float tmin = min(t1, t2)
+0x00039192,   //PC = 0x000012A8,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+0x00036E92,   //PC = 0x000012AC,     line:     fpminmax.32 r13, r13, r3, false          # tmax = min(tmax, ray->t_max)
+0x0005E612,   //PC = 0x000012B0,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, t1)
+0x000D630F,   //PC = 0x000012B4,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+0x000D540F,   //PC = 0x000012B8,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+0x00083582,   //PC = 0x000012BC,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+0x04F45B95,   //PC = 0x000012C0,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+0x0010091F,   //PC = 0x000012C4,     line:     lw r2, r1, 16                           # r2 = node->z_min
+0x0008019F,   //PC = 0x000012C8,     line:     lw r3, r0, 8                            # r3 = ray->oz
+0x0003110C,   //PC = 0x000012CC,     line:     fpsub.32 r2, r2, r3                     # r2 = node->z_min - ray->oz
+0x0020029F,   //PC = 0x000012D0,     line:     lw r5, r0, 32                           # r5 = ray->inv_dz
+0x0005110B,   //PC = 0x000012D4,     line:     fpmul.32 r2, r2, r5                     # tz1 = (node->z_min - ray->oz) * ray->inv_dz
+0x00140B1F,   //PC = 0x000012D8,     line:     lw r6, r1, 20                           # r6 = node->z_max
+0x0003318C,   //PC = 0x000012DC,     line:     fpsub.32 r3, r6, r3                     # r3 = node->z_max - ray->oz
+0x0005198B,   //PC = 0x000012E0,     line:     fpmul.32 r3, r3, r5                     # tz2 = (node->z_max - ray->oz) * ray->inv_dz
+0x00031292,   //PC = 0x000012E4,     line:     fpminmax.32 r5, r2, r3, false           # r5 = min(tz1, tz2)
+0x00039192,   //PC = 0x000012E8,     line:     fpminmax.32 r3, r2, r3, true            # r3 = max(tz1, tz2)
+0x00036E92,   //PC = 0x000012EC,     line:     fpminmax.32 r13, r13, r3, false         # tmax = min(tmax, max(tz1, tz2))
+0x0005E612,   //PC = 0x000012F0,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, min(tz1, tz2))
+0x000D630F,   //PC = 0x000012F4,     line:     fplt.32 r6, r12, r13                    # r6 = tmin < tmax
+0x000D540F,   //PC = 0x000012F8,     line:     fplt.32 r8, r10, r13                     # r8 = epsilon < tmax
+0x00083582,   //PC = 0x000012FC,     line:     and r11, r6, r8                         # r11 = (tmin <= tmax) && (0.0 < tmax)
+0x04F4FF93,   //PC = 0x00001300,     line:     beq r15, r15, AABB_INTERSECT_RETURN, true # return r11
+0x0036009E,   //PC = 0x00001304,     line:     lhu r1, r0, 54                      # r1 = ray->pix_y
+0x0A008888,   //PC = 0x00001308,     line:     mul r1, r1, 2560                    # r1 = pix_y * 2560
+0x0034011E,   //PC = 0x0000130C,     line:     lhu r2, r0, 52                      # r2 = ray->pix_x
+0x00011080,   //PC = 0x00001310,     line:     add r1, r2, r1                      # r1 = pix_y * 2560 + pix_x = pix_index #I have the pix index in r2
+0x00088885,   //PC = 0x00001314,     line:     sll r1, r1, 8                       # r1 = pix_index << 8 (each pixel has 256 bytes of results)
+0x2008811F,   //PC = 0x00001318,     line:     lw r2, RAY_RESULT_HIGH              # r2 = RAY_RESULT_HIGH
+0x000017A7,   //PC = 0x0000131C,     line:     setmembits r2                        # set_address_bits(result_addr_high)
+0x200C811F,   //PC = 0x00001320,     line:     lw r2, RAY_RESULT_LOW               # r2 = result_addr_low
+0x00011080,   //PC = 0x00001324,     line:     add r1, r2, r1                      # r1 = result_addr_low + pix_index
+0x003C011C,   //PC = 0x00001328,     line:     lbu r2, r0, 60                      # r2 = ray->bounce_count
+0x00069105,   //PC = 0x0000132C,     line:     sll r2, r2, 6                       # r2 = bounce_count << 6 (each bounce has 64 bytes)
+0x00020880,   //PC = 0x00001330,     line:     add r1, r1, r2                      # r1 = result_addr + pix_index + bounce_offset #I now have the address of the bounce + shadow array (4 16 byte packs)
+0x003D011C,   //PC = 0x00001334,     line:     lbu r2, r0, 61                      # r2 = ray->light_id
+0x0000F702,   //PC = 0x00001338,     line:     and r14, r14, 0                     # r14 = 0
+0x17B8F114,   //PC = 0x0000133C,     line:     bne r2, r14, SHADOW_RAY, true       # if (ray->light_id != 0) goto shadow_ray
+0xFFFFEE83,   //PC = 0x00001340,     line:     or r13, r13, 0xFFFF             # r13 = 0xFFFFFFFF
+0x0038011F,   //PC = 0x00001344,     line:     lw r2, r0, 56                       # r2 = ray->tri_index
+0x13549694,   //PC = 0x00001348,     line:     bne r13, r2, RAY_HIT_A_TRI_IN_COMPLETE, true  # if (ray->tri_index != 0xFFFFFFFF) goto RAY_HIT_A_TRI_IN_COMPLETE
+0x003F0718,   //PC = 0x0000134C,     line:     sb r14, r0, 63                      # ray->active_ray = 0
+0x0958FF93,   //PC = 0x00001350,     line:     beq r15, r15, ray_done, true        # goto ray_done
+0x2028819F,   //PC = 0x00001354,     line:     lw r3, TRIANGLE_ARRAY_HIGH          # r3 = self.triangle_address_high
+0x00001FA7,   //PC = 0x00001358,     line:     setmembits r3                        # set_address_bits(tri_addr_high)
+0x202C819F,   //PC = 0x0000135C,     line:     lw r3, TRIANGLE_ARRAY_LOW           # r3 = tri_addr_low
+0x00059105,   //PC = 0x00001360,     line:     sll r2, r2, 5                       # r2 = tri_index << 5 (* 32 bytes per triangle)
+0x00031100,   //PC = 0x00001364,     line:     add r2, r2, r3                      # r2 = tri_addr_low + tri_offset #r2 = tri index
+0x000011AC,   //PC = 0x00001368,     line:     lw_d r3, r2, 0                      # r3 = tri_red = load_dram_word(tri_addr_low) #tri_red
+0x0004122C,   //PC = 0x0000136C,     line:     lw_d r4, r2, 4                      # r4 = tri_green #tri_green
+0x000812AC,   //PC = 0x00001370,     line:     lw_d r5, r2, 8                      # r5 = tri_blue #tri_blue
+0x000C132C,   //PC = 0x00001374,     line:     lw_d r6, r2, 12                     # r6 = tri_roughness #tri_roughness
+0x0028031A,   //PC = 0x00001378,     line:     sw r6, r0, 40                       # ray->leaf_node_starting_point = roughness (temp storage)
+0x0010132C,   //PC = 0x0000137C,     line:     lw_d r6, r2, 16                     # r6 = tri_metallic
+0x001413AC,   //PC = 0x00001380,     line:     lw_d r7, r2, 20                     # r7 = norm_x
+0x0018142C,   //PC = 0x00001384,     line:     lw_d r8, r2, 24                     # r8 = norm_y
+0x001C14AC,   //PC = 0x00001388,     line:     lw_d r9, r2, 28                     # r9 = norm_z
+0x0020049A,   //PC = 0x0000138C,     line:     sw r9, r0, 32                       # ray->inv_dz = norm_z (temp storage)
+0x2010851F,   //PC = 0x00001390,     line:     lw r10, RAYS_COMPLETED_HIGH         # r10 = RAY_RESULT_HIGH (restore membits to result buffer)
+0x000057A7,   //PC = 0x00001394,     line:     setmembits r10                       # set_address_bits(result_addr_high)
+0x000009AD,   //PC = 0x00001398,     line:     sw_d r3, r1, 0                      # store_dram_word(result_addr_low, tri_red)
+0x00040A2D,   //PC = 0x0000139C,     line:     sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, tri_green)
+0x00080AAD,   //PC = 0x000013A0,     line:     sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, tri_blue)
+0x00100B2D,   //PC = 0x000013A4,     line:     sw_d r6, r1, 16                     # store_dram_word(result_addr_low + 16, tri_metallic) (note: skips offset 12 which is len_sq/tri_index union)
+0x0000019F,   //PC = 0x000013A8,     line:     lw r3, r0, 0                        # r3 = ray->ox //r3 = ox
+0x000C021F,   //PC = 0x000013AC,     line:     lw r4, r0, 12                       # r4 = ray->inv_dx
+0x0024029F,   //PC = 0x000013B0,     line:     lw r5, r0, 36                           # r5 = ray->t_max //r5 = tmax
+0x0005220B,   //PC = 0x000013B4,     line:     fpmul.32 r4, r4, r5                 # r4 = inv_dx * t_max... wait, this should be dx * t_max
+0x0003220A,   //PC = 0x000013B8,     line:     fpadd.32 r4, r4, r3                 # r4 = ox + dx * t_max = hit_x //r4 = hit_x
+0x0004031F,   //PC = 0x000013BC,     line:     lw r6, r0, 4                        # r6 = ray->oy //r6 = oy
+0x0010051F,   //PC = 0x000013C0,     line:     lw r10, r0, 16                      # r10 = ray->inv_dy... should be dy (offset 16)
+0x0005550B,   //PC = 0x000013C4,     line:     fpmul.32 r10, r10, r5               # r10 = dy * t_max
+0x0006550A,   //PC = 0x000013C8,     line:     fpadd.32 r10, r10, r6               # r10 = oy + dy * t_max = hit_y //r10 = hit_y
+0x0008059F,   //PC = 0x000013CC,     line:     lw r11, r0, 8                       # r11 = ray->oz //r11 - oz
+0x0014061F,   //PC = 0x000013D0,     line:     lw r12, r0, 20                      # r12 = ray->dz (offset 20)
+0x000C2E0B,   //PC = 0x000013D4,     line:     fpmul.32 r12, r5, r12               # r12 = t_max * dz
+0x000C5E0A,   //PC = 0x000013D8,     line:     fpadd.32 r12, r11, r12              # r12 = oz + dz * t_max = hit_z //r12 = hit_z
+0x22B8869F,   //PC = 0x000013DC,     line:     lw r13, LIGHT0_X                    # r13 = light0.x
+0x00046E8C,   //PC = 0x000013E0,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+0x00076E8B,   //PC = 0x000013E4,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+0x22BC871F,   //PC = 0x000013E8,     line:     lw r14, LIGHT0_Y                    # r14 = light0.y
+0x000A770C,   //PC = 0x000013EC,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+0x0008770B,   //PC = 0x000013F0,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+0x000E6E8A,   //PC = 0x000013F4,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+0x22C0871F,   //PC = 0x000013F8,     line:     lw r14, LIGHT0_Z                    # r14 = light0.z
+0x000C770C,   //PC = 0x000013FC,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+0x0009770B,   //PC = 0x00001400,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+0x000D768A,   //PC = 0x00001404,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 0
+0x0000F702,   //PC = 0x00001408,     line:     and r14, r14, 0                     # r14 = 0 (for max with 0.0)
+0x000EEE92,   //PC = 0x0000140C,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+0x001C0EAD,   //PC = 0x00001410,     line:     sw_d r13, r1, 28                    # store_dram_word(result_addr_low + 28, ndotl) -> slot 1 offset 12
+0x22D0869F,   //PC = 0x00001414,     line:     lw r13, LIGHT1_X                    # r13 = light1.x
+0x00046E8C,   //PC = 0x00001418,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+0x00076E8B,   //PC = 0x0000141C,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+0x22D4871F,   //PC = 0x00001420,     line:     lw r14, LIGHT1_Y                    # r14 = light1.y
+0x000A770C,   //PC = 0x00001424,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+0x0008770B,   //PC = 0x00001428,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+0x000E6E8A,   //PC = 0x0000142C,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+0x22D8871F,   //PC = 0x00001430,     line:     lw r14, LIGHT1_Z                    # r14 = light1.z
+0x000C770C,   //PC = 0x00001434,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+0x0009770B,   //PC = 0x00001438,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+0x000D768A,   //PC = 0x0000143C,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 1
+0x0000F702,   //PC = 0x00001440,     line:     and r14, r14, 0                     # r14 = 0
+0x000EEE92,   //PC = 0x00001444,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+0x002C0EAD,   //PC = 0x00001448,     line:     sw_d r13, r1, 44                    # store_dram_word(result_addr_low + 44, ndotl) -> slot 2 offset 12
+0x22E8869F,   //PC = 0x0000144C,     line:     lw r13, LIGHT2_X                    # r13 = light2.x
+0x00046E8C,   //PC = 0x00001450,     line:     fpsub.32 r13, r13, r4               # r13 = lx - hit_x
+0x00076E8B,   //PC = 0x00001454,     line:     fpmul.32 r13, r13, r7               # r13 = (lx - hit_x) * norm_x
+0x22EC871F,   //PC = 0x00001458,     line:     lw r14, LIGHT2_Y                    # r14 = light2.y
+0x000A770C,   //PC = 0x0000145C,     line:     fpsub.32 r14, r14, r10              # r14 = ly - hit_y
+0x0008770B,   //PC = 0x00001460,     line:     fpmul.32 r14, r14, r8               # r14 = (ly - hit_y) * norm_y
+0x000E6E8A,   //PC = 0x00001464,     line:     fpadd.32 r13, r13, r14              # r13 = norm_x*(lx-hit_x) + norm_y*(ly-hit_y)
+0x22F0871F,   //PC = 0x00001468,     line:     lw r14, LIGHT2_Z                    # r14 = light2.z
+0x000C770C,   //PC = 0x0000146C,     line:     fpsub.32 r14, r14, r12              # r14 = lz - hit_z
+0x0009770B,   //PC = 0x00001470,     line:     fpmul.32 r14, r14, r9               # r14 = (lz - hit_z) * norm_z
+0x000D768A,   //PC = 0x00001474,     line:     fpadd.32 r13, r14, r13              # r13 = full ndotl for light 2
+0x0000F702,   //PC = 0x00001478,     line:     and r14, r14, 0                     # r14 = 0
+0x000EEE92,   //PC = 0x0000147C,     line:     fpminmax.32 r13, r13, r14, true     # ndotl = max(ndotl, 0.0)
+0x003C0EAD,   //PC = 0x00001480,     line:     sw_d r13, r1, 60                    # store_dram_word(result_addr_low + 60, ndotl) -> slot 3 offset 12
+0x1FF0869F,   //PC = 0x00001484,     line:     lw r13, SPAWNED_RAY_POOL_HIGH       # r13 = self.new_ray_pool_high
+0x00006FA7,   //PC = 0x00001488,     line:     setmembits r13                       # set_address_bits(new_ray_pool_high)
+0x1FF4869F,   //PC = 0x0000148C,     line:     lw r13, SPAWNED_RAY_POOL_LOW        # r13 = new_ray_pool_low
+0x0008EE80,   //PC = 0x00001490,     line:     add r13, r13, 8                     # r13 = new_ray_pool_low + 8 (point to count field)
+0x0003EDB0,   //PC = 0x00001494,     line:     atomadd_d r11, r13, 3               # r11 = atomic_add_dram(count, 3) - reserve 3 slots
+0x1FC4849F,   //PC = 0x00001498,     line:     lw r9, MAX_RAYS_IN_RAY_POOL         # r9 = 260000
+0x14A8DC96,   //PC = 0x0000149C,     line:     bgt r9, r11, ENOUGH_SPACE_IN_RAY_POOL, true  # if (cur_num_new_rays <= 260000) goto ENOUGH_SPACE
+0xFFFDEFB0,   //PC = 0x000014A0,     line:     atomadd_d r15, r13, -3              # undo reservation: atomic_add_dram(count, -3)
+0x1494FF93,   //PC = 0x000014A4,     line:     beq r15, r15, ENSURE_SPACE_RAY_POOL, true     # goto ensure_space_ray_pool (spin)
+0xFFFCEE80,   //PC = 0x000014A8,     line:     add r13, r13, -4                    # r13 = new_ray_pool_low + 4 (point to tail field)
+0x0020EDB0,   //PC = 0x000014AC,     line:     atomadd_d r11, r13, 32             # r11 = atomic_add_dram(tail, 32) - claim first slot
+0x1FDC849F,   //PC = 0x000014B0,     line:     lw r9, SPAWNED_RAY_POOL_MASK        # r9 = tail_mask
+0x000B4D82,   //PC = 0x000014B4,     line:     and r11, r9, r11                    # r11 = tail & mask
+0x000D5E80,   //PC = 0x000014B8,     line:     add r13, r11, r13                   # r13 = pool_base + tail_relative
+0x0008EE80,   //PC = 0x000014BC,     line:     add r13, r13, 8                     # r13 = slot_base (skip head+tail fields)
+0x001F6DA9,   //PC = 0x000014C0,     line:     lbu_d r11, r13, 31                  # r11 = load_dram_byte(slot_base + 31) - check if slot empty
+0x14C07594,   //PC = 0x000014C4,     line:     bne r11, r14, WAIT_FOR_SLOT_0_TO_OPEN, false  # while (slot_base[31] != 0) spin
+0x00006A2D,   //PC = 0x000014C8,     line:     sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
+0x00046D2D,   //PC = 0x000014CC,     line:     sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
+0x00086E2D,   //PC = 0x000014D0,     line:     sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
+0x22B8859F,   //PC = 0x000014D4,     line:     lw r11, LIGHT0_X                    # r11 = light0.x
+0x00045D8C,   //PC = 0x000014D8,     line:     fpsub.32 r11, r11, r4               # r11 = light0.x - hit_x = sdx
+0x000C6DAD,   //PC = 0x000014DC,     line:     sw_d r11, r13, 12                   # store_dram_word(slot_base + 12, sdx)
+0x22BC859F,   //PC = 0x000014E0,     line:     lw r11, LIGHT0_Y                    # r11 = light0.y
+0x000A5D8C,   //PC = 0x000014E4,     line:     fpsub.32 r11, r11, r10              # r11 = light0.y - hit_y = sdy
+0x00106DAD,   //PC = 0x000014E8,     line:     sw_d r11, r13, 16                   # store_dram_word(slot_base + 16, sdy)
+0x22C0859F,   //PC = 0x000014EC,     line:     lw r11, LIGHT0_Z                    # r11 = light0.z
+0x000C5D8C,   //PC = 0x000014F0,     line:     fpsub.32 r11, r11, r12              # r11 = light0.z - hit_z = sdz
+0x00146DAD,   //PC = 0x000014F4,     line:     sw_d r11, r13, 20                   # store_dram_word(slot_base + 20, sdz)
+0x0034059F,   //PC = 0x000014F8,     line:     lw r11, r0, 52                      # r11 = pix_x | (pix_y << 16) packed
+0x00186DAD,   //PC = 0x000014FC,     line:     sw_d r11, r13, 24                   # store_dram_word(slot_base + 24, pix_xy)
+0x0001F480,   //PC = 0x00001500,     line:     add r9, r14, 1                      # r9 = 1 (light_id for light 0)
+0x001D6CAF,   //PC = 0x00001504,     line:     sb_d r9, r13, 29                    # store_dram_byte(slot_base + 29, light_id=1) (meta >> 8)
+0x003C059B,   //PC = 0x00001508,     line:     lb r11, r0, 60                      # r11 = ray->bounce_count
+0x001C6DAF,   //PC = 0x0000150C,     line:     sb_d r11, r13, 28                   # store_dram_byte(slot_base + 28, bounce_count) (meta & 0xFF)
+0x001F6CAF,   //PC = 0x00001510,     line:     sb_d r9, r13, 31                    # store_dram_byte(slot_base + 31, 1) - mark slot as ready
+0x1FF4859F,   //PC = 0x00001514,     line:     lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
+0x0004DD80,   //PC = 0x00001518,     line:     add r11, r11, 4                     # r11 = pool + 4 (tail field)
+0x0020DCB0,   //PC = 0x0000151C,     line:     atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 1
+0x0008DD80,   //PC = 0x00001520,     line:     add r11, r11, 8                     # r11 = pool + 12 (data start)
+0x1FDC869F,   //PC = 0x00001524,     line:     lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
+0x000D4C82,   //PC = 0x00001528,     line:     and r9, r9, r13                     # r9 = tail & mask
+0x00095E80,   //PC = 0x0000152C,     line:     add r13, r11, r9                    # r13 = slot_base for slot 1
+0x001F6D9C,   //PC = 0x00001530,     line:     lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+0x15305F14,   //PC = 0x00001534,     line:     bne r14, r11, WAIT_FOR_SLOT_1_TO_OPEN, false  # while (slot[31] != 0) spin
+0x00006A2D,   //PC = 0x00001538,     line:     sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
+0x00046D2D,   //PC = 0x0000153C,     line:     sw_d r10, r13, 4                    # store_dram_word(slot_base + 4, hit_y)
+0x00086E2D,   //PC = 0x00001540,     line:     sw_d r12, r13, 8                    # store_dram_word(slot_base + 8, hit_z)
+0x22D0859F,   //PC = 0x00001544,     line:     lw r11, LIGHT1_X                    # r11 = light1.x
+0x00045D8C,   //PC = 0x00001548,     line:     fpsub.32 r11, r11, r4               # r11 = light1.x - hit_x
+0x000C6DAD,   //PC = 0x0000154C,     line:     sw_d r11, r13, 12                   # store sdx
+0x22D4859F,   //PC = 0x00001550,     line:     lw r11, LIGHT1_Y                    # r11 = light1.y
+0x000A5D8C,   //PC = 0x00001554,     line:     fpsub.32 r11, r11, r10              # r11 = light1.y - hit_y
+0x00106DAD,   //PC = 0x00001558,     line:     sw_d r11, r13, 16                   # store sdy
+0x22D8859F,   //PC = 0x0000155C,     line:     lw r11, LIGHT1_Z                    # r11 = light1.z
+0x000C5D8C,   //PC = 0x00001560,     line:     fpsub.32 r11, r11, r12              # r11 = light1.z - hit_z
+0x00146DAD,   //PC = 0x00001564,     line:     sw_d r11, r13, 20                   # store sdz
+0x0034059F,   //PC = 0x00001568,     line:     lw r11, r0, 52                      # r11 = pix_xy
+0x00186DAD,   //PC = 0x0000156C,     line:     sw_d r11, r13, 24                   # store pix_xy
+0x0002F480,   //PC = 0x00001570,     line:     add r9, r14, 2                      # r9 = 2 (light_id for light 1)
+0x001D6CAF,   //PC = 0x00001574,     line:     sb_d r9, r13, 29                    # store light_id = 2
+0x003C059B,   //PC = 0x00001578,     line:     lb r11, r0, 60                      # r11 = bounce_count
+0x001C6DAF,   //PC = 0x0000157C,     line:     sb_d r11, r13, 28                   # store bounce_count
+0x0001F480,   //PC = 0x00001580,     line:     add r9, r14, 1                      # r9 = 1 (ready marker)
+0x001F6CAF,   //PC = 0x00001584,     line:     sb_d r9, r13, 31                    # mark slot as ready
+0x1FF4859F,   //PC = 0x00001588,     line:     lw r11, SPAWNED_RAY_POOL_LOW        # r11 = pool base
+0x0004DD80,   //PC = 0x0000158C,     line:     add r11, r11, 4                     # r11 = pool + 4 (tail field)
+0x0020DCB0,   //PC = 0x00001590,     line:     atomadd_d r9, r11, 32              # r9 = atomic_add_dram(tail, 32) - claim slot 2
+0x0008DD80,   //PC = 0x00001594,     line:     add r11, r11, 8                     # r11 = pool + 12
+0x1FDC869F,   //PC = 0x00001598,     line:     lw r13, SPAWNED_RAY_POOL_MASK       # r13 = mask
+0x000D4C82,   //PC = 0x0000159C,     line:     and r9, r9, r13                     # r9 = tail & mask
+0x00095E80,   //PC = 0x000015A0,     line:     add r13, r11, r9                    # r13 = slot_base for slot 2
+0x001F6D9C,   //PC = 0x000015A4,     line:     lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+0x15A45F14,   //PC = 0x000015A8,     line:     bne r14, r11, WAIT_FOR_SLOT_2_TO_OPEN, false  # spin until slot empty
+0x00006A2D,   //PC = 0x000015AC,     line:     sw_d r4, r13, 0                     # store hit_x
+0x00046D2D,   //PC = 0x000015B0,     line:     sw_d r10, r13, 4                    # store hit_y
+0x00086E2D,   //PC = 0x000015B4,     line:     sw_d r12, r13, 8                    # store hit_z
+0x22E8859F,   //PC = 0x000015B8,     line:     lw r11, LIGHT2_X                    # r11 = light2.x
+0x00045D8C,   //PC = 0x000015BC,     line:     fpsub.32 r11, r11, r4               # r11 = light2.x - hit_x
+0x000C6DAD,   //PC = 0x000015C0,     line:     sw_d r11, r13, 12                   # store sdx
+0x22EC859F,   //PC = 0x000015C4,     line:     lw r11, LIGHT2_Y                    # r11 = light2.y
+0x000A5D8C,   //PC = 0x000015C8,     line:     fpsub.32 r11, r11, r10              # r11 = light2.y - hit_y
+0x00106DAD,   //PC = 0x000015CC,     line:     sw_d r11, r13, 16                   # store sdy
+0x22F0859F,   //PC = 0x000015D0,     line:     lw r11, LIGHT2_Z                    # r11 = light2.z
+0x000C5D8C,   //PC = 0x000015D4,     line:     fpsub.32 r11, r11, r12              # r11 = light2.z - hit_z
+0x00146DAD,   //PC = 0x000015D8,     line:     sw_d r11, r13, 20                   # store sdz
+0x0034059F,   //PC = 0x000015DC,     line:     lw r11, r0, 52                      # r11 = pix_xy
+0x00186DAD,   //PC = 0x000015E0,     line:     sw_d r11, r13, 24                   # store pix_xy
+0x0003F480,   //PC = 0x000015E4,     line:     add r9, r14, 3                      # r9 = 3 (light_id for light 2)
+0x001D6CAF,   //PC = 0x000015E8,     line:     sb_d r9, r13, 29                    # store light_id = 3
+0x003C059B,   //PC = 0x000015EC,     line:     lb r11, r0, 60                      # r11 = bounce_count
+0x001C6DAF,   //PC = 0x000015F0,     line:     sb_d r11, r13, 28                   # store bounce_count
+0x0001F480,   //PC = 0x000015F4,     line:     add r9, r14, 1                      # r9 = 1 (ready marker)
+0x001F6CAF,   //PC = 0x000015F8,     line:     sb_d r9, r13, 31                    # mark slot as ready
+0x0003F680,   //PC = 0x000015FC,     line:     add r13, r14, 3                     # r13 = 3 (max bounce threshold + 1)
+0x161CDE94,   //PC = 0x00001600,     line:     bne r13, r11, GENERATE_BOUNCE_RAY, true  # if bounce_count != 3 goto GENERATE_BOUNCE_RAY
+0x003F0718,   //PC = 0x00001604,     line:     sb r14, r0, 63                      # ray->active_ray = 0
+0x2010809F,   //PC = 0x00001608,     line:     lw r1, RAYS_COMPLETED_HIGH          # r1 = self.ray_result_addr_high
+0x00000FA7,   //PC = 0x0000160C,     line:     setmembits r1                        # set_address_bits(finished_ray_high)
+0x2014809F,   //PC = 0x00001610,     line:     lw r1, RAYS_COMPLETED_LOW           # r1 = self.ray_result_addr_low
+0x00018FB0,   //PC = 0x00001614,     line:     atomadd_d r15, r1, 1               # atomic_add(finished_ray_low, 1)
+0x0958FF93,   //PC = 0x00001618,     line:     beq r15, r15, ray_done, true        # goto ray_done
+0x2050809F,   //PC = 0x0000161C,     line:     lw r1, RANDOM_TABLE_HIGH            # r1 = self.random_table_addr_high
+0x00000FA7,   //PC = 0x00001620,     line:     setmembits r1                        # set_address_bits(random_table_high)
+0x2054809F,   //PC = 0x00001624,     line:     lw r1, RANDOM_TABLE_LOW             # r1 = random_table_low
+0x00108930,   //PC = 0x00001628,     line:     atomadd_d r2, r1, 16               # r2 = atomic_add_dram(random_table_low, 16) - advance index by 16 (not 12 as in C, TODO?)
+0x1FC0819F,   //PC = 0x0000162C,     line:     lw r3, RANDOM_TABLE_MASK            # r3 = mask
+0x00031102,   //PC = 0x00001630,     line:     and r2, r2, r3                      # r2 = index & mask
+0x00048880,   //PC = 0x00001634,     line:     add r1, r1, 4                       # r1 = random_table_low + 4 (skip count field)
+0x00020880,   //PC = 0x00001638,     line:     add r1, r1, r2                      # r1 = &random_table[index]
+0x0000092C,   //PC = 0x0000163C,     line:     lw_d r2, r1, 0                      # r2 = random1 (raw bits)
+0x000409AC,   //PC = 0x00001640,     line:     lw_d r3, r1, 4                      # r3 = random2 (raw bits)
+0x00080B2C,   //PC = 0x00001644,     line:     lw_d r6, r1, 8                      # r6 = random3 (raw bits)
+0x007FF080,   //PC = 0x00001648,     line:     add r1, r14, 0x7F                   # r1 = 0x7F (exponent for 1.0)
+0x00178885,   //PC = 0x0000164C,     line:     sll r1, r1, 23                      # r1 = 0x3F800000 (and_mask: clears sign+exp, keeps mantissa)
+0x1FBC829F,   //PC = 0x00001650,     line:     lw r5, RANDOM_FLOAT_AND_MASK         # r5 = 0x3F800000 (or_mask: forces exponent to 127)
+0x00020903,   //PC = 0x00001654,     line:     or r2, r1, r2                      # r2 |= or_mask (clear top bits)
+0x00030983,   //PC = 0x00001658,     line:     or r3, r1, r3                      # r3 |= or_mask
+0x00060B03,   //PC = 0x0000165C,     line:     or r6, r1, r6                      # r6 |= or_mask
+0x00051102,   //PC = 0x00001660,     line:     and r2, r2, r5                       # r2 &= and_mask (force to [1.0, 2.0))
+0x00051982,   //PC = 0x00001664,     line:     and r3, r3, r5                       # r3 &= and_mask
+0x00053302,   //PC = 0x00001668,     line:     and r6, r6, r5                       # r6 &= and_mask
+0x1FB8809F,   //PC = 0x0000166C,     line:     lw r1, ONE_POINT_FIVE               # r1 = 1.5f
+0x0001110C,   //PC = 0x00001670,     line:     fpsub.32 r2, r2, r1                 # random1 -= 1.5 -> [-0.5, 0.5)
+0x0001198C,   //PC = 0x00001674,     line:     fpsub.32 r3, r3, r1                 # random2 -= 1.5
+0x0001330C,   //PC = 0x00001678,     line:     fpsub.32 r6, r6, r1                 # random3 -= 1.5
+0x003C029B,   //PC = 0x0000167C,     line:     lb r5, r0, 60                       # r5 = ray->bounce_count
+0x0001AA80,   //PC = 0x00001680,     line:     add r5, r5, 1                       # bounce_count += 1
+0x003C0298,   //PC = 0x00001684,     line:     sb r5, r0, 60                       # ray->bounce_count = bounce_count
+0x003E0718,   //PC = 0x00001688,     line:     sb r14, r0, 62                      # ray->ray_depth = 0
+0x002C071A,   //PC = 0x0000168C,     line:     sw r14, r0, 44                      # ray->check_left = 0
+0x0030071A,   //PC = 0x00001690,     line:     sw r14, r0, 48                      # ray->check_right = 0
+0x0028071A,   //PC = 0x00001694,     line:     sw r14, r0, 40                      # ray->leaf_node_starting_point = 0 (will be set to 128 elsewhere TODO)
+0xFFFF8883,   //PC = 0x00001698,     line:     or r1, r1, 0xFFFF                   # r1 = 0xFFFFFFFF (no hit sentinel) NOTE: r1 still holds 1.5, this sign-extends
+0x0038009A,   //PC = 0x0000169C,     line:     sw r1, r0, 56                       # ray->tri_index = 0xFFFFFFFF
+0x0000021A,   //PC = 0x000016A0,     line:     sw r4, r0, 0                        # ray->ox = hit_x
+0x0004051A,   //PC = 0x000016A4,     line:     sw r10, r0, 4                       # ray->oy = hit_y
+0x0008061A,   //PC = 0x000016A8,     line:     sw r12, r0, 8                       # ray->oz = hit_z
+0x0020049F,   //PC = 0x000016AC,     line:     lw r9, r0, 32                       # r9 = norm_z (stored earlier at offset 32)
+0x000C021F,   //PC = 0x000016B0,     line:     lw r4, r0, 12                       # r4 = ray->dx
+0x0010051F,   //PC = 0x000016B4,     line:     lw r10, r0, 16                      # r10 = ray->dy
+0x0014061F,   //PC = 0x000016B8,     line:     lw r12, r0, 20                      # r12 = ray->dz
+0x0004388B,   //PC = 0x000016BC,     line:     fpmul.32 r1, r7, r4                 # r1 = norm_x * dx
+0x000A428B,   //PC = 0x000016C0,     line:     fpmul.32 r5, r8, r10                # r5 = norm_y * dy
+0x000C4D8B,   //PC = 0x000016C4,     line:     fpmul.32 r11, r9, r12              # r11 = norm_z * dz
+0x0005088A,   //PC = 0x000016C8,     line:     fpadd.32 r1, r1, r5                 # r1 = norm_x*dx + norm_y*dy
+0x000B088A,   //PC = 0x000016CC,     line:     fpadd.32 r1, r1, r11               # r1 = dot(d, n)
+0x0001088A,   //PC = 0x000016D0,     line:     fpadd.32 r1, r1, r1                 # r1 = 2 * dot(d, n)
+0x00070D8B,   //PC = 0x000016D4,     line:     fpmul.32 r11, r1, r7               # r11 = 2*dot * norm_x
+0x000B220C,   //PC = 0x000016D8,     line:     fpsub.32 r4, r4, r11               # r4 = dx - 2*dot*norm_x (reflected dx)
+0x00080D8B,   //PC = 0x000016DC,     line:     fpmul.32 r11, r1, r8               # r11 = 2*dot * norm_y
+0x000B550C,   //PC = 0x000016E0,     line:     fpsub.32 r10, r10, r11             # r10 = dy - 2*dot*norm_y (reflected dy)
+0x00090D8B,   //PC = 0x000016E4,     line:     fpmul.32 r11, r1, r9               # r11 = 2*dot * norm_z
+0x000B660C,   //PC = 0x000016E8,     line:     fpsub.32 r12, r12, r11             # r12 = dz - 2*dot*norm_z (reflected dz)
+0x0028059F,   //PC = 0x000016EC,     line:     lw r11, r0, 40                      # r11 = roughness (stored at offset 40 earlier)
+0x000B110B,   //PC = 0x000016F0,     line:     fpmul.32 r2, r2, r11               # random1 *= roughness
+0x000B198B,   //PC = 0x000016F4,     line:     fpmul.32 r3, r3, r11               # random2 *= roughness
+0x000B330B,   //PC = 0x000016F8,     line:     fpmul.32 r6, r6, r11               # random3 *= roughness
+0x0004120A,   //PC = 0x000016FC,     line:     fpadd.32 r4, r2, r4                 # bdx = reflected_dx + random1
+0x000A1D0A,   //PC = 0x00001700,     line:     fpadd.32 r10, r3, r10              # bdy = reflected_dy + random2
+0x000C360A,   //PC = 0x00001704,     line:     fpadd.32 r12, r6, r12              # bdz = reflected_dz + random3
+0x0004208B,   //PC = 0x00001708,     line:     fpmul.32 r1, r4, r4                 # r1 = bdx * bdx
+0x000A510B,   //PC = 0x0000170C,     line:     fpmul.32 r2, r10, r10              # r2 = bdy * bdy
+0x000C618B,   //PC = 0x00001710,     line:     fpmul.32 r3, r12, r12               # r3 = bdz * bdz
+0x0003088A,   //PC = 0x00001714,     line:     fpadd.32 r1, r1, r3                 # r1 = bdx^2 + bdz^2
+0x0002088A,   //PC = 0x00001718,     line:     fpadd.32 r1, r1, r2                 # r1 = len_sq = bdx^2 + bdy^2 + bdz^2
+0x0000C280,   //PC = 0x0000171C,     line:     add r5, r8, 0                       # r5 = norm_y (save before INV_SQRT clobbers r8)
+0x0000CB00,   //PC = 0x00001720,     line:     add r6, r9, 0                       # r6 = norm_z (save before INV_SQRT clobbers r9)
+0x0000D100,   //PC = 0x00001724,     line:     add r2, r10, 0                      # r2 = bdy (save)
+0x0000E180,   //PC = 0x00001728,     line:     add r3, r12, 0                      # r3 = bdz (save)
+0x00008C00,   //PC = 0x0000172C,     line:     add r8, r1, 0                       # r8 = len_sq (INV_SQRT input)
+0x18C08497,   //PC = 0x00001730,     line:     jmp r9, INV_SQRT                    # r8 = inv_sqrt(len_sq), returns in r8
+0x0008110B,   //PC = 0x00001734,     line:     fpmul.32 r2, r2, r8                 # bdy *= inv_sqrt
+0x0008198B,   //PC = 0x00001738,     line:     fpmul.32 r3, r3, r8                 # bdz *= inv_sqrt
+0x0008220B,   //PC = 0x0000173C,     line:     fpmul.32 r4, r4, r8                 # bdx *= inv_sqrt
+0x00043C8B,   //PC = 0x00001740,     line:     fpmul.32 r9, r7, r4                 # r9 = norm_x * bdx
+0x0005150B,   //PC = 0x00001744,     line:     fpmul.32 r10, r2, r5                # r10 = norm_y * bdy (r5=norm_y saved above)
+0x0003358B,   //PC = 0x00001748,     line:     fpmul.32 r11, r6, r3               # r11 = norm_z * bdz (r6=norm_z saved above)
+0x000A4C8A,   //PC = 0x0000174C,     line:     fpadd.32 r9, r9, r10               # r9 = norm_x*bdx + norm_y*bdy
+0x000B4C8A,   //PC = 0x00001750,     line:     fpadd.32 r9, r9, r11               # r9 = check = dot(bd, n)
+0x0000D502,   //PC = 0x00001754,     line:     and r10, r10, 0                     # r10 = 0 (for comparison with 0.0)
+0x000A4D8F,   //PC = 0x00001758,     line:     fplt.32 r11, r9, r10                   # r11 = (check < 0.0)
+0x177CD594,   //PC = 0x0000175C,     line:     bne r11, r10, SKIP_FLIP, true       # if check >= 0 skip flip 
+0x00094C8A,   //PC = 0x00001760,     line:     fpadd.32 r9, r9, r9                 # r9 = 2 * check
+0x00093D0B,   //PC = 0x00001764,     line:     fpmul.32 r10, r7, r9               # r10 = 2*check * norm_x
+0x00092D8B,   //PC = 0x00001768,     line:     fpmul.32 r11, r5, r9               # r11 = 2*check * norm_y
+0x0009360B,   //PC = 0x0000176C,     line:     fpmul.32 r12, r6, r9               # r12 = 2*check * norm_z
+0x000A220C,   //PC = 0x00001770,     line:     fpsub.32 r4, r4, r10               # bdx -= 2*check*norm_x
+0x000B110C,   //PC = 0x00001774,     line:     fpsub.32 r2, r2, r11               # bdy -= 2*check*norm_y
+0x000C198C,   //PC = 0x00001778,     line:     fpsub.32 r3, r3, r12               # bdz -= 2*check*norm_z
+0x000C021A,   //PC = 0x0000177C,     line:     sw r4, r0, 12                       # ray->dx = bdx
+0x0010011A,   //PC = 0x00001780,     line:     sw r2, r0, 16                       # ray->dy = bdy
+0x0014019A,   //PC = 0x00001784,     line:     sw r3, r0, 20                       # ray->dz = bdz
+0x1FD8861F,   //PC = 0x00001788,     line:     lw r12, INFINITY                    # r12 = 0x7F7FFFFF (float_max)
+0x0024061A,   //PC = 0x0000178C,     line:     sw r12, r0, 36                      # ray->t_max = float_max
+0x0000A480,   //PC = 0x00001790,     line:     add r9, r4, 0                       # r9 = bdx (RECIPROCAL input)
+0x18648517,   //PC = 0x00001794,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdx)
+0x0018049A,   //PC = 0x00001798,     line:     sw r9, r0, 24                       # ray->inv_dx = reciprocal(bdx)
+0x00009480,   //PC = 0x0000179C,     line:     add r9, r2, 0                       # r9 = bdy
+0x18648517,   //PC = 0x000017A0,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdy)
+0x001C049A,   //PC = 0x000017A4,     line:     sw r9, r0, 28                       # ray->inv_dy = reciprocal(bdy)
+0x00009C80,   //PC = 0x000017A8,     line:     add r9, r3, 0                       # r9 = bdz
+0x18648517,   //PC = 0x000017AC,     line:     jmp r10, RECIPROCAL                 # r9 = reciprocal(bdz)
+0x0020049A,   //PC = 0x000017B0,     line:     sw r9, r0, 32                       # ray->inv_dz = reciprocal(bdz)
+0x0958FF93,   //PC = 0x000017B4,     line:     beq r15, r15, ray_done, true        # goto ray_done
+0x00049185,   //PC = 0x000017B8,     line:     sll r3, r2, 4                       # r3 = light_id << 4 (each shadow slot is 16 bytes)
+0x00030880,   //PC = 0x000017BC,     line:     add r1, r1, r3                      # r1 = result_addr_low + shadow * 16 (advance to correct shadow slot)
+0x0038021F,   //PC = 0x000017C0,     line:     lw r4, r0, 56                       # r4 = ray->tri_index
+0xFFFFF683,   //PC = 0x000017C4,     line:     or r13, r14, 0xFFFF             # r13 = 0xFFFFFFFF
+0x17DCA693,   //PC = 0x000017C8,     line:     beq r13, r4, SHADOW_RAY_MUST_BE_CALCULATED, true  # if (ray->tri_index == 0xFFFFFFFF) ray missed, calc lighting
+0x1FC8821F,   //PC = 0x000017CC,     line:     lw r4, ONE                          # r4 = 0x3F800000 = 1.0f
+0x000C0A2D,   //PC = 0x000017D0,     line:     sw_d r4, r1, 12                     # store_dram_word(result_addr_low + 12, 1.0) - blocked sentinel
+0x003F0718,   //PC = 0x000017D4,     line:     sb r14, r0, 63                      # ray->active_ray = 0
+0x0958FF93,   //PC = 0x000017D8,     line:     beq r15, r15, ray_done, true        # goto ray_done
+0x000C0B2C,   //PC = 0x000017DC,     line:     lw_d r6, r1, 12                     # r6 = ndotl = load_dram_word(result_addr_low + 12)
+0xFFFF9100,   //PC = 0x000017E0,     line:     add r2, r2, -1                      # shadow = light_id - 1 (0-indexed)
+0x00189108,   //PC = 0x000017E4,     line:     mul r2, r2, 24                      # shadow *= 24 (bytes per light struct)
+0x22B89100,   //PC = 0x000017E8,     line:     add r2, r2, LIGHT0_X               # r2 = &light_array[shadow] (base of this light)
+0x000C119F,   //PC = 0x000017EC,     line:     lw r3, r2, 12                       # r3 = light_r
+0x0010121F,   //PC = 0x000017F0,     line:     lw r4, r2, 16                       # r4 = light_g
+0x0014129F,   //PC = 0x000017F4,     line:     lw r5, r2, 20                       # r5 = light_b
+0x0006198B,   //PC = 0x000017F8,     line:     fpmul.32 r3, r3, r6                 # light_r *= ndotl
+0x0006220B,   //PC = 0x000017FC,     line:     fpmul.32 r4, r4, r6                 # light_g *= ndotl
+0x00062A8B,   //PC = 0x00001800,     line:     fpmul.32 r5, r5, r6                 # light_b *= ndotl
+0x000009AD,   //PC = 0x00001804,     line:     sw_d r3, r1, 0                      # store_dram_word(result_addr_low, light_r)
+0x00040A2D,   //PC = 0x00001808,     line:     sw_d r4, r1, 4                      # store_dram_word(result_addr_low + 4, light_g)
+0x00080AAD,   //PC = 0x0000180C,     line:     sw_d r5, r1, 8                      # store_dram_word(result_addr_low + 8, light_b)
+0x0000119F,   //PC = 0x00001810,     line:     lw r3, r2, 0                        # r3 = light_x (position, offset 0)
+0x0004121F,   //PC = 0x00001814,     line:     lw r4, r2, 4                        # r4 = light_y
+0x0008129F,   //PC = 0x00001818,     line:     lw r5, r2, 8                        # r5 = light_z
+0x0000031F,   //PC = 0x0000181C,     line:     lw r6, r0, 0                        # r6 = ray->ox (hit point origin)
+0x0004039F,   //PC = 0x00001820,     line:     lw r7, r0, 4                        # r7 = ray->oy
+0x0008041F,   //PC = 0x00001824,     line:     lw r8, r0, 8                        # r8 = ray->oz
+0x0006198C,   //PC = 0x00001828,     line:     fpsub.32 r3, r3, r6                 # r3 = light_x - ox
+0x0007220C,   //PC = 0x0000182C,     line:     fpsub.32 r4, r4, r7                 # r4 = light_y - oy
+0x00082A8C,   //PC = 0x00001830,     line:     fpsub.32 r5, r5, r8                 # r5 = light_z - oz
+0x0003198B,   //PC = 0x00001834,     line:     fpmul.32 r3, r3, r3                 # r3 = (light_x - ox)^2
+0x0004220B,   //PC = 0x00001838,     line:     fpmul.32 r4, r4, r4                 # r4 = (light_y - oy)^2
+0x00052A8B,   //PC = 0x0000183C,     line:     fpmul.32 r5, r5, r5                 # r5 = (light_z - oz)^2
+0x0004198A,   //PC = 0x00001840,     line:     fpadd.32 r3, r3, r4                 # r3 = dx^2 + dy^2
+0x0005198A,   //PC = 0x00001844,     line:     fpadd.32 r3, r3, r5                 # r3 = len_sq = dx^2 + dy^2 + dz^2
+0x000C09AD,   //PC = 0x00001848,     line:     sw_d r3, r1, 12                     # store_dram_word(result_addr_low + 12, len_sq)
+0x003F0718,   //PC = 0x0000184C,     line:     sb r14, r0, 63                      # ray->active_ray = 0
+0x2010809F,   //PC = 0x00001850,     line:     lw r1, RAYS_COMPLETED_HIGH          # r1 = self.ray_result_addr_high
+0x00000FA7,   //PC = 0x00001854,     line:     setmembits r1                        # set_address_bits(finished_ray_high)
+0x2014809F,   //PC = 0x00001858,     line:     lw r1, RAYS_COMPLETED_LOW           # r1 = self.ray_result_addr_low
+0x00018FB0,   //PC = 0x0000185C,     line:     atomadd_d r15, r1, 1               # atomic_add(finished_ray_low, 1)
+0x0958FF93,   //PC = 0x00001860,     line:     beq r15, r15, ray_done, true        # goto ray_done
+0x1FB4859F,   //PC = 0x00001864,     line:     lw r11, NEG_MAX                     # r11 = 0x80000000
+0x00095E02,   //PC = 0x00001868,     line:     and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
+0xFFFFDD84,   //PC = 0x0000186C,     line:     xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
+0x00095D82,   //PC = 0x00001870,     line:     and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
+0x0017CE86,   //PC = 0x00001874,     line:     srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
+0x00FEEE81,   //PC = 0x00001878,     line:     sub r13, r13, 254                   # r13 = new_exp = 254 - exp
+0x000CCC86,   //PC = 0x0000187C,     line:     srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
+0x1FFCCC82,   //PC = 0x00001880,     line:     and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
+0x2038871F,   //PC = 0x00001884,     line:     lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
+0x00007727,   //PC = 0x00001888,     line:     setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
+0x203C871F,   //PC = 0x0000188C,     line:     lw r14, DIV_TABLE_LOW               # r14 = div_table_low
+0x00097700,   //PC = 0x00001890,     line:     add r14, r14, r9                    # r14 = &div_table[index]
+0x000074AC,   //PC = 0x00001894,     line:     lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+0x0017EF05,   //PC = 0x00001898,     line:     sll r14, r13, 23                    # r14 = new_exp << 23
+0x00097483,   //PC = 0x0000189C,     line:     or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
+0x00FEEE81,   //PC = 0x000018A0,     line:     sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
+0x00095E8B,   //PC = 0x000018A4,     line:     fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
+0x1FB0859F,   //PC = 0x000018A8,     line:     lw r11, TWO                         # r11 = 2.0f
+0x000D5E8C,   //PC = 0x000018AC,     line:     fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
+0x000D4C8B,   //PC = 0x000018B0,     line:     fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
+0x000C4C83,   //PC = 0x000018B4,     line:     or r9, r9, r12                      # r9 |= sign (restore sign bit)
+0x00007727,   //PC = 0x000018B8,     line:     setmembits r14, r14                 # restore membits
+0x000A0797,   //PC = 0x000018BC,     line:     jmp r15, r10                        # return (result in r9)
+0x000BC506,   //PC = 0x000018C0,     line:     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
+0x2040859F,   //PC = 0x000018C4,     line:     lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
+0x00005DA7,   //PC = 0x000018C8,     line:     setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
+0x2044861F,   //PC = 0x000018CC,     line:     lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
+0x0017C686,   //PC = 0x000018D0,     line:     srl r13, r8, 23
+0x017DEE81,   //PC = 0x000018D4,     line:     sub r13, r13, 381
+0x0001EE86,   //PC = 0x000018D8,     line:     srl r13, r13, 1
+0x0017EE85,   //PC = 0x000018DC,     line:     sll r13, r13, 23
+0x1FFFD502,   //PC = 0x000018E0,     line:     and r10, r10, 0x1FFF
+0x0002D505,   //PC = 0x000018E4,     line:     sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
+0x000A6600,   //PC = 0x000018E8,     line:     add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
+0x0000662C,   //PC = 0x000018EC,     line:     lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
+0x000D6603,   //PC = 0x000018F0,     line:     or r12, r12, r13
+0x1FAC869F,   //PC = 0x000018F4,     line:     lw r13, HALF                        # r13 = 0.5f
+0x00086E8B,   //PC = 0x000018F8,     line:     fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
+0x1FB8871F,   //PC = 0x000018FC,     line:     lw r14, ONE_POINT_FIVE              # r14 = 1.5f
+0x000C6E8B,   //PC = 0x00001900,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
+0x000C6E8B,   //PC = 0x00001904,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
+0x000D740C,   //PC = 0x00001908,     line:     fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
+0x000C440B,   //PC = 0x0000190C,     line:     fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
+0x00005FA7,   //PC = 0x00001910,     line:     setmembits r11                      # restore old membits (r11 holds saved value)
+0x00090797,   //PC = 0x00001914,     line:     jmp r15, r9                              # return (result in r8)    
+0x0000C200,   //PC = 0x00001918,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+0x0001FB02,   //PC = 0x0000191C,     line:     and r6, r15, 1                          # r6 = self.thread_id & 1 (is_odd_thread)
+0x0020B300,   //PC = 0x00001920,     line:     add r6, r6, 32                          # r6 = interrupt channel = 32 + is_odd_thread
+0x00060037,   //PC = 0x00001924,     line:     intdis r6                               # disable_interrupts(channel)
+0x000033A1,   //PC = 0x00001928,     line:     nonblock r7, r6                             # r7 = nb_recv(channel) (0 if no message waiting)
+0x0000F702,   //PC = 0x0000192C,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x193CBF14,   //PC = 0x00001930,     line:     bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
+0x00060026,   //PC = 0x00001934,     line:     intena r6                               # enable_interrupts(channel) (nothing to do)
+0x00040797,   //PC = 0x00001938,     line:     jmp r15, r4                             # return
+0x000033A0,   //PC = 0x0000193C,     line:     block r7, r6                                # r7 = blocking_recv(channel) (full flit value)
+0x1FA8841F,   //PC = 0x00001940,     line:     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
+0x00083C02,   //PC = 0x00001944,     line:     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
+0x0011BE86,   //PC = 0x00001948,     line:     srl r13, r7, 17                         # r13 = node_id = flit >> 17
+0x0014849F,   //PC = 0x0000194C,     line:     lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
+0x198CCE93,   //PC = 0x00001950,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
+0x2000CC80,   //PC = 0x00001954,     line:     add r9, r9, 8192
+0x198CCE93,   //PC = 0x00001958,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == receiver_node_id goto NODE_IDS_MATCH
+0x0008F500,   //PC = 0x0000195C,     line:     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
+0x0018D505,   //PC = 0x00001960,     line:     sll r10, r10, 24                        # r10 = wrong_core << 24
+0x000FBD82,   //PC = 0x00001964,     line:     and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
+0xFFF0BE02,   //PC = 0x00001968,     line:     and r12, r7, 0xFFF0                      # r12 = core_id high nibble
+0x000FE605,   //PC = 0x0000196C,     line:     sll r12, r12, 15
+0x000FE606,   //PC = 0x00001970,     line:     srl r12, r12, 15
+0x0002E605,   //PC = 0x00001974,     line:     sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
+0x0010DD80,   //PC = 0x00001978,     line:     add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
+0x000B6583,   //PC = 0x0000197C,     line:     or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
+0x00005D31,   //PC = 0x00001980,     line:     sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
+0x00060026,   //PC = 0x00001984,     line:     intena r6                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x00001988,     line:     jmp r15, r4                             # return
+0x1FE4839F,   //PC = 0x0000198C,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
+0x195C3F14,   //PC = 0x00001990,     line:     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
+0x003F039C,   //PC = 0x00001994,     line:     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
+0x00008480,   //PC = 0x00001998,     line:     add r9, r0, 0                           # r9 = local_queue = ray base address
+0x1A083F14,   //PC = 0x0000199C,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+0x0014851F,   //PC = 0x000019A0,     line:     lw r10, ROOT_NODE_ID             # r10 = sender node id
+0x19B4D693,   //PC = 0x000019A4,     line:     beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
+0x282CF480,   //PC = 0x000019A8,     line:     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
+0x020CCC80,   //PC = 0x000019AC,     line:     add r9, r9, 524
+0x19B8FF93,   //PC = 0x000019B0,     line:     beq r15, r15, CHECK_IF_SPACE_IN_QUEUE, true  # unconditional goto CHECK_IF_SPACE_IN_QUEUE
+0x282CF480,   //PC = 0x000019B4,     line:     add r9, r14, LOCAL_RAY_QUEUE                # r9 = sender ray queue base address
+0x0008CC80,   //PC = 0x000019B8,     line:     add r9, r9, 8                           # r9 = &queue.count (skip head and tail fields)
+0x0001CBB3,   //PC = 0x000019BC,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
+0x0010F600,   //PC = 0x000019C0,     line:     add r12, r14, 16                        # r12 = 16 (max queue entries)
+0x19F4BE16,   //PC = 0x000019C4,     line:     bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
+0xFFFFCBB3,   //PC = 0x000019C8,     line:     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
+0x0007F380,   //PC = 0x000019CC,     line:     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
+0x0018BB85,   //PC = 0x000019D0,     line:     sll r7, r7, 24                          # r7 = reject_ray << 24
+0x00F0C482,   //PC = 0x000019D4,     line:     and r9, r8, 0xF0                        # r9 = core_id high nibble
+0x0002CC85,   //PC = 0x000019D8,     line:     sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+0x000FC402,   //PC = 0x000019DC,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+0x0010C400,   //PC = 0x000019E0,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+0x00084C83,   //PC = 0x000019E4,     line:     or r9, r9, r8                           # r9 = destination flit
+0x00004BB1,   //PC = 0x000019E8,     line:     sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
+0x00060026,   //PC = 0x000019EC,     line:     intena r6                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x000019F0,     line:     jmp r15, r4                             # return
+0xFFFCCC80,   //PC = 0x000019F4,     line:     add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
+0x0040CBB3,   //PC = 0x000019F8,     line:     atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
+0x03FFBB82,   //PC = 0x000019FC,     line:     and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
+0x00074B80,   //PC = 0x00001A00,     line:     add r7, r9, r7                          # r7 = queue_base + tail_relative
+0x0008BB80,   //PC = 0x00001A04,     line:     add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
+0x0005F480,   //PC = 0x00001A08,     line:     add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
+0x0018CC85,   //PC = 0x00001A0C,     line:     sll r9, r9, 24                          # r9 = ray_ack << 24
+0x000F4C83,   //PC = 0x00001A10,     line:     or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
+0x00F0C502,   //PC = 0x00001A14,     line:     and r10, r8, 0xF0                       # r10 = core_id high nibble
+0x0002D505,   //PC = 0x00001A18,     line:     sll r10, r10, 2                         # r10 = high nibble shifted to channel position
+0x000FC402,   //PC = 0x00001A1C,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+0x0010C400,   //PC = 0x00001A20,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+0x00085503,   //PC = 0x00001A24,     line:     or r10, r10, r8                         # r10 = destination flit
+0x000054B1,   //PC = 0x00001A28,     line:     sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
+0x000FFC02,   //PC = 0x00001A2C,     line:     and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
+0x0010C400,   //PC = 0x00001A30,     line:     add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
+0x000044A0,   //PC = 0x00001A34,     line:     block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
+0x00004520,   //PC = 0x00001A38,     line:     block r10, r8                           # r10 = ray_data[1]
+0x000045A0,   //PC = 0x00001A3C,     line:     block r11, r8                           # r11 = ray_data[2]
+0x00004620,   //PC = 0x00001A40,     line:     block r12, r8                           # r12 = ray_data[3]
+0x00003C9A,   //PC = 0x00001A44,     line:     sw r9, r7, 0                            # slot[0]  = ray_data[0]
+0x00043D1A,   //PC = 0x00001A48,     line:     sw r10, r7, 4                           # slot[4]  = ray_data[1]
+0x00083D9A,   //PC = 0x00001A4C,     line:     sw r11, r7, 8                           # slot[8]  = ray_data[2]
+0x000C3E1A,   //PC = 0x00001A50,     line:     sw r12, r7, 12                          # slot[12] = ray_data[3]
+0x000044A0,   //PC = 0x00001A54,     line:     block r9, r8                            # r9  = ray_data[4]
+0x00004520,   //PC = 0x00001A58,     line:     block r10, r8                           # r10 = ray_data[5]
+0x000045A0,   //PC = 0x00001A5C,     line:     block r11, r8                           # r11 = ray_data[6]
+0x00004620,   //PC = 0x00001A60,     line:     block r12, r8                           # r12 = ray_data[7]
+0x00103C9A,   //PC = 0x00001A64,     line:     sw r9, r7, 16                           # slot[16] = ray_data[4]
+0x00143D1A,   //PC = 0x00001A68,     line:     sw r10, r7, 20                          # slot[20] = ray_data[5]
+0x00183D9A,   //PC = 0x00001A6C,     line:     sw r11, r7, 24                          # slot[24] = ray_data[6]
+0x001C3E1A,   //PC = 0x00001A70,     line:     sw r12, r7, 28                          # slot[28] = ray_data[7]
+0x000044A0,   //PC = 0x00001A74,     line:     block r9, r8                            # r9  = ray_data[8]
+0x00004520,   //PC = 0x00001A78,     line:     block r10, r8                           # r10 = ray_data[9]
+0x000045A0,   //PC = 0x00001A7C,     line:     block r11, r8                           # r11 = ray_data[10]
+0x00004620,   //PC = 0x00001A80,     line:     block r12, r8                           # r12 = ray_data[11]
+0x00203C9A,   //PC = 0x00001A84,     line:     sw r9, r7, 32                           # slot[32] = ray_data[8]
+0x00243D1A,   //PC = 0x00001A88,     line:     sw r10, r7, 36                          # slot[36] = ray_data[9]
+0x00283D9A,   //PC = 0x00001A8C,     line:     sw r11, r7, 40                          # slot[40] = ray_data[10]
+0x002C3E1A,   //PC = 0x00001A90,     line:     sw r12, r7, 44                          # slot[44] = ray_data[11]
+0x000044A0,   //PC = 0x00001A94,     line:     block r9, r8                            # r9  = ray_data[12]
+0x00004520,   //PC = 0x00001A98,     line:     block r10, r8                           # r10 = ray_data[13]
+0x000045A0,   //PC = 0x00001A9C,     line:     block r11, r8                           # r11 = ray_data[14]
+0x00004620,   //PC = 0x00001AA0,     line:     block r12, r8                           # r12 = ray_data[15]
+0x00303C9A,   //PC = 0x00001AA4,     line:     sw r9, r7, 48                           # slot[48] = ray_data[12]
+0x00343D1A,   //PC = 0x00001AA8,     line:     sw r10, r7, 52                          # slot[52] = ray_data[13]
+0x00383D9A,   //PC = 0x00001AAC,     line:     sw r11, r7, 56                          # slot[56] = ray_data[14]
+0x003C3E1A,   //PC = 0x00001AB0,     line:     sw r12, r7, 60                          # slot[60] = ray_data[15]
+0x00060026,   //PC = 0x00001AB4,     line:     intena r6                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x00001AB8,     line:     jmp r15, r4                             # return
+0x000001B4,   //PC = 0x00001ABC,     line:     getclk r3                               # r3 = current_cycle = get_cycle_count()
+0x20B0821F,   //PC = 0x00001AC0,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+0x00041981,   //PC = 0x00001AC4,     line:     sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
+0x0000F702,   //PC = 0x00001AC8,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x1FA4829F,   //PC = 0x00001ACC,     line:     lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
+0x1AD82996,   //PC = 0x00001AD0,     line:     bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
+0x00020797,   //PC = 0x00001AD4,     line:     jmp r15, r2                             # return 0 (not enough time has passed)
+0x20B4821F,   //PC = 0x00001AD8,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+0x1AE47213,   //PC = 0x00001ADC,     line:     beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
+0x00020797,   //PC = 0x00001AE0,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+0x000002B4,   //PC = 0x00001AE4,     line:     getclk r5                               # r5 = current_cycle (fresh timestamp)
+0x20B0829A,   //PC = 0x00001AE8,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+0x20AC829F,   //PC = 0x00001AEC,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+0x20AC871A,   //PC = 0x00001AF0,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+0x0010AA85,   //PC = 0x00001AF4,     line:     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
+0x00032A89,   //PC = 0x00001AF8,     line:     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
+0x1FA0821F,   //PC = 0x00001AFC,     line:     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
+0x1B082A15,   //PC = 0x00001B00,     line:     blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+0x00020797,   //PC = 0x00001B04,     line:     jmp r15, r2                             # return 0 (not idle enough to enqueue)
+0x20B4F300,   //PC = 0x00001B08,     line:     add r6, r14, PREVIOUSLY_IDLE            # r6 = &PREVIOUSLY_IDLE
+0x0001B333,   //PC = 0x00001B0C,     line:     atomadd r6, r6, 1                       # atomic_add(&previously_idle, 1)
+0x1B18F313,   //PC = 0x00001B10,     line:     beq r6, r14, ADD_IDLE_CORE, true       # if old_value == 0 goto ADD_IDLE_CORE
+0x00020797,   //PC = 0x00001B14,     line:     jmp r15, r2                             # return 
+0x2048819F,   //PC = 0x00001B18,     line:     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
+0x000039A7,   //PC = 0x00001B1C,     line:     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
+0x204C821F,   //PC = 0x00001B20,     line:     lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
+0x0008A200,   //PC = 0x00001B24,     line:     add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
+0x0001A2B0,   //PC = 0x00001B28,     line:     atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
+0xFFFCA200,   //PC = 0x00001B2C,     line:     add r4, r4, -4                          # r4 = &idle_queue.tail_relative
+0x0004A2B0,   //PC = 0x00001B30,     line:     atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
+0x0010A200,   //PC = 0x00001B34,     line:     add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
+0x7FFFAA82,   //PC = 0x00001B38,     line:     and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
+0x00052200,   //PC = 0x00001B3C,     line:     add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
+0x000222AB,   //PC = 0x00001B40,     line:     lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+0x1B402F14,   //PC = 0x00001B44,     line:     bne r14, r5, IDLE_CORE_INSERT_SPINLOCK, false  # spin until is_valid == 0 (slot is free)
+0x0004FA86,   //PC = 0x00001B48,     line:     srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
+0x000022AE,   //PC = 0x00001B4C,     line:     sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
+0x0001F280,   //PC = 0x00001B50,     line:     add r5, r14, 1                          # r5 = 1
+0x000222AE,   //PC = 0x00001B54,     line:     sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
+0x00020797,   //PC = 0x00001B58,     line:     jmp r15, r2                             # return
+0x0000F702,   //PC = 0x00001B5C,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
+0x2048829F,   //PC = 0x00001B60,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
+0x3C94829A,   //PC = 0x00001B64,     line:     sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
+0x388CF280,   //PC = 0x00001B68,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+0x00002AA7,   //PC = 0x00001B6C,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
+0x204C831F,   //PC = 0x00001B70,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
+0xFFFFC403,   //PC = 0x00001B74,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
+0xFFFFB4B0,   //PC = 0x00001B78,     line:     atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
+0x0000B200,   //PC = 0x00001B7C,     line:     add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
+0x1C4C7496,   //PC = 0x00001B80,     line:     bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
+0x0001B4B0,   //PC = 0x00001B84,     line:     atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
+0x000C33AC,   //PC = 0x00001B88,     line:     lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
+0x0010332C,   //PC = 0x00001B8C,     line:     lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
+0x00003FA7,   //PC = 0x00001B90,     line:     setmembits r7                       # set_address_bits(parent_node_high)
+0x001834AA,   //PC = 0x00001B94,     line:     lh_d r9, r6, 24                     #r9 = is_left
+0x001A352A,   //PC = 0x00001B98,     line:     lh_d r10, r6, 26                    #r10 = height
+0x000035AC,   //PC = 0x00001B9C,     line:     lw_d r11, r6, 0                     #r11 = parent_high
+0x3C8C859A,   //PC = 0x00001BA0,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+0x0004362C,   //PC = 0x00001BA4,     line:     lw_d r12, r6, 4                     #r12 = parent_low
+0x3C90861A,   //PC = 0x00001BA8,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+0xFFFFEE83,   //PC = 0x00001BAC,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
+0x1C846D93,   //PC = 0x00001BB0,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
+0x00005FA7,   //PC = 0x00001BB4,     line:     setmembits r11                      # set_address_bits(parent_high)
+0x1BC84F13,   //PC = 0x00001BB8,     line:     beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
+0x0010632C,   //PC = 0x00001BBC,     line:     lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
+0x001463AC,   //PC = 0x00001BC0,     line:     lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
+0x1BD0FF93,   //PC = 0x00001BC4,     line:     beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
+0x0008632C,   //PC = 0x00001BC8,     line:     lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
+0x000C63AC,   //PC = 0x00001BCC,     line:     lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
+0x00002B1A,   //PC = 0x00001BD0,     line:     sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
+0x00042B9A,   //PC = 0x00001BD4,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
+0x00082D19,   //PC = 0x00001BD8,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
+0x000CAA80,   //PC = 0x00001BDC,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
+0x388CF680,   //PC = 0x00001BE0,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+0x1C742E93,   //PC = 0x00001BE4,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
+0xFFF4AA80,   //PC = 0x00001BE8,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
+0x00002A1F,   //PC = 0x00001BEC,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
+0x000027A7,   //PC = 0x00001BF0,     line:     setmembits r4                       # set_address_bits(dfs_node_high)
+0x00042A1F,   //PC = 0x00001BF4,     line:     lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
+0x00082E9E,   //PC = 0x00001BF8,     line:     lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
+0x1C38F693,   //PC = 0x00001BFC,     line:     beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
+0xFFFFEE80,   //PC = 0x00001C00,     line:     add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
+0x001025AC,   //PC = 0x00001C04,     line:     lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
+0x0014262C,   //PC = 0x00001C08,     line:     lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
+0x00002D9A,   //PC = 0x00001C0C,     line:     sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
+0x00042E1A,   //PC = 0x00001C10,     line:     sw r12, r5, 4                       # dfs_stack[top].low = right_low
+0x00082E99,   //PC = 0x00001C14,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
+0x000CAA80,   //PC = 0x00001C18,     line:     add r5, r5, 12                      # dfs_top++
+0x000825AC,   //PC = 0x00001C1C,     line:     lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
+0x000C262C,   //PC = 0x00001C20,     line:     lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
+0x00002D9A,   //PC = 0x00001C24,     line:     sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
+0x00042E1A,   //PC = 0x00001C28,     line:     sw r12, r5, 4                       # dfs_stack[top].low = left_low
 0x00082E99,   //PC = 0x00001C2C,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
 0x000CAA80,   //PC = 0x00001C30,     line:     add r5, r5, 12                      # dfs_top++
-0x000825AC,   //PC = 0x00001C34,     line:     lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
-0x000C262C,   //PC = 0x00001C38,     line:     lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
-0x00002D9A,   //PC = 0x00001C3C,     line:     sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
-0x00042E1A,   //PC = 0x00001C40,     line:     sw r12, r5, 4                       # dfs_stack[top].low = left_low
-0x00082E99,   //PC = 0x00001C44,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
-0x000CAA80,   //PC = 0x00001C48,     line:     add r5, r5, 12                      # dfs_top++
-0x1BF8FF93,   //PC = 0x00001C4C,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
-0x0008A200,   //PC = 0x00001C50,     line:     add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
-0xFFFFA4B0,   //PC = 0x00001C54,     line:     atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
-0x1C647496,   //PC = 0x00001C58,     line:     bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
-0x0001A4B0,   //PC = 0x00001C5C,     line:     atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
-0x1BF8FF93,   //PC = 0x00001C60,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
-0xFFF8A200,   //PC = 0x00001C64,     line:     add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
-0x0004A4B0,   //PC = 0x00001C68,     line:     atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
-0x7FFFCC82,   //PC = 0x00001C6C,     line:     and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
-0x00092200,   //PC = 0x00001C70,     line:     add r4, r4, r9                      # r4 = dfs_node + head_relative
-0x0014A200,   //PC = 0x00001C74,     line:     add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
-0x000224AB,   //PC = 0x00001C78,     line:     lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
-0x1C787493,   //PC = 0x00001C7C,     line:     beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
-0x0000242B,   //PC = 0x00001C80,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
-0x0002272E,   //PC = 0x00001C84,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
-0x1C9CFF93,   //PC = 0x00001C88,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
-0x3CA4859F,   //PC = 0x00001C8C,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
-0x00005FA7,   //PC = 0x00001C90,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x3CA8831F,   //PC = 0x00001C94,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
-0x1BACFF93,   //PC = 0x00001C98,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
-0xFFFFCC83,   //PC = 0x00001C9C,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
-0x09704493,   //PC = 0x00001CA0,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
-0x0022C7B1,   //PC = 0x00001CA4,     line:     sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
-0x000FFC82,   //PC = 0x00001CA8,     line:     and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
-0x0010CC80,   //PC = 0x00001CAC,     line:     add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
-0x00004CA0,   //PC = 0x00001CB0,     line:     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
-0x0018CD86,   //PC = 0x00001CB4,     line:     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
-0x000EF500,   //PC = 0x00001CB8,     line:     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
-0x09705594,   //PC = 0x00001CBC,     line:     bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
-0x0001F500,   //PC = 0x00001CC0,     line:     add r10, r14, 1                     # r10 = 1
-0x0000C531,   //PC = 0x00001CC4,     line:     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
-0x0001CD82,   //PC = 0x00001CC8,     line:     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
-0x0028861F,   //PC = 0x00001CCC,     line:     lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
-0x1CF06593,   //PC = 0x00001CD0,     line:     beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
-0x1FA8861F,   //PC = 0x00001CD4,     line:     lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
-0x1FAC829F,   //PC = 0x00001CD8,     line:     lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
-0x00056280,   //PC = 0x00001CDC,     line:     add r5, r12, r5                     # r5 = end address of code region
-0x0000631F,   //PC = 0x00001CE0,     line:     lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
-0x0000C331,   //PC = 0x00001CE4,     line:     sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
-0x0004E600,   //PC = 0x00001CE8,     line:     add r12, r12, 4                     # i += 4
-0x1CE0E294,   //PC = 0x00001CEC,     line:     bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
-0x1FB0861F,   //PC = 0x00001CF0,     line:     lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
-0x1FB4829F,   //PC = 0x00001CF4,     line:     lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
-0x00056280,   //PC = 0x00001CF8,     line:     add r5, r12, r5                     # r5 = end address of geometry region
-0x0000631F,   //PC = 0x00001CFC,     line:     lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
-0x0000C331,   //PC = 0x00001D00,     line:     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
-0x0004E600,   //PC = 0x00001D04,     line:     add r12, r12, 4                     # i += 4
-0x1CFCE294,   //PC = 0x00001D08,     line:     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
-0x0970FF93,   //PC = 0x00001D0C,     line:     beq r15, r15, ray_done, true       # unconditional goto RAY_DONE
-0x0000F702,   //PC = 0x00001D10,     line:     and r14, r14, 0                          # r14 = 0
-0x2038861F,   //PC = 0x00001D14,     line:     lw r12, NODE_ARRAY_HIGH
-0x000065A7,   //PC = 0x00001D18,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
-0x38A4F100,   //PC = 0x00001D1C,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
-0x0000171A,   //PC = 0x00001D20,     line:     sw r14, r2, 0                            # dram_idx = 0
-0xFFFFF580,   //PC = 0x00001D24,     line:     add r11, r14, 0xFFFF
-0x00041599,   //PC = 0x00001D28,     line:     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
-0x00061719,   //PC = 0x00001D2C,     line:     sh r14, r2, 6                            # patch_left = 0
-0x00081719,   //PC = 0x00001D30,     line:     sh r14, r2, 8                            # patch_right = 0
-0x000A1719,   //PC = 0x00001D34,     line:     sh r14, r2, 10                           # is_right = 0
-0x000C171A,   //PC = 0x00001D38,     line:     sw r14, r2, 12                           # depth = 0
-0x00109100,   //PC = 0x00001D3C,     line:     add r2, r2, 16                           # stack_top++
-0x2744F180,   //PC = 0x00001D40,     line:     add r3, r14, LEAF_CORE_LOOKUP_TABLE      # r3 = leaf_node_table_ptr
-0x38A4F580,   //PC = 0x00001D44,     line:     add r11, r14, DFS_STACK
-0x1EBCD913,   //PC = 0x00001D48,     line:     beq r2, r11, dfs_done, true
-0xFFF09100,   //PC = 0x00001D4C,     line:     add r2, r2, -16
-0x0000121F,   //PC = 0x00001D50,     line:     lw r4, r2, 0                             # dram_idx
-0x0004129E,   //PC = 0x00001D54,     line:     lhu r5, r2, 4                            # parent_ptr
-0x0006131E,   //PC = 0x00001D58,     line:     lhu r6, r2, 6                            # patch_left
-0x0008139E,   //PC = 0x00001D5C,     line:     lhu r7, r2, 8                            # patch_right
-0x000A141E,   //PC = 0x00001D60,     line:     lhu r8, r2, 10                           # is_right
-0x000C149F,   //PC = 0x00001D64,     line:     lw r9, r2, 12                            # depth
-0x1FA4F500,   //PC = 0x00001D68,     line:     add r10, r14, SRAM_NODE_ALLOC_PTR              # address of alloc pointer / next free slot
-0x0030D6B3,   //PC = 0x00001D6C,     line:     atomadd r13, r10, 48                     # r13 = node = atomic_add(sram_slot_address, 48)
-0x203C861F,   //PC = 0x00001D70,     line:     lw r12, NODE_ARRAY_LOW                   # r12 = bottom_node_bits base
-0x0004A585,   //PC = 0x00001D74,     line:     sll r11, r4, 4                           # r11 = dram_idx * 16
-0x0005A505,   //PC = 0x00001D78,     line:     sll r10, r4, 5                           # r10 = dram_idx * 32
-0x000B6600,   //PC = 0x00001D7C,     line:     add r12, r12, r11
-0x000A6600,   //PC = 0x00001D80,     line:     add r12, r12, r10                        # r12 = bottom_node_bits + dram_idx * 48
-0x0000652C,   //PC = 0x00001D84,     line:     lw_d r10, r12, 0
-0x00006D1A,   //PC = 0x00001D88,     line:     sw r10, r13, 0
-0x0004652C,   //PC = 0x00001D8C,     line:     lw_d r10, r12, 4
-0x00046D1A,   //PC = 0x00001D90,     line:     sw r10, r13, 4
-0x0008652C,   //PC = 0x00001D94,     line:     lw_d r10, r12, 8
-0x00086D1A,   //PC = 0x00001D98,     line:     sw r10, r13, 8
-0x000C652C,   //PC = 0x00001D9C,     line:     lw_d r10, r12, 12
-0x000C6D1A,   //PC = 0x00001DA0,     line:     sw r10, r13, 12
-0x0010652C,   //PC = 0x00001DA4,     line:     lw_d r10, r12, 16
-0x00106D1A,   //PC = 0x00001DA8,     line:     sw r10, r13, 16
-0x0014652C,   //PC = 0x00001DAC,     line:     lw_d r10, r12, 20
-0x00146D1A,   //PC = 0x00001DB0,     line:     sw r10, r13, 20
-0xFFFFD503,   //PC = 0x00001DB4,     line:     or r10, r10, 0xFFFF
-0x001E6D19,   //PC = 0x00001DB8,     line:     sh r10, r13, 30                          # core_owner
-0x0028652B,   //PC = 0x00001DBC,     line:     lhu_d r10, r12, 40
-0x00286D19,   //PC = 0x00001DC0,     line:     sh r10, r13, 40                          # queue_high_bit_addr
-0x0024652C,   //PC = 0x00001DC4,     line:     lw_d r10, r12, 36
-0x00246D1A,   //PC = 0x00001DC8,     line:     sw r10, r13, 36                          # queue_low_bit_addr
-0x002C652C,   //PC = 0x00001DCC,     line:     lw_d r10, r12, 44
-0x002C6D1A,   //PC = 0x00001DD0,     line:     sw r10, r13, 44                          # node_id
-0xFFFFF580,   //PC = 0x00001DD4,     line:     add r11, r14, 0xFFFF
-0x002A6D99,   //PC = 0x00001DD8,     line:     sh r11, r13, 42                          # prev_index = 0xFFFF
-0x00206C18,   //PC = 0x00001DDC,     line:     sb r8, r13, 32                           # is_right = is_right (byte field)
-0x001C6A99,   //PC = 0x00001DE0,     line:     sh r5, r13, 28                           # node->parent = parent_ptr
-0x00186D99,   //PC = 0x00001DE4,     line:     sh r11, r13, 24                          # left_child = 0xFFFF
-0x001A6D99,   //PC = 0x00001DE8,     line:     sh r11, r13, 26                          # right_child = 0xFFFF
-0x0024859F,   //PC = 0x00001DEC,     line:     lw r11, RAY_QUEUE_LOW
-0x00246D1F,   //PC = 0x00001DF0,     line:     lw r10, r13, 36                         # r10 = core_owner
-0x1E0CDD13,   //PC = 0x00001DF4,     line:     beq r10, r11, SKIP_LEAF_TABLE_INSERT, true
-0xFFFFF700,   //PC = 0x00001DF8,     line:     add r14, r14, 0xFFFF
-0x1E0CF513,   //PC = 0x00001DFC,     line:     beq r10, r14, SKIP_LEAF_TABLE_INSERT, true
-0x0000F702,   //PC = 0x00001E00,     line:     and r14, r14, 0
-0x00001E99,   //PC = 0x00001E04,     line:     sh r13, r3, 0
-0x00029980,   //PC = 0x00001E08,     line:     add r3, r3, 2
-0x0000F702,   //PC = 0x00001E0C,     line:     and r14, r14, 0
-0xFFFFF603,   //PC = 0x00001E10,     line:     or r12, r14, 0xFFFF
-0x1E2CE293,   //PC = 0x00001E14,     line:     beq r5, r12, SKIP_PATCH, true
-0x0001F600,   //PC = 0x00001E18,     line:     add r12, r14, 1
-0x1E28E413,   //PC = 0x00001E1C,     line:     beq r8, r12, PATCH_RIGHT_CHILD, true
-0x00003699,   //PC = 0x00001E20,     line:     sh r13, r6, 0                            # *patch_left = node
-0x1E2CFF93,   //PC = 0x00001E24,     line:     beq r15, r15, SKIP_PATCH, true
-0x00003E99,   //PC = 0x00001E28,     line:     sh r13, r7, 0                            # *patch_right = node
-0x00246D1F,   //PC = 0x00001E2C,     line:     lw r10, r13, 36                         # owner = dram_node->core_owner
-0x1E40DD14,   //PC = 0x00001E30,     line:     bne r10, r11, CHECK_RECURSE, true
-0x002C6F1F,   //PC = 0x00001E34,     line:     lw r14, r13, 44                          # node_id
-0x002C871A,   //PC = 0x00001E38,     line:     sw r14, ROOT_NODE_ID
-0x0000F702,   //PC = 0x00001E3C,     line:     and r14, r14, 0
-0xFFFFF700,   //PC = 0x00001E40,     line:     add r14, r14, 0xFFFF
-0x1E5CF513,   //PC = 0x00001E44,     line:     beq r10, r14, DO_RECURSE, true
-0x0000F702,   //PC = 0x00001E48,     line:     and r14, r14, 0
-0x1E54DD13,   //PC = 0x00001E4C,     line:     beq r10, r11, SET_NODE_ID, true
-0x1D44FF93,   //PC = 0x00001E50,     line:     beq r15, r15, dfs_loop, true             # foreign owner: stop here
-0x002C651F,   //PC = 0x00001E54,     line:     lw r10, r12, 44                        # node_id
-0x002C851A,   //PC = 0x00001E58,     line:     sw r10, ROOT_NODE_ID
-0x0000F702,   //PC = 0x00001E5C,     line:     and r14, r14, 0
-0x0018652C,   //PC = 0x00001E60,     line:     lw_d r10, r12, 24                        # right_idx
-0x001C65AC,   //PC = 0x00001E64,     line:     lw_d r11, r12, 28                        # left_idx
-0x0001CE00,   //PC = 0x00001E68,     line:     add r12, r9, 1                           # child_depth = depth + 1
-0x0000151A,   //PC = 0x00001E6C,     line:     sw r10, r2, 0                            # right_idx
-0x00041699,   //PC = 0x00001E70,     line:     sh r13, r2, 4                            # parent = node
-0x0018ED00,   //PC = 0x00001E74,     line:     add r10, r13, 24
-0x00061519,   //PC = 0x00001E78,     line:     sh r10, r2, 6                            # patch_left = &node->left_child
-0x001AED00,   //PC = 0x00001E7C,     line:     add r10, r13, 26
-0x00081519,   //PC = 0x00001E80,     line:     sh r10, r2, 8                            # patch_right = &node->right_child
-0x0001F500,   //PC = 0x00001E84,     line:     add r10, r14, 1
-0x000A1519,   //PC = 0x00001E88,     line:     sh r10, r2, 10                           # is_right = 1
-0x000C161A,   //PC = 0x00001E8C,     line:     sw r12, r2, 12                           # depth + 1
-0x00109100,   //PC = 0x00001E90,     line:     add r2, r2, 16
-0x0000159A,   //PC = 0x00001E94,     line:     sw r11, r2, 0                            # left_idx
-0x00041699,   //PC = 0x00001E98,     line:     sh r13, r2, 4
-0x0018ED00,   //PC = 0x00001E9C,     line:     add r10, r13, 24
-0x00061519,   //PC = 0x00001EA0,     line:     sh r10, r2, 6
-0x001AED00,   //PC = 0x00001EA4,     line:     add r10, r13, 26
-0x00081519,   //PC = 0x00001EA8,     line:     sh r10, r2, 8
-0x000A1719,   //PC = 0x00001EAC,     line:     sh r14, r2, 10                           # is_right = 0
-0x000C161A,   //PC = 0x00001EB0,     line:     sw r12, r2, 12
-0x00109100,   //PC = 0x00001EB4,     line:     add r2, r2, 16
-0x1D44FF93,   //PC = 0x00001EB8,     line:     beq r15, r15, dfs_loop, true
-0x1F88851F,   //PC = 0x00001EBC,     line:     lw r10, JUMP_TO_RAY_EAT_INTERRUPT
-0xBF80851A,   //PC = 0x00001EC0,     line:     sw r10, 49024
-0xBF84851A,   //PC = 0x00001EC4,     line:     sw r10, 49028
-0x1F8C851F,   //PC = 0x00001EC8,     line:     lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
-0xBF88851A,   //PC = 0x00001ECC,     line:     sw r10, 49032
-0x0000F702,   //PC = 0x00001ED0,     line:     and r14, r14, 0
-0x002C851F,   //PC = 0x00001ED4,     line:     lw r10, ROOT_NODE_ID
-0x2744F580,   //PC = 0x00001ED8,     line:     add r11, r14, LEAF_CORE_LOOKUP_TABLE
-0x0100DD80,   //PC = 0x00001EDC,     line:     add r11, r11, 256
-0x00005D19,   //PC = 0x00001EE0,     line:     sh r10, r11, 0
-0x2844809F,   //PC = 0x00001EE4,     line:     lw r1, LOCAL_RAY_QUEUE
+0x1BE0FF93,   //PC = 0x00001C34,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
+0x0008A200,   //PC = 0x00001C38,     line:     add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
+0xFFFFA4B0,   //PC = 0x00001C3C,     line:     atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
+0x1C4C7496,   //PC = 0x00001C40,     line:     bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
+0x0001A4B0,   //PC = 0x00001C44,     line:     atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
+0x1BE0FF93,   //PC = 0x00001C48,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
+0xFFF8A200,   //PC = 0x00001C4C,     line:     add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
+0x0004A4B0,   //PC = 0x00001C50,     line:     atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
+0x7FFFCC82,   //PC = 0x00001C54,     line:     and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
+0x00092200,   //PC = 0x00001C58,     line:     add r4, r4, r9                      # r4 = dfs_node + head_relative
+0x0014A200,   //PC = 0x00001C5C,     line:     add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
+0x000224AB,   //PC = 0x00001C60,     line:     lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+0x1C607493,   //PC = 0x00001C64,     line:     beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
+0x0000242B,   //PC = 0x00001C68,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
+0x0002272E,   //PC = 0x00001C6C,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
+0x1C84FF93,   //PC = 0x00001C70,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
+0x3C8C859F,   //PC = 0x00001C74,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+0x00005FA7,   //PC = 0x00001C78,     line:     setmembits r11                      # set_address_bits(parent_high)
+0x3C90831F,   //PC = 0x00001C7C,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+0x1B94FF93,   //PC = 0x00001C80,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
+0xFFFFCC83,   //PC = 0x00001C84,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
+0x09584493,   //PC = 0x00001C88,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
+0x0022C7B1,   //PC = 0x00001C8C,     line:     sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
+0x000FFC82,   //PC = 0x00001C90,     line:     and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
+0x0010CC80,   //PC = 0x00001C94,     line:     add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
+0x00004CA0,   //PC = 0x00001C98,     line:     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
+0x0018CD86,   //PC = 0x00001C9C,     line:     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
+0x000EF500,   //PC = 0x00001CA0,     line:     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
+0x09585594,   //PC = 0x00001CA4,     line:     bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
+0x0001F500,   //PC = 0x00001CA8,     line:     add r10, r14, 1                     # r10 = 1
+0x0000C531,   //PC = 0x00001CAC,     line:     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
+0x0001CD82,   //PC = 0x00001CB0,     line:     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
+0x0010861F,   //PC = 0x00001CB4,     line:     lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
+0x1CD86593,   //PC = 0x00001CB8,     line:     beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
+0x1F90861F,   //PC = 0x00001CBC,     line:     lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
+0x1F94829F,   //PC = 0x00001CC0,     line:     lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
+0x00056280,   //PC = 0x00001CC4,     line:     add r5, r12, r5                     # r5 = end address of code region
+0x0000631F,   //PC = 0x00001CC8,     line:     lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
+0x0000C331,   //PC = 0x00001CCC,     line:     sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
+0x0004E600,   //PC = 0x00001CD0,     line:     add r12, r12, 4                     # i += 4
+0x1CC8E294,   //PC = 0x00001CD4,     line:     bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
+0x1F98861F,   //PC = 0x00001CD8,     line:     lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
+0x1F9C829F,   //PC = 0x00001CDC,     line:     lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
+0x00056280,   //PC = 0x00001CE0,     line:     add r5, r12, r5                     # r5 = end address of geometry region
+0x0000631F,   //PC = 0x00001CE4,     line:     lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
+0x0000C331,   //PC = 0x00001CE8,     line:     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
+0x0004E600,   //PC = 0x00001CEC,     line:     add r12, r12, 4                     # i += 4
+0x1CE4E294,   //PC = 0x00001CF0,     line:     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
+0x0958FF93,   //PC = 0x00001CF4,     line:     beq r15, r15, ray_done, true       # unconditional goto RAY_DONE
+0x0000F702,   //PC = 0x00001CF8,     line:     and r14, r14, 0                          # r14 = 0
+0x2020861F,   //PC = 0x00001CFC,     line:     lw r12, NODE_ARRAY_HIGH
+0x000065A7,   //PC = 0x00001D00,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
+0x388CF100,   //PC = 0x00001D04,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
+0x0000171A,   //PC = 0x00001D08,     line:     sw r14, r2, 0                            # dram_idx = 0
+0xFFFFF580,   //PC = 0x00001D0C,     line:     add r11, r14, 0xFFFF
+0x00041599,   //PC = 0x00001D10,     line:     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
+0x00061719,   //PC = 0x00001D14,     line:     sh r14, r2, 6                            # patch_left = 0
+0x00081719,   //PC = 0x00001D18,     line:     sh r14, r2, 8                            # patch_right = 0
+0x000A1719,   //PC = 0x00001D1C,     line:     sh r14, r2, 10                           # is_right = 0
+0x000C171A,   //PC = 0x00001D20,     line:     sw r14, r2, 12                           # depth = 0
+0x00109100,   //PC = 0x00001D24,     line:     add r2, r2, 16                           # stack_top++
+0x272CF180,   //PC = 0x00001D28,     line:     add r3, r14, LEAF_CORE_LOOKUP_TABLE      # r3 = leaf_node_table_ptr
+0x388CF580,   //PC = 0x00001D2C,     line:     add r11, r14, DFS_STACK
+0x1EA4D913,   //PC = 0x00001D30,     line:     beq r2, r11, dfs_done, true
+0xFFF09100,   //PC = 0x00001D34,     line:     add r2, r2, -16
+0x0000121F,   //PC = 0x00001D38,     line:     lw r4, r2, 0                             # dram_idx
+0x0004129E,   //PC = 0x00001D3C,     line:     lhu r5, r2, 4                            # parent_ptr
+0x0006131E,   //PC = 0x00001D40,     line:     lhu r6, r2, 6                            # patch_left
+0x0008139E,   //PC = 0x00001D44,     line:     lhu r7, r2, 8                            # patch_right
+0x000A141E,   //PC = 0x00001D48,     line:     lhu r8, r2, 10                           # is_right
+0x000C149F,   //PC = 0x00001D4C,     line:     lw r9, r2, 12                            # depth
+0x1F8CF500,   //PC = 0x00001D50,     line:     add r10, r14, SRAM_NODE_ALLOC_PTR              # address of alloc pointer / next free slot
+0x0030D6B3,   //PC = 0x00001D54,     line:     atomadd r13, r10, 48                     # r13 = node = atomic_add(sram_slot_address, 48)
+0x2024861F,   //PC = 0x00001D58,     line:     lw r12, NODE_ARRAY_LOW                   # r12 = bottom_node_bits base
+0x0004A585,   //PC = 0x00001D5C,     line:     sll r11, r4, 4                           # r11 = dram_idx * 16
+0x0005A505,   //PC = 0x00001D60,     line:     sll r10, r4, 5                           # r10 = dram_idx * 32
+0x000B6600,   //PC = 0x00001D64,     line:     add r12, r12, r11
+0x000A6600,   //PC = 0x00001D68,     line:     add r12, r12, r10                        # r12 = bottom_node_bits + dram_idx * 48
+0x0000652C,   //PC = 0x00001D6C,     line:     lw_d r10, r12, 0
+0x00006D1A,   //PC = 0x00001D70,     line:     sw r10, r13, 0
+0x0004652C,   //PC = 0x00001D74,     line:     lw_d r10, r12, 4
+0x00046D1A,   //PC = 0x00001D78,     line:     sw r10, r13, 4
+0x0008652C,   //PC = 0x00001D7C,     line:     lw_d r10, r12, 8
+0x00086D1A,   //PC = 0x00001D80,     line:     sw r10, r13, 8
+0x000C652C,   //PC = 0x00001D84,     line:     lw_d r10, r12, 12
+0x000C6D1A,   //PC = 0x00001D88,     line:     sw r10, r13, 12
+0x0010652C,   //PC = 0x00001D8C,     line:     lw_d r10, r12, 16
+0x00106D1A,   //PC = 0x00001D90,     line:     sw r10, r13, 16
+0x0014652C,   //PC = 0x00001D94,     line:     lw_d r10, r12, 20
+0x00146D1A,   //PC = 0x00001D98,     line:     sw r10, r13, 20
+0xFFFFD503,   //PC = 0x00001D9C,     line:     or r10, r10, 0xFFFF
+0x001E6D19,   //PC = 0x00001DA0,     line:     sh r10, r13, 30                          # core_owner
+0x0028652B,   //PC = 0x00001DA4,     line:     lhu_d r10, r12, 40
+0x00286D19,   //PC = 0x00001DA8,     line:     sh r10, r13, 40                          # queue_high_bit_addr
+0x0024652C,   //PC = 0x00001DAC,     line:     lw_d r10, r12, 36
+0x00246D1A,   //PC = 0x00001DB0,     line:     sw r10, r13, 36                          # queue_low_bit_addr
+0x002C652C,   //PC = 0x00001DB4,     line:     lw_d r10, r12, 44
+0x002C6D1A,   //PC = 0x00001DB8,     line:     sw r10, r13, 44                          # node_id
+0xFFFFF580,   //PC = 0x00001DBC,     line:     add r11, r14, 0xFFFF
+0x002A6D99,   //PC = 0x00001DC0,     line:     sh r11, r13, 42                          # prev_index = 0xFFFF
+0x00206C18,   //PC = 0x00001DC4,     line:     sb r8, r13, 32                           # is_right = is_right (byte field)
+0x001C6A99,   //PC = 0x00001DC8,     line:     sh r5, r13, 28                           # node->parent = parent_ptr
+0x00186D99,   //PC = 0x00001DCC,     line:     sh r11, r13, 24                          # left_child = 0xFFFF
+0x001A6D99,   //PC = 0x00001DD0,     line:     sh r11, r13, 26                          # right_child = 0xFFFF
+0x000C859F,   //PC = 0x00001DD4,     line:     lw r11, RAY_QUEUE_LOW
+0x00246D1F,   //PC = 0x00001DD8,     line:     lw r10, r13, 36                         # r10 = core_owner
+0x1DF4DD13,   //PC = 0x00001DDC,     line:     beq r10, r11, SKIP_LEAF_TABLE_INSERT, true
+0xFFFFF700,   //PC = 0x00001DE0,     line:     add r14, r14, 0xFFFF
+0x1DF4F513,   //PC = 0x00001DE4,     line:     beq r10, r14, SKIP_LEAF_TABLE_INSERT, true
+0x0000F702,   //PC = 0x00001DE8,     line:     and r14, r14, 0
+0x00001E99,   //PC = 0x00001DEC,     line:     sh r13, r3, 0
+0x00029980,   //PC = 0x00001DF0,     line:     add r3, r3, 2
+0x0000F702,   //PC = 0x00001DF4,     line:     and r14, r14, 0
+0xFFFFF603,   //PC = 0x00001DF8,     line:     or r12, r14, 0xFFFF
+0x1E14E293,   //PC = 0x00001DFC,     line:     beq r5, r12, SKIP_PATCH, true
+0x0001F600,   //PC = 0x00001E00,     line:     add r12, r14, 1
+0x1E10E413,   //PC = 0x00001E04,     line:     beq r8, r12, PATCH_RIGHT_CHILD, true
+0x00003699,   //PC = 0x00001E08,     line:     sh r13, r6, 0                            # *patch_left = node
+0x1E14FF93,   //PC = 0x00001E0C,     line:     beq r15, r15, SKIP_PATCH, true
+0x00003E99,   //PC = 0x00001E10,     line:     sh r13, r7, 0                            # *patch_right = node
+0x00246D1F,   //PC = 0x00001E14,     line:     lw r10, r13, 36                         # owner = dram_node->core_owner
+0x1E28DD14,   //PC = 0x00001E18,     line:     bne r10, r11, CHECK_RECURSE, true
+0x002C6F1F,   //PC = 0x00001E1C,     line:     lw r14, r13, 44                          # node_id
+0x0014871A,   //PC = 0x00001E20,     line:     sw r14, ROOT_NODE_ID
+0x0000F702,   //PC = 0x00001E24,     line:     and r14, r14, 0
+0xFFFFF700,   //PC = 0x00001E28,     line:     add r14, r14, 0xFFFF
+0x1E44F513,   //PC = 0x00001E2C,     line:     beq r10, r14, DO_RECURSE, true
+0x0000F702,   //PC = 0x00001E30,     line:     and r14, r14, 0
+0x1E3CDD13,   //PC = 0x00001E34,     line:     beq r10, r11, SET_NODE_ID, true
+0x1D2CFF93,   //PC = 0x00001E38,     line:     beq r15, r15, dfs_loop, true             # foreign owner: stop here
+0x002C651F,   //PC = 0x00001E3C,     line:     lw r10, r12, 44                        # node_id
+0x0014851A,   //PC = 0x00001E40,     line:     sw r10, ROOT_NODE_ID
+0x0000F702,   //PC = 0x00001E44,     line:     and r14, r14, 0
+0x0018652C,   //PC = 0x00001E48,     line:     lw_d r10, r12, 24                        # right_idx
+0x001C65AC,   //PC = 0x00001E4C,     line:     lw_d r11, r12, 28                        # left_idx
+0x0001CE00,   //PC = 0x00001E50,     line:     add r12, r9, 1                           # child_depth = depth + 1
+0x0000151A,   //PC = 0x00001E54,     line:     sw r10, r2, 0                            # right_idx
+0x00041699,   //PC = 0x00001E58,     line:     sh r13, r2, 4                            # parent = node
+0x0018ED00,   //PC = 0x00001E5C,     line:     add r10, r13, 24
+0x00061519,   //PC = 0x00001E60,     line:     sh r10, r2, 6                            # patch_left = &node->left_child
+0x001AED00,   //PC = 0x00001E64,     line:     add r10, r13, 26
+0x00081519,   //PC = 0x00001E68,     line:     sh r10, r2, 8                            # patch_right = &node->right_child
+0x0001F500,   //PC = 0x00001E6C,     line:     add r10, r14, 1
+0x000A1519,   //PC = 0x00001E70,     line:     sh r10, r2, 10                           # is_right = 1
+0x000C161A,   //PC = 0x00001E74,     line:     sw r12, r2, 12                           # depth + 1
+0x00109100,   //PC = 0x00001E78,     line:     add r2, r2, 16
+0x0000159A,   //PC = 0x00001E7C,     line:     sw r11, r2, 0                            # left_idx
+0x00041699,   //PC = 0x00001E80,     line:     sh r13, r2, 4
+0x0018ED00,   //PC = 0x00001E84,     line:     add r10, r13, 24
+0x00061519,   //PC = 0x00001E88,     line:     sh r10, r2, 6
+0x001AED00,   //PC = 0x00001E8C,     line:     add r10, r13, 26
+0x00081519,   //PC = 0x00001E90,     line:     sh r10, r2, 8
+0x000A1719,   //PC = 0x00001E94,     line:     sh r14, r2, 10                           # is_right = 0
+0x000C161A,   //PC = 0x00001E98,     line:     sw r12, r2, 12
+0x00109100,   //PC = 0x00001E9C,     line:     add r2, r2, 16
+0x1D2CFF93,   //PC = 0x00001EA0,     line:     beq r15, r15, dfs_loop, true
+0x1F70851F,   //PC = 0x00001EA4,     line:     lw r10, JUMP_TO_RAY_EAT_INTERRUPT
+0xBF80851A,   //PC = 0x00001EA8,     line:     sw r10, 49024
+0xBF84851A,   //PC = 0x00001EAC,     line:     sw r10, 49028
+0x1F74851F,   //PC = 0x00001EB0,     line:     lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
+0xBF88851A,   //PC = 0x00001EB4,     line:     sw r10, 49032
+0x0000F702,   //PC = 0x00001EB8,     line:     and r14, r14, 0
+0x0014851F,   //PC = 0x00001EBC,     line:     lw r10, ROOT_NODE_ID
+0x272CF580,   //PC = 0x00001EC0,     line:     add r11, r14, LEAF_CORE_LOOKUP_TABLE
+0x0100DD80,   //PC = 0x00001EC4,     line:     add r11, r11, 256
+0x00005D19,   //PC = 0x00001EC8,     line:     sh r10, r11, 0
+0x282C809F,   //PC = 0x00001ECC,     line:     lw r1, LOCAL_RAY_QUEUE
+0x00000F1A,   //PC = 0x00001ED0,     line:     sw r14, r1, 0
+0x00040F1A,   //PC = 0x00001ED4,     line:     sw r14, r1, 4
+0x00080F1A,   //PC = 0x00001ED8,     line:     sw r14, r1, 8
+0x004B8880,   //PC = 0x00001EDC,     line:     add r1, r1, 75
+0x0010F100,   //PC = 0x00001EE0,     line:     add r2, r14, 16
+0x1EF8F113,   //PC = 0x00001EE4,     line:     beq r2, r14, queue_loop_1_done, true
 0x00000F1A,   //PC = 0x00001EE8,     line:     sw r14, r1, 0
-0x00040F1A,   //PC = 0x00001EEC,     line:     sw r14, r1, 4
-0x00080F1A,   //PC = 0x00001EF0,     line:     sw r14, r1, 8
-0x004B8880,   //PC = 0x00001EF4,     line:     add r1, r1, 75
-0x0010F100,   //PC = 0x00001EF8,     line:     add r2, r14, 16
-0x1F10F113,   //PC = 0x00001EFC,     line:     beq r2, r14, queue_loop_1_done, true
-0x00000F1A,   //PC = 0x00001F00,     line:     sw r14, r1, 0
-0x00408880,   //PC = 0x00001F04,     line:     add r1, r1, 64
-0xFFFF9100,   //PC = 0x00001F08,     line:     add r2, r2, -1
-0x1EFCFF93,   //PC = 0x00001F0C,     line:     beq r15, r15, queue_loop_1, true
-0x00010F18,   //PC = 0x00001F10,     line:     sb r14, r1, 1
-0x00050F18,   //PC = 0x00001F14,     line:     sb r14, r1, 5
-0x00090F18,   //PC = 0x00001F18,     line:     sb r14, r1, 9
-0x004C8880,   //PC = 0x00001F1C,     line:     add r1, r1, 76
-0x0010F100,   //PC = 0x00001F20,     line:     add r2, r14, 16
-0x1F38F113,   //PC = 0x00001F24,     line:     beq r2, r14, queue_loop_2_done, true
-0x00000F1A,   //PC = 0x00001F28,     line:     sw r14, r1, 0
-0x00408880,   //PC = 0x00001F2C,     line:     add r1, r1, 64
-0xFFFF9100,   //PC = 0x00001F30,     line:     add r2, r2, -1
-0x1F24FF93,   //PC = 0x00001F34,     line:     beq r15, r15, queue_loop_2, true
-0x1FFC871A,   //PC = 0x00001F38,     line:     sw r14, LOCAL_QUEUE_FLUSHING
-0x2094809F,   //PC = 0x00001F3C,     line:     lw r1, TILE_DATA_COUNT
-0x00040F1A,   //PC = 0x00001F40,     line:     sw r14, r1, 4
-0x1FF8871A,   //PC = 0x00001F44,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x2344809F,   //PC = 0x00001F48,     line:     lw r1, RAY_ARRAY
-0x0006F905,   //PC = 0x00001F4C,     line:     sll r2, r15, 6
-0x00020880,   //PC = 0x00001F50,     line:     add r1, r1, r2
-0x003F0F18,   //PC = 0x00001F54,     line:     sb r14, r1, 63
-0x20CC871A,   //PC = 0x00001F58,     line:     sw r14, PREVIOUSLY_IDLE
-0x20C4871A,   //PC = 0x00001F5C,     line:     sw r14, RAYS_PROCESSED
-0x20C8871A,   //PC = 0x00001F60,     line:     sw r14, LAST_OBSERVED_CYCLE
-0x1FF8871A,   //PC = 0x00001F64,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x1FFC871A,   //PC = 0x00001F68,     line:     sw r14, LOCAL_QUEUE_FLUSHING
-0x00208026,   //PC = 0x00001F6C,     line:     intena 32
-0x00218026,   //PC = 0x00001F70,     line:     intena 33
-0x00228026,   //PC = 0x00001F74,     line:     intena 34
-0x00238026,   //PC = 0x00001F78,     line:     intena 35
-0x00248026,   //PC = 0x00001F7C,     line:     intena 36
-0x00008025,   //PC = 0x00001F80,     line:     relinquish true
-0x0D2CFF93,   //PC = 0x00001F84,     line:     beq r15, r15, GRAB_FROM_TILE, true
-0x19308797,   //PC = 0x00001F88,     line: jmp r15, EAT_RAY_INTERRUPT
-0x02A88797,   //PC = 0x00001F8C,     line: jmp r15, SWITCH_ROLES_INTERRUPT
-0x00000000,   //PC = 0x00001F90,     line: .data 0
-0x03C25F30,   //PC = 0x00001F94,     line: .data 63070000
-0x00008000,   //PC = 0x00001F98,     line: .data 32768
-0x00003F00,   //PC = 0x00001F9C,     line: .data 16128
-0x0000001C,   //PC = 0x00001FA0,     line: .data 28
-0x00004000,   //PC = 0x00001FA4,     line: .data 16384
-0x0000001C,   //PC = 0x00001FA8,     line: .data 28
-0x00002328,   //PC = 0x00001FAC,     line: .data 9000
-0x00003F00,   //PC = 0x00001FB0,     line: .data 16128
-0x00008000,   //PC = 0x00001FB4,     line: .data 32768
-0x000F4240,   //PC = 0x00001FB8,     line: .data 1000000
-0x000186A0,   //PC = 0x00001FBC,     line: .data 100000
-0x0001FFFF,   //PC = 0x00001FC0,     line: .data 0x0001FFFF
-0x3F000000,   //PC = 0x00001FC4,     line: .data 0x3F000000
-0x40000000,   //PC = 0x00001FC8,     line: .data 0x40000000
-0x80000000,   //PC = 0x00001FCC,     line: .data 0x80000000
-0x3FC00000,   //PC = 0x00001FD0,     line: .data 0x3FC00000
-0x3FFFFFFF,   //PC = 0x00001FD4,     line: .data 0x3FFFFFFF
-0x0003FFF0,   //PC = 0x00001FD8,     line: .data 0x0003FFF0
-0x0003F7A0,   //PC = 0x00001FDC,     line: .data 260000
-0x3F800000,   //PC = 0x00001FE0,     line: .data 0x3F800000
-0x03840000,   //PC = 0x00001FE4,     line: .data 58982400
-0x38D1B717,   //PC = 0x00001FE8,     line: .data 0x38D1B717
-0xBF800000,   //PC = 0x00001FEC,     line: .data 0xBF800000
-0x7F800000,   //PC = 0x00001FF0,     line: .data 0x7F800000
-0x007FFFFF,   //PC = 0x00001FF4,     line: .data 0x007FFFFF
+0x00408880,   //PC = 0x00001EEC,     line:     add r1, r1, 64
+0xFFFF9100,   //PC = 0x00001EF0,     line:     add r2, r2, -1
+0x1EE4FF93,   //PC = 0x00001EF4,     line:     beq r15, r15, queue_loop_1, true
+0x00010F18,   //PC = 0x00001EF8,     line:     sb r14, r1, 1
+0x00050F18,   //PC = 0x00001EFC,     line:     sb r14, r1, 5
+0x00090F18,   //PC = 0x00001F00,     line:     sb r14, r1, 9
+0x004C8880,   //PC = 0x00001F04,     line:     add r1, r1, 76
+0x0010F100,   //PC = 0x00001F08,     line:     add r2, r14, 16
+0x1F20F113,   //PC = 0x00001F0C,     line:     beq r2, r14, queue_loop_2_done, true
+0x00000F1A,   //PC = 0x00001F10,     line:     sw r14, r1, 0
+0x00408880,   //PC = 0x00001F14,     line:     add r1, r1, 64
+0xFFFF9100,   //PC = 0x00001F18,     line:     add r2, r2, -1
+0x1F0CFF93,   //PC = 0x00001F1C,     line:     beq r15, r15, queue_loop_2, true
+0x1FE4871A,   //PC = 0x00001F20,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x207C809F,   //PC = 0x00001F24,     line:     lw r1, TILE_DATA_COUNT
+0x00040F1A,   //PC = 0x00001F28,     line:     sw r14, r1, 4
+0x1FE0871A,   //PC = 0x00001F2C,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x232C809F,   //PC = 0x00001F30,     line:     lw r1, RAY_ARRAY
+0x0006F905,   //PC = 0x00001F34,     line:     sll r2, r15, 6
+0x00020880,   //PC = 0x00001F38,     line:     add r1, r1, r2
+0x003F0F18,   //PC = 0x00001F3C,     line:     sb r14, r1, 63
+0x20B4871A,   //PC = 0x00001F40,     line:     sw r14, PREVIOUSLY_IDLE
+0x20AC871A,   //PC = 0x00001F44,     line:     sw r14, RAYS_PROCESSED
+0x20B0871A,   //PC = 0x00001F48,     line:     sw r14, LAST_OBSERVED_CYCLE
+0x1FE0871A,   //PC = 0x00001F4C,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x1FE4871A,   //PC = 0x00001F50,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x00208026,   //PC = 0x00001F54,     line:     intena 32
+0x00218026,   //PC = 0x00001F58,     line:     intena 33
+0x00228026,   //PC = 0x00001F5C,     line:     intena 34
+0x00238026,   //PC = 0x00001F60,     line:     intena 35
+0x00248026,   //PC = 0x00001F64,     line:     intena 36
+0x00008025,   //PC = 0x00001F68,     line:     relinquish true
+0x0D14FF93,   //PC = 0x00001F6C,     line:     beq r15, r15, GRAB_FROM_TILE, true
+0x19188797,   //PC = 0x00001F70,     line: jmp r15, EAT_RAY_INTERRUPT
+0x02908797,   //PC = 0x00001F74,     line: jmp r15, SWITCH_ROLES_INTERRUPT
+0x00000000,   //PC = 0x00001F78,     line: .data 0
+0x03C25F30,   //PC = 0x00001F7C,     line: .data 63070000
+0x00008000,   //PC = 0x00001F80,     line: .data 32768
+0x00003F00,   //PC = 0x00001F84,     line: .data 16128
+0x0000001C,   //PC = 0x00001F88,     line: .data 28
+0x00004000,   //PC = 0x00001F8C,     line: .data 16384
+0x0000001C,   //PC = 0x00001F90,     line: .data 28
+0x00002328,   //PC = 0x00001F94,     line: .data 9000
+0x00003F00,   //PC = 0x00001F98,     line: .data 16128
+0x00008000,   //PC = 0x00001F9C,     line: .data 32768
+0x000F4240,   //PC = 0x00001FA0,     line: .data 1000000
+0x000186A0,   //PC = 0x00001FA4,     line: .data 100000
+0x0001FFFF,   //PC = 0x00001FA8,     line: .data 0x0001FFFF
+0x3F000000,   //PC = 0x00001FAC,     line: .data 0x3F000000
+0x40000000,   //PC = 0x00001FB0,     line: .data 0x40000000
+0x80000000,   //PC = 0x00001FB4,     line: .data 0x80000000
+0x3FC00000,   //PC = 0x00001FB8,     line: .data 0x3FC00000
+0x3FFFFFFF,   //PC = 0x00001FBC,     line: .data 0x3FFFFFFF
+0x0003FFF0,   //PC = 0x00001FC0,     line: .data 0x0003FFF0
+0x0003F7A0,   //PC = 0x00001FC4,     line: .data 260000
+0x3F800000,   //PC = 0x00001FC8,     line: .data 0x3F800000
+0x03840000,   //PC = 0x00001FCC,     line: .data 58982400
+0x38D1B717,   //PC = 0x00001FD0,     line: .data 0x38D1B717
+0xBF800000,   //PC = 0x00001FD4,     line: .data 0xBF800000
+0x7F800000,   //PC = 0x00001FD8,     line: .data 0x7F800000
+0x007FFFFF,   //PC = 0x00001FDC,     line: .data 0x007FFFFF
+0x00000000,   //PC = 0x00001FE0,     line: .data 0
+0x00000000,   //PC = 0x00001FE4,     line: .data 0
+0x00000000,   //PC = 0x00001FE8,     line: .data 0
+0x03B20B80,   //PC = 0x00001FEC,     line: .data 62000000
+0x00000000,   //PC = 0x00001FF0,     line: .data 0
+0x861C4680,   //PC = 0x00001FF4,     line: .data 2250000000
 0x00000000,   //PC = 0x00001FF8,     line: .data 0
-0x00000000,   //PC = 0x00001FFC,     line: .data 0
+0x03B20F68,   //PC = 0x00001FFC,     line: .data 62001000
 0x00000000,   //PC = 0x00002000,     line: .data 0
-0x03B20B80,   //PC = 0x00002004,     line: .data 62000000
+0x0A037A04,   //PC = 0x00002004,     line: .data 168000004
 0x00000000,   //PC = 0x00002008,     line: .data 0
-0x861C4680,   //PC = 0x0000200C,     line: .data 2250000000
+0x0A21FE80,   //PC = 0x0000200C,     line: .data 170000000
 0x00000000,   //PC = 0x00002010,     line: .data 0
-0x03B20F68,   //PC = 0x00002014,     line: .data 62001000
+0x0A037A00,   //PC = 0x00002014,     line: .data 168000000
 0x00000000,   //PC = 0x00002018,     line: .data 0
-0x0A037A04,   //PC = 0x0000201C,     line: .data 168000004
+0x00030D40,   //PC = 0x0000201C,     line: .data 200000
 0x00000000,   //PC = 0x00002020,     line: .data 0
-0x0A21FE80,   //PC = 0x00002024,     line: .data 170000000
+0x80000000,   //PC = 0x00002024,     line: .data 2147483648
 0x00000000,   //PC = 0x00002028,     line: .data 0
-0x0A037A00,   //PC = 0x0000202C,     line: .data 168000000
+0x05F5E100,   //PC = 0x0000202C,     line: .data 100000000
 0x00000000,   //PC = 0x00002030,     line: .data 0
-0x00030D40,   //PC = 0x00002034,     line: .data 200000
+0x000249F0,   //PC = 0x00002034,     line: .data 150000
 0x00000000,   //PC = 0x00002038,     line: .data 0
-0x80000000,   //PC = 0x0000203C,     line: .data 2147483648
+0x03A2C940,   //PC = 0x0000203C,     line: .data 61000000
 0x00000000,   //PC = 0x00002040,     line: .data 0
-0x05F5E100,   //PC = 0x00002044,     line: .data 100000000
+0x000186A0,   //PC = 0x00002044,     line: .data 100000
 0x00000000,   //PC = 0x00002048,     line: .data 0
-0x000249F0,   //PC = 0x0000204C,     line: .data 150000
+0x9502F900,   //PC = 0x0000204C,     line: .data 2500000000
 0x00000000,   //PC = 0x00002050,     line: .data 0
-0x03A2C940,   //PC = 0x00002054,     line: .data 61000000
-0x00000000,   //PC = 0x00002058,     line: .data 0
-0x000186A0,   //PC = 0x0000205C,     line: .data 100000
-0x00000000,   //PC = 0x00002060,     line: .data 0
-0x9502F900,   //PC = 0x00002064,     line: .data 2500000000
-0x00000000,   //PC = 0x00002068,     line: .data 0
-0x03938700,   //PC = 0x0000206C,     line: .data 60000000
-0x440E4000,   //PC = 0x00002070,     line: .data 0x440E4000
-0x431F0000,   //PC = 0x00002074,     line: .data 0x431F0000
-0xC451C000,   //PC = 0x00002078,     line: .data 0xC451C000
-0x44A00000,   //PC = 0x0000207C,     line: .data 0x44A00000
-0x44340000,   //PC = 0x00002080,     line: .data 0x44340000
-0x3A4CCCCD,   //PC = 0x00002084,     line: .data 0x3A4CCCCD
+0x03938700,   //PC = 0x00002054,     line: .data 60000000
+0x440E4000,   //PC = 0x00002058,     line: .data 0x440E4000
+0x431F0000,   //PC = 0x0000205C,     line: .data 0x431F0000
+0xC451C000,   //PC = 0x00002060,     line: .data 0xC451C000
+0x44A00000,   //PC = 0x00002064,     line: .data 0x44A00000
+0x44340000,   //PC = 0x00002068,     line: .data 0x44340000
+0x3A4CCCCD,   //PC = 0x0000206C,     line: .data 0x3A4CCCCD
+0x00000000,   //PC = 0x00002070,     line: .data 0
+0x00000000,   //PC = 0x00002074,     line: .data 0
+0xFFFFFFFF,   //PC = 0x00002078,     line: .data -1
+0x00000000,   //PC = 0x0000207C,     line: .data 0 #count
+0x00000000,   //PC = 0x00002080,     line: .data 0 
+0x00000000,   //PC = 0x00002084,     line: .data 0
 0x00000000,   //PC = 0x00002088,     line: .data 0
-0x00000000,   //PC = 0x0000208C,     line: .data 0
-0xFFFFFFFF,   //PC = 0x00002090,     line: .data -1
-0x00000000,   //PC = 0x00002094,     line: .data 0 #count
+0x00000000,   //PC = 0x0000208C,     line: .data 0 
+0x00000000,   //PC = 0x00002090,     line: .data 0
+0x00000000,   //PC = 0x00002094,     line: .data 0 #cur_ray_spawned_from_tile[16] in bytes
 0x00000000,   //PC = 0x00002098,     line: .data 0 
-0x00000000,   //PC = 0x0000209C,     line: .data 0
+0x00000000,   //PC = 0x0000209C,     line: .data 0 
 0x00000000,   //PC = 0x000020A0,     line: .data 0
-0x00000000,   //PC = 0x000020A4,     line: .data 0 
-0x00000000,   //PC = 0x000020A8,     line: .data 0
-0x00000000,   //PC = 0x000020AC,     line: .data 0 #cur_ray_spawned_from_tile[16] in bytes
-0x00000000,   //PC = 0x000020B0,     line: .data 0 
-0x00000000,   //PC = 0x000020B4,     line: .data 0 
-0x00000000,   //PC = 0x000020B8,     line: .data 0
-0x00000000,   //PC = 0x000020BC,     line: .data 0 #rays_spawned_from_tile
-0x00000000,   //PC = 0x000020C0,     line: .data 0 #rays_forwarded_out_from_tile
-0x00000000,   //PC = 0x000020C4,     line: .data 0
-0x00000000,   //PC = 0x000020C8,     line: .data 0
-0x00000000,   //PC = 0x000020CC,     line: .data 0
+0x00000000,   //PC = 0x000020A4,     line: .data 0 #rays_spawned_from_tile
+0x00000000,   //PC = 0x000020A8,     line: .data 0 #rays_forwarded_out_from_tile
+0x00000000,   //PC = 0x000020AC,     line: .data 0
+0x00000000,   //PC = 0x000020B0,     line: .data 0
+0x00000000,   //PC = 0x000020B4,     line: .data 0
+0x00000000,   //PC = 0x000020B8,     line: .data(128) 0
+0x00000000,   //PC = 0x000020BC,     line: .data(128) 0
+0x00000000,   //PC = 0x000020C0,     line: .data(128) 0
+0x00000000,   //PC = 0x000020C4,     line: .data(128) 0
+0x00000000,   //PC = 0x000020C8,     line: .data(128) 0
+0x00000000,   //PC = 0x000020CC,     line: .data(128) 0
 0x00000000,   //PC = 0x000020D0,     line: .data(128) 0
 0x00000000,   //PC = 0x000020D4,     line: .data(128) 0
 0x00000000,   //PC = 0x000020D8,     line: .data(128) 0
@@ -3312,41 +3319,35 @@ pub fn get_branch_core_code() -> Vec<u32> {
 0x00000000,   //PC = 0x000022AC,     line: .data(128) 0
 0x00000000,   //PC = 0x000022B0,     line: .data(128) 0
 0x00000000,   //PC = 0x000022B4,     line: .data(128) 0
-0x00000000,   //PC = 0x000022B8,     line: .data(128) 0
-0x00000000,   //PC = 0x000022BC,     line: .data(128) 0
-0x00000000,   //PC = 0x000022C0,     line: .data(128) 0
-0x00000000,   //PC = 0x000022C4,     line: .data(128) 0
-0x00000000,   //PC = 0x000022C8,     line: .data(128) 0
-0x00000000,   //PC = 0x000022CC,     line: .data(128) 0
-0x44228000,   //PC = 0x000022D0,     line: .data 0x44228000
+0x44228000,   //PC = 0x000022B8,     line: .data 0x44228000
+0x430C0000,   //PC = 0x000022BC,     line: .data 0x430C0000
+0xC42F0000,   //PC = 0x000022C0,     line: .data 0xC42F0000
+0x3F800000,   //PC = 0x000022C4,     line: .data 0x3F800000
+0x00000000,   //PC = 0x000022C8,     line: .data 0x00000000
+0x00000000,   //PC = 0x000022CC,     line: .data 0x00000000
+0x43FA0000,   //PC = 0x000022D0,     line: .data 0x43FA0000
 0x430C0000,   //PC = 0x000022D4,     line: .data 0x430C0000
-0xC42F0000,   //PC = 0x000022D8,     line: .data 0xC42F0000
-0x3F800000,   //PC = 0x000022DC,     line: .data 0x3F800000
-0x00000000,   //PC = 0x000022E0,     line: .data 0x00000000
+0xC4480000,   //PC = 0x000022D8,     line: .data 0xC4480000
+0x00000000,   //PC = 0x000022DC,     line: .data 0x00000000
+0x3F800000,   //PC = 0x000022E0,     line: .data 0x3F800000
 0x00000000,   //PC = 0x000022E4,     line: .data 0x00000000
-0x43FA0000,   //PC = 0x000022E8,     line: .data 0x43FA0000
+0x444D0000,   //PC = 0x000022E8,     line: .data 0x444D0000
 0x430C0000,   //PC = 0x000022EC,     line: .data 0x430C0000
-0xC4480000,   //PC = 0x000022F0,     line: .data 0xC4480000
+0xC4160000,   //PC = 0x000022F0,     line: .data 0xC4160000
 0x00000000,   //PC = 0x000022F4,     line: .data 0x00000000
-0x3F800000,   //PC = 0x000022F8,     line: .data 0x3F800000
-0x00000000,   //PC = 0x000022FC,     line: .data 0x00000000
-0x444D0000,   //PC = 0x00002300,     line: .data 0x444D0000
-0x430C0000,   //PC = 0x00002304,     line: .data 0x430C0000
-0xC4160000,   //PC = 0x00002308,     line: .data 0xC4160000
-0x00000000,   //PC = 0x0000230C,     line: .data 0x00000000
-0x00000000,   //PC = 0x00002310,     line: .data 0x00000000
-0x3F800000,   //PC = 0x00002314,     line: .data 0x3F800000
-0x00004000,   //PC = 0x00002318,     line: .data 16384
-0x00004000,   //PC = 0x0000231C,     line: .data 16384 # 0x000022C4
-0x3F211D9C,   //PC = 0x00002320,     line: .data 0x3F211D9C
-0xBF11B30F,   //PC = 0x00002324,     line: .data 0xBF11B30F
-0x3F0780C3,   //PC = 0x00002328,     line: .data 0x3F0780C3
-0x3F24CB85,   //PC = 0x0000232C,     line: .data 0x3F24CB85
-0x00000000,   //PC = 0x00002330,     line: .data 0x00000000
-0xBF43E1FB,   //PC = 0x00002334,     line: .data 0xBF43E1FB
-0x3EDF0BC5,   //PC = 0x00002338,     line: .data 0x3EDF0BC5
-0x3F527375,   //PC = 0x0000233C,     line: .data 0x3F527375
-0x3EBB9B7C,   //PC = 0x00002340,     line: .data 0x3EBB9B7C            # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM 
+0x00000000,   //PC = 0x000022F8,     line: .data 0x00000000
+0x3F800000,   //PC = 0x000022FC,     line: .data 0x3F800000
+0x00004000,   //PC = 0x00002300,     line: .data 16384
+0x00004000,   //PC = 0x00002304,     line: .data 16384 # 0x000022C4
+0x3F211D9C,   //PC = 0x00002308,     line: .data 0x3F211D9C
+0xBF11B30F,   //PC = 0x0000230C,     line: .data 0xBF11B30F
+0x3F0780C3,   //PC = 0x00002310,     line: .data 0x3F0780C3
+0x3F24CB85,   //PC = 0x00002314,     line: .data 0x3F24CB85
+0x00000000,   //PC = 0x00002318,     line: .data 0x00000000
+0xBF43E1FB,   //PC = 0x0000231C,     line: .data 0xBF43E1FB
+0x3EDF0BC5,   //PC = 0x00002320,     line: .data 0x3EDF0BC5
+0x3F527375,   //PC = 0x00002324,     line: .data 0x3F527375
+0x3EBB9B7C,   //PC = 0x00002328,     line: .data 0x3EBB9B7C      
     ];
 
     branch_core_code.to_vec()
@@ -3354,1698 +3355,1698 @@ pub fn get_branch_core_code() -> Vec<u32> {
 
 pub fn get_leaf_core_code() -> Vec<u32> {
     let mut leaf_core_code: [u32; 1692] = [
-0x1494FF93,   //PC = 0x0000001C,     line:     beq r15, r15, download_bvh_tree, true
-0xFFFFFFFF,   //PC = 0x00000020,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000024,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000028,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x0000002C,     line:     .data -1
+0x14A4FF93,   //PC = 0x0000002C,     line:     beq r15, r15, download_bvh_tree, true
 0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
-0x19AC861F,   //PC = 0x00000034,     line:     lw r12, NODE_ID_TABLE_HIGH
-0x000067A7,   //PC = 0x00000038,     line:     setmembits r12
-0x19B0861F,   //PC = 0x0000003C,     line:     lw r12, NODE_ID_TABLE_LOW
-0x0002DD85,   //PC = 0x00000040,     line:     sll r11, r11, 2
-0x000B6600,   //PC = 0x00000044,     line:     add r12, r12, r11
-0x000064AC,   //PC = 0x00000048,     line:     lw_d r9, r12, 0
-0x0004652C,   //PC = 0x0000004C,     line:     lw_d r10, r12, 4
-0x0020811F,   //PC = 0x00000050,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
-0x0024819F,   //PC = 0x00000054,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x0020849A,   //PC = 0x00000058,     line:     sw r9, RAY_QUEUE_HIGH
-0x0024851A,   //PC = 0x0000005C,     line:     sw r10, RAY_QUEUE_LOW
-0x0000F702,   //PC = 0x00000060,     line:     and r14, r14, 0
-0x31D4F480,   //PC = 0x00000064,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
-0x0001CFB3,   //PC = 0x00000068,     line:     atomadd r15, r9, 1
-0x0010F500,   //PC = 0x0000006C,     line:     add r10, r14, 16 
-0x31D4849F,   //PC = 0x00000070,     line:     lw r9, LOCAL_QUEUE_FLUSHING
-0x00000038,   //PC = 0x00000074,     line:     switchctx
-0x0070CD13,   //PC = 0x00000078,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY_SWITCH_DRAM_QUEUE, true
-0x000017A7,   //PC = 0x0000007C,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000080,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000084,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000088,     line:     lw_d r4, r3, 16
-0x0088AA14,   //PC = 0x0000008C,     line:     bne r4, r5, REMOVE_TICKET_WAIT_EMERGENCY, true
-0x00149A00,   //PC = 0x00000090,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000094,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000098,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x0000009C,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x000000A0,     line:     lw_d r9, r4, 0
-0x00A0CA94,   //PC = 0x000000A4,     line:     bne r5, r9, LOCKING_BULLSHIT_EMERGENCY, true
-0x001C9B00,   //PC = 0x000000A8,     line:     add r6, r3, 28 
-0x0000C402,   //PC = 0x000000AC,     line:     and r8, r8, 0
-0x0004FC86,   //PC = 0x000000B0,     line:     srl r9, r15, 4
-0x0004222C,   //PC = 0x000000B4,     line:     lw_d r4, r4, 4
-0x0100F500,   //PC = 0x000000B8,     line:     add r10, r14, 256
-0x028C5213,   //PC = 0x000000BC,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
-0x0001C505,   //PC = 0x000000C0,     line:     sll r10, r8, 1              # r10 = i * 2
-0x00065500,   //PC = 0x000000C4,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
-0x000055AB,   //PC = 0x000000C8,     line:     lhu_d r11, r10, 0           # r11 = slot_val
-0x00D8CD93,   //PC = 0x000000CC,     line:     beq r11, r9, found_our_slot_remove_emergency, true
-0x0001C400,   //PC = 0x000000D0,     line:     add r8, r8, 1
-0x00B8FF93,   //PC = 0x000000D4,     line:     beq r15, r15, find_our_slot_remove_emergency, true
-0xFFFFA580,   //PC = 0x000000D8,     line:     add r11, r4, -1             # r11 = owner_count - 1
-0x0001DD85,   //PC = 0x000000DC,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
-0x00065D80,   //PC = 0x000000E0,     line:     add r11, r11, r6            # r11 = last_slot_addr
-0x00005E2B,   //PC = 0x000000E4,     line:     lhu_d r12, r11, 0           # r12 = last_val
-0x0000562E,   //PC = 0x000000E8,     line:     sh_d r12, r10, 0            # slots[i] = last_val
-0x0000E602,   //PC = 0x000000EC,     line:     and r12, r12, 0
-0x00005E2E,   //PC = 0x000000F0,     line:     sh_d r12, r11, 0            # last slot = 0
-0x00189D00,   //PC = 0x000000F4,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0xFFFFD630,   //PC = 0x000000F8,     line:     atomadd_d r12, r10, -1     # core_owner_count--
-0x00149D00,   //PC = 0x000000FC,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000100,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000104,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000108,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x0000010C,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000110,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0020811F,   //PC = 0x00000114,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
-0x0024819F,   //PC = 0x00000118,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x0000011C,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000120,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000124,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000128,     line:     lw_d r4, r3, 16
-0x0128AA14,   //PC = 0x0000012C,     line:     bne r4, r5, ADD_TICKET_WAIT_EMERGENCY, true
-0x00149A00,   //PC = 0x00000130,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000134,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000138,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x0000013C,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x00000140,     line:     lw_d r9, r4, 0
-0x0140CA94,   //PC = 0x00000144,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT_EMERGENCY, true
-0x001C9B00,   //PC = 0x00000148,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x0000014C,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x00000150,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x00000154,     line:     lw_d r4, r4, 4    # r4 = owner_count
-0x0001A205,   //PC = 0x00000158,     line:     sll r4, r4, 1
-0x00043300,   //PC = 0x0000015C,     line:     add r6, r6, r4
-0x0004FE06,   //PC = 0x00000160,     line:     srl r12, r15, 4
-0x0000362E,   //PC = 0x00000164,     line:     sh_d r12, r6, 0           # r12 = last_val
-0x00189D00,   //PC = 0x00000168,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0x0001D630,   //PC = 0x0000016C,     line:     atomadd_d r12, r10, 1     # core_owner_count--
-0x00149D00,   //PC = 0x00000170,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000174,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000178,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x0000017C,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x00000180,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000184,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x1494FF93,   //PC = 0x00000188,     line:     beq r15, r15, download_bvh_tree, true
-0x0020811F,   //PC = 0x0000018C,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
-0x0024819F,   //PC = 0x00000190,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x00000194,     line:     setmembits r2
-0x000C9A00,   //PC = 0x00000198,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x0000019C,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x000001A0,     line:     lw_d r4, r3, 16
-0x01A0AA14,   //PC = 0x000001A4,     line:     bne r4, r5, REMOVE_TICKET_WAIT, true
-0x00149A00,   //PC = 0x000001A8,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x000001AC,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x000001B0,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x000001B4,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x000001B8,     line:     lw_d r9, r4, 0
-0x01B8CA94,   //PC = 0x000001BC,     line:     bne r5, r9, LOCKING_BULLSHIT, true
-0x001C9B00,   //PC = 0x000001C0,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x000001C4,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x000001C8,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x000001CC,     line:     lw_d r4, r4, 4
-0x0100F500,   //PC = 0x000001D0,     line:     add r10, r14, 256
-0x028C5213,   //PC = 0x000001D4,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
-0x0001C505,   //PC = 0x000001D8,     line:     sll r10, r8, 1              # r10 = i * 2
-0x00065500,   //PC = 0x000001DC,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
-0x000055AB,   //PC = 0x000001E0,     line:     lhu_d r11, r10, 0           # r11 = slot_val
-0x01F0CD93,   //PC = 0x000001E4,     line:     beq r11, r9, found_our_slot_remove, true
-0x0001C400,   //PC = 0x000001E8,     line:     add r8, r8, 1
-0x01D0FF93,   //PC = 0x000001EC,     line:     beq r15, r15, find_our_slot_remove, true
-0xFFFFA580,   //PC = 0x000001F0,     line:     add r11, r4, -1             # r11 = owner_count - 1
-0x0001DD85,   //PC = 0x000001F4,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
-0x00065D80,   //PC = 0x000001F8,     line:     add r11, r11, r6            # r11 = last_slot_addr
-0x00005E2B,   //PC = 0x000001FC,     line:     lhu_d r12, r11, 0           # r12 = last_val
-0x0000562E,   //PC = 0x00000200,     line:     sh_d r12, r10, 0            # slots[i] = last_val
-0x0000E602,   //PC = 0x00000204,     line:     and r12, r12, 0
-0x00005E2E,   //PC = 0x00000208,     line:     sh_d r12, r11, 0            # last slot = 0
-0x00189D00,   //PC = 0x0000020C,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0xFFFFD630,   //PC = 0x00000210,     line:     atomadd_d r12, r10, -1     # core_owner_count--
-0x00149D00,   //PC = 0x00000214,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000218,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x0000021C,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000220,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x00000224,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x00000228,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0380FF93,   //PC = 0x0000022C,     line:     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
-0x0020811F,   //PC = 0x00000230,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
-0x0024819F,   //PC = 0x00000234,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
-0x000017A7,   //PC = 0x00000238,     line:     setmembits r2
-0x000C9A00,   //PC = 0x0000023C,     line:     add r4, r3, 12
-0x0001A2B0,   //PC = 0x00000240,     line:     atomadd_d r5, r4, 1
-0x00101A2C,   //PC = 0x00000244,     line:     lw_d r4, r3, 16
-0x0244AA14,   //PC = 0x00000248,     line:     bne r4, r5, ADD_TICKET_WAIT, true
-0x00149A00,   //PC = 0x0000024C,     line:     add r4, r3, 20
-0x0000AA82,   //PC = 0x00000250,     line:     and r5, r5, 0
-0xE000AA80,   //PC = 0x00000254,     line:     add r5, r5, -8192
-0x000527B0,   //PC = 0x00000258,     line:     atomadd_d r15, r4, r5
-0x000024AC,   //PC = 0x0000025C,     line:     lw_d r9, r4, 0
-0x025CCA94,   //PC = 0x00000260,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT, true
-0x001C9B00,   //PC = 0x00000264,     line:     add r6, r3, 28              # r6 = slots_base
-0x0000C402,   //PC = 0x00000268,     line:     and r8, r8, 0               # r8 = i = 0
-0x0004FC86,   //PC = 0x0000026C,     line:     srl r9, r15, 4              # r9 = core_id
-0x0004222C,   //PC = 0x00000270,     line:     lw_d r4, r4, 4    # r4 = owner_count
-0x0001A205,   //PC = 0x00000274,     line:     sll r4, r4, 1
-0x00043300,   //PC = 0x00000278,     line:     add r6, r6, r4
-0x0004FE06,   //PC = 0x0000027C,     line:     srl r12, r15, 4
-0x0000362E,   //PC = 0x00000280,     line:     sh_d r12, r6, 0           # r12 = last_val
-0x00189D00,   //PC = 0x00000284,     line:     add r10, r3, 24             # r10 = &core_owner_count
-0x0001D630,   //PC = 0x00000288,     line:     atomadd_d r12, r10, 1     # core_owner_count--
-0x00149D00,   //PC = 0x0000028C,     line:     add r10, r3, 20             # r10 = &lock
-0x2000D630,   //PC = 0x00000290,     line:     atomadd_d r12, r10, 8192     # release lock
-0x00109D00,   //PC = 0x00000294,     line:     add r10, r3, 16             # r10 = &now_serving
-0x0000AA82,   //PC = 0x00000298,     line:     and r5, r5, 0
-0x0001AA80,   //PC = 0x0000029C,     line:     add r5, r5, 1
-0x00055630,   //PC = 0x000002A0,     line:     atomadd_d r12, r10, r5     # advance now_serving
-0x0408FF93,   //PC = 0x000002A4,     line:     beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
-0x0000C200,   //PC = 0x000002A8,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
-0x00228037,   //PC = 0x000002AC,     line:     intdis 34                               # disable_interrupts(34)
-0x002283A1,   //PC = 0x000002B0,     line:     nonblock r7, 34                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
-0x0000F702,   //PC = 0x000002B4,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x02C4BF14,   //PC = 0x000002B8,     line:     bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
-0x00228026,   //PC = 0x000002BC,     line:     intena 34                               # enable_interrupts(channel) (nothing to do)
-0x00040797,   //PC = 0x000002C0,     line:     jmp r15, r4                             # return
-0x002283A0,   //PC = 0x000002C4,     line:     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
-0x2F98849F,   //PC = 0x000002C8,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
-0x03007494,   //PC = 0x000002CC,     line:     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
-0x0000BD00,   //PC = 0x000002D0,     line:     add r10, r7, 0                      # r10 = switch_core_request
-0x000EF580,   //PC = 0x000002D4,     line:     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
-0x0018DD85,   //PC = 0x000002D8,     line:     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
-0x000FD602,   //PC = 0x000002DC,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
-0x0010E600,   //PC = 0x000002E0,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-0xFFF0D502,   //PC = 0x000002E4,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
-0x0008D505,   //PC = 0x000002E8,     line:     sll r10, r10, 8                     
-0x0006D506,   //PC = 0x000002EC,     line:     srl r10, r10, 6
-0x000C5503,   //PC = 0x000002F0,     line:     or r10, r10, r12                    # r10 = destination flit
-0x000055B1,   //PC = 0x000002F4,     line:     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
-0x00228026,   //PC = 0x000002F8,     line:     intena 34                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x000002FC,     line:     jmp r15, r4                             # return
-0x0028849F,   //PC = 0x00000300,     line:     lw r9, IS_BRANCH_CORE
-0x0000F702,   //PC = 0x00000304,     line:     and r14, r14, 0
-0x0338F493,   //PC = 0x00000308,     line:     beq r9, r14, LEGAL_TO_SWITCH, true
-0x0020849F,   //PC = 0x0000030C,     line:     lw r9, RAY_QUEUE_HIGH
-0x00004FA7,   //PC = 0x00000310,     line:     setmembits r9
-0x0024849F,   //PC = 0x00000314,     line:     lw r9, RAY_QUEUE_LOW
-0x0014CC80,   //PC = 0x00000318,     line:     add r9, r9, 20
-0x0001CD30,   //PC = 0x0000031C,     line:     atomadd_d r10, r9, 1
-0x032CD715,   //PC = 0x00000320,     line:     blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
-0xFFFFCD30,   //PC = 0x00000324,     line:     atomadd_d r10, r9, -1
-0x031CFF93,   //PC = 0x00000328,     line:     beq r15, r15, GET_READER_LOCK_CORE_CNT, true
-0x00044CAC,   //PC = 0x0000032C,     line:     lw_d r9, r9, 4
-0x0001F500,   //PC = 0x00000330,     line:     add r10, r14, 1
-0x02D05493,   //PC = 0x00000334,     line:     beq r9, r10, REJECT_CHANGE, false
-0x31D4F480,   //PC = 0x00000338,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
-0x0001CFB3,   //PC = 0x0000033C,     line:     atomadd r15, r9, 1
-0x0010F500,   //PC = 0x00000340,     line:     add r10, r14, 16 
-0x31D4849F,   //PC = 0x00000344,     line:     lw r9, LOCAL_QUEUE_FLUSHING
-0x00000038,   //PC = 0x00000348,     line:     switchctx
-0x0344CD13,   //PC = 0x0000034C,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY, true
-0x0000BD00,   //PC = 0x00000350,     line:     add r10, r7, 0                      # r10 = switch_core_request
-0x000DF580,   //PC = 0x00000354,     line:     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
-0x0018DD85,   //PC = 0x00000358,     line:     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
-0x000FD602,   //PC = 0x0000035C,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
-0x0010E600,   //PC = 0x00000360,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
-0xFFF0D502,   //PC = 0x00000364,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
-0x0008D505,   //PC = 0x00000368,     line:     sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
-0x0006D506,   //PC = 0x0000036C,     line:     srl r10, r10, 6
-0x000C5503,   //PC = 0x00000370,     line:     or r10, r10, r12                    # r10 = destination flit
-0x000055B1,   //PC = 0x00000374,     line:     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
-0x00000023,   //PC = 0x00000378,     line:     getowner                  # TODO ALex tf is this?
-0x018CFF93,   //PC = 0x0000037C,     line:     beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
-0x00007520,   //PC = 0x00000380,     line:     block r10, r14                           # r10 = type_of_core = blocking_recv(0)
-0x0028859F,   //PC = 0x00000384,     line:     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
-0x03C45D13,   //PC = 0x00000388,     line:     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
-0x0001F580,   //PC = 0x0000038C,     line:     add r11, r14, 1
-0x039CDD13,   //PC = 0x00000390,     line:     beq r10, r11, DO_BRANCH_START_OF_CODE, true
-0x19A4859F,   //PC = 0x00000394,     line:     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
-0x03A0FF93,   //PC = 0x00000398,     line:     beq r15, r15, DONE_LOADING_CODE, true
-0x19CC859F,   //PC = 0x0000039C,     line:     lw r11, BRANCH_START_OF_CODE   
-0x0000E602,   //PC = 0x000003A0,     line:     and r12, r12, 0
-0x4384E600,   //PC = 0x000003A4,     line:     add r12, r12, 17284                     # num_instructions
-0x0000F702,   //PC = 0x000003A8,     line:     and r14, r14, 0             # 0
-0x0000CC82,   //PC = 0x000003AC,     line:     and r9, r9, 0               # i
-0x000076A0,   //PC = 0x000003B0,     line:     block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
-0x00005E9A,   //PC = 0x000003B4,     line:     sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
-0x0004DD80,   //PC = 0x000003B8,     line:     add r11, r11, 4
-0x0004CC80,   //PC = 0x000003BC,     line:     add r9, r9, 4                           # i += 4
-0x03B0CE16,   //PC = 0x000003C0,     line:     bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
-0x0001F580,   //PC = 0x000003C4,     line:     add r11, r14, 1
-0x0000E602,   //PC = 0x000003C8,     line:     and r12, r12, 0
-0x03E4DD14,   //PC = 0x000003CC,     line:     bne r10, r11, DONE_LOADING_GEO, true
-0x19A0859F,   //PC = 0x000003D0,     line:     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
-0x162EE600,   //PC = 0x000003D4,     line:     add r12, r12, 5678
-0x03E4FF93,   //PC = 0x000003D8,     line:     beq r15, r15, DONE_LOADING_GEO, true
-0x19D4859F,   //PC = 0x000003DC,     line:     lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
-0x223DE600,   //PC = 0x000003E0,     line:     add r12, r12, 8765
-0x0000F702,   //PC = 0x000003E4,     line:     and r14, r14, 0             # 0
-0x0000CC82,   //PC = 0x000003E8,     line:     and r9, r9, 0               # i
-0x000076A0,   //PC = 0x000003EC,     line:     block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
-0x00005E9A,   //PC = 0x000003F0,     line:     sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
-0x0004CC80,   //PC = 0x000003F4,     line:     add r9, r9, 4                           # i += 4
-0x0004DD80,   //PC = 0x000003F8,     line:     add r11, r11, 4
-0x03ECCE16,   //PC = 0x000003FC,     line:     bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
-0x0028851A,   //PC = 0x00000400,     line:     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
-0x0230FF93,   //PC = 0x00000404,     line:     beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
-0x00008025,   //PC = 0x00000408,     line:     relinquish true
-0x0028851F,   //PC = 0x0000040C,     line:     lw r10, IS_BRANCH_CORE
-0x0000F702,   //PC = 0x00000410,     line:     and r14, r14, 0
-0x0001F580,   //PC = 0x00000414,     line:     add r11, r14, 1
-0x04D2DD13,   //PC = 0x00000418,     line:     beq r10, r11, 1234, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
-0x10E1FF93,   //PC = 0x0000041C,     line:     beq r15, r15, 4321, true
-0x002C811F,   //PC = 0x00000420,     line:     lw r2, ROOT_NODE_ID         # r2 = node
-0x00000422,   //PC = 0x00000424,     line:     yield r8                    # clobber r8
-0x003E029C,   //PC = 0x00000428,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0x0000A202,   //PC = 0x0000042C,     line:     and r4, r4, 0
-0x0001A200,   //PC = 0x00000430,     line:     add r4, r4, 1                   # r4 = 1
-0x00052205,   //PC = 0x00000434,     line:     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
-0x00022202,   //PC = 0x00000438,     line:     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
-0x00180B1E,   //PC = 0x0000043C,     line:     lhu r6, r1, 24                  # r6 = node->left_child
-0x0000BB82,   //PC = 0x00000440,     line:     and r7, r7, 0
-0xFFFFBB80,   //PC = 0x00000444,     line:     add r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
-0x0454BB13,   //PC = 0x00000448,     line:     beq r6, r7, LEFT_CHILD_NULL, true
-0x0000B302,   //PC = 0x0000044C,     line:     and r6, r6, 0                   # left_child != null => contribute 0
-0x0458FF93,   //PC = 0x00000450,     line:     beq r15, r15, LEFT_BITFIELD_DONE, true
-0x0001B300,   //PC = 0x00000454,     line:     add r6, r6, 1                   # left_child == null => contribute 1 (forces visited)
-0x00062203,   //PC = 0x00000458,     line:     or r4, r4, r6                   # r4 = left_bitfield_check
-0x003E029C,   //PC = 0x0000045C,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0x0000CC82,   //PC = 0x00000460,     line:     and r9, r9, 0
-0x0001CC80,   //PC = 0x00000464,     line:     add r9, r9, 1
-0x00054C85,   //PC = 0x00000468,     line:     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
-0x00034C82,   //PC = 0x0000046C,     line:     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
-0x001A0B1E,   //PC = 0x00000470,     line:     lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 25)
-0x0480BB13,   //PC = 0x00000474,     line:     beq r6, r7, RIGHT_CHILD_NULL, true
-0x0000B302,   //PC = 0x00000478,     line:     and r6, r6, 0
-0x0484FF93,   //PC = 0x0000047C,     line:     beq r15, r15, RIGHT_BITFIELD_DONE, true
-0x0001B300,   //PC = 0x00000480,     line:     add r6, r6, 1                   # right_child == null => contribute 1 (forces visited)
-0x00064C83,   //PC = 0x00000484,     line:     or r9, r9, r6                   # r9 = right_bitfield_check    
-0x00092302,   //PC = 0x00000488,     line:     and r6, r4, r9                  # r6 = left_bitfield_check & right_bitfield_check (nonzero if both set)
-0x0000BB82,   //PC = 0x0000048C,     line:     and r7, r7, 0                   # r7 = 0
-0x04E0BB13,   //PC = 0x00000490,     line:     beq r6, r7, CHECK_BOTH_ZERO, true   # if r6 == 0, neither both set - check other cases
-0x00200B1C,   //PC = 0x00000494,     line:     lbu r6, r1, 32                  # r6 = node->is_right
-0x0002B305,   //PC = 0x00000498,     line:     sll r6, r6, 2                   # r6 = node->is_right * 4
-0x00060300,   //PC = 0x0000049C,     line:     add r6, r0, r6                  # r6 = &ray.check_left + is_right*4
-0x002C341F,   //PC = 0x000004A0,     line:     lw r8, r6, 44                    # r8 = bitfield
-0x003E029C,   //PC = 0x000004A4,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
-0xFFFFAA80,   //PC = 0x000004A8,     line:     add r5, r5, -1                  # r5 = ray_depth - 1
-0x0000D502,   //PC = 0x000004AC,     line:     and r10, r10, 0
-0x0001D500,   //PC = 0x000004B0,     line:     add r10, r10, 1
-0x00055505,   //PC = 0x000004B4,     line:     sll r10, r10, r5                # r10 = or_value
-0x000A4403,   //PC = 0x000004B8,     line:     or r8, r8, r10
-0x0000341A,   //PC = 0x000004BC,     line:     sw r8, r6, 0                    # *(ray.check_left + is_right*4) = bitfield
-0x003E029C,   //PC = 0x000004C0,     line:     lbu r5, r0, 62
-0xFFFFAA80,   //PC = 0x000004C4,     line:     add r5, r5, -1
-0x003E0298,   //PC = 0x000004C8,     line:     sb r5, r0, 62
-0x001C0B1E,   //PC = 0x000004CC,     line:     lhu r6, r1, 28                  # r6 = node->parent
-0x0510BB13,   //PC = 0x000004D0,     line:     beq r6, r7, SEND_RAY_UP, true  # r7 = 0
-0x00008882,   //PC = 0x000004D4,     line:     and r1, r1, 0
-0x00060880,   //PC = 0x000004D8,     line:     add r1, r1, r6                  # r1 = node->parent (SRAM pointer)
-0x0424FF93,   //PC = 0x000004DC,     line:     beq r15, r15, START_SEARCHING, true
-0x00092303,   //PC = 0x000004E0,     line:     or r6, r4, r9                   # r6 = left | right
-0x09C43B14,   //PC = 0x000004E4,     line:     bne r6, r7, TRAVERSE_LEFT_OR_RIGHT, false       # both zero -> do AABB test
-0x12508417,   //PC = 0x000004E8,     line:     jmp r8, AABB_INTERSECT 
-0x0990BD93,   //PC = 0x000004EC,     line:     beq r11, r7, AABB_MISS, true
-0x001F0B1C,   //PC = 0x000004F0,     line:     lbu r6, r1, 31                  # TODO confirm offset
-0x0920BB14,   //PC = 0x000004F4,     line:     bne r6, r7, IS_LEAF_NODE, true
-0x003E029C,   //PC = 0x000004F8,     line:     lbu r5, r0, 62
-0x0001AA80,   //PC = 0x000004FC,     line:     add r5, r5, 1
-0x003E0298,   //PC = 0x00000500,     line:     sb r5, r0, 62
-0x002C0B1F,   //PC = 0x00000504,     line:     lw r6, r1, 44                  # r6 = node->node_id 
-0xFFFFCC83,   //PC = 0x00000508,     line:     or r9, r9, 0xFFFF
-0x0918CB13,   //PC = 0x0000050C,     line:     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
-0x31D0BC00,   //PC = 0x00000510,     line:     add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
-0x0001C7B3,   //PC = 0x00000514,     line:     atomadd r15, r8, 1               # r9 = clobber
-0xFFFFA203,   //PC = 0x00000518,     line:     or r4, r4, 0xFFFF
-0x00009982,   //PC = 0x0000051C,     line:     and r3, r3, 0                   # r3 = sent = 0
-0x00208037,   //PC = 0x00000520,     line:     intdis 32
-0x001C0D9E,   //PC = 0x00000524,     line:     lhu r11, r1, 28
-0x0020BD00,   //PC = 0x00000528,     line:     add r10, r7, 32
-0xFFFFEE83,   //PC = 0x0000052C,     line:     or r13, r13, 0xFFFF
-0x0538ED94,   //PC = 0x00000530,     line:     bne r11, r13, SKIP_ADDING_ONE_TO_BRANCH_CORE_MAILBOX, true
-0x0001D500,   //PC = 0x00000534,     line:     add r10, r10, 1
-0x0011B305,   //PC = 0x00000538,     line:     sll r6, r6, 17
-0x000F3303,   //PC = 0x0000053C,     line:     or r6, r6, r15                # r12 = request_word
-0x001E0C9E,   //PC = 0x00000540,     line:     lhu r9, r1, 30                  # r6 = node->core_owner
-0x0006CC85,   //PC = 0x00000544,     line:     sll r9, r9, 6
-0x000A4C80,   //PC = 0x00000548,     line:     add r9, r9, r10
-0x00004B31,   //PC = 0x0000054C,     line:     sendflit r6, r9            # TODO confirm notation w/ Alex
-0x000FFD02,   //PC = 0x00000550,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x0010D580,   //PC = 0x00000554,     line:     add r11, r10, 16                # r11 = thread_id + 16 (shallow mailbox)
-0x00005E21,   //PC = 0x00000558,     line:     nonblock r12, r11               # r12 = msg_available
-0x07CCBE13,   //PC = 0x0000055C,     line:     beq r12, r7, CHECK_DATA_MAILBOX, true   # r7=0, nothing on shallow mailbox
-0x00005E20,   //PC = 0x00000560,     line:     block r12, r11                  # r12 = msg
-0x0018E686,   //PC = 0x00000564,     line:     srl r13, r12, 24                # r13 = header
-0x0005BD80,   //PC = 0x00000568,     line:     add r11, r7, 5                 # r11 = 5 (ack_ray)
-0x0614DE94,   //PC = 0x0000056C,     line:     bne r13, r11, REJECT_PATH, true
-0x0004E486,   //PC = 0x00000570,     line:     srl r9, r12, 4
-0x0013CC85,   //PC = 0x00000574,     line:     sll r9, r9, 19
-0x000DCC86,   //PC = 0x00000578,     line:     srl r9, r9, 13    
-0x000FE582,   //PC = 0x0000057C,     line:     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
-0x000B4C83,   //PC = 0x00000580,     line:     or r9, r9, r11                  # r13 = ray base ptr
-0x0000039F,   //PC = 0x00000584,     line:     lw r7, r0, 0
-0x00004BB1,   //PC = 0x00000588,     line:     sendflit r7, r9
-0x0004039F,   //PC = 0x0000058C,     line:     lw r7, r0, 4
-0x00004BB1,   //PC = 0x00000590,     line:     sendflit r7, r9
-0x0008039F,   //PC = 0x00000594,     line:     lw r7, r0, 8
+0xFFFFFFFF,   //PC = 0x00000034,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000038,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x0000003C,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000040,     line:     .data -1
+0x19BC861F,   //PC = 0x00000044,     line:     lw r12, NODE_ID_TABLE_HIGH
+0x000067A7,   //PC = 0x00000048,     line:     setmembits r12
+0x19C0861F,   //PC = 0x0000004C,     line:     lw r12, NODE_ID_TABLE_LOW
+0x0002DD85,   //PC = 0x00000050,     line:     sll r11, r11, 2
+0x000B6600,   //PC = 0x00000054,     line:     add r12, r12, r11
+0x000064AC,   //PC = 0x00000058,     line:     lw_d r9, r12, 0
+0x0004652C,   //PC = 0x0000005C,     line:     lw_d r10, r12, 4
+0x0030811F,   //PC = 0x00000060,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
+0x0034819F,   //PC = 0x00000064,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x0030849A,   //PC = 0x00000068,     line:     sw r9, RAY_QUEUE_HIGH
+0x0034851A,   //PC = 0x0000006C,     line:     sw r10, RAY_QUEUE_LOW
+0x0000F702,   //PC = 0x00000070,     line:     and r14, r14, 0
+0x31E4F480,   //PC = 0x00000074,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x0001CFB3,   //PC = 0x00000078,     line:     atomadd r15, r9, 1
+0x0010F500,   //PC = 0x0000007C,     line:     add r10, r14, 16 
+0x31E4849F,   //PC = 0x00000080,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x00000038,   //PC = 0x00000084,     line:     switchctx
+0x0080CD13,   //PC = 0x00000088,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY_SWITCH_DRAM_QUEUE, true
+0x000017A7,   //PC = 0x0000008C,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000090,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x00000094,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000098,     line:     lw_d r4, r3, 16
+0x0098AA14,   //PC = 0x0000009C,     line:     bne r4, r5, REMOVE_TICKET_WAIT_EMERGENCY, true
+0x00149A00,   //PC = 0x000000A0,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x000000A4,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x000000A8,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x000000AC,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x000000B0,     line:     lw_d r9, r4, 0
+0x00B0CA94,   //PC = 0x000000B4,     line:     bne r5, r9, LOCKING_BULLSHIT_EMERGENCY, true
+0x001C9B00,   //PC = 0x000000B8,     line:     add r6, r3, 28 
+0x0000C402,   //PC = 0x000000BC,     line:     and r8, r8, 0
+0x0004FC86,   //PC = 0x000000C0,     line:     srl r9, r15, 4
+0x0004222C,   //PC = 0x000000C4,     line:     lw_d r4, r4, 4
+0x0100F500,   //PC = 0x000000C8,     line:     add r10, r14, 256
+0x029C5213,   //PC = 0x000000CC,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
+0x0001C505,   //PC = 0x000000D0,     line:     sll r10, r8, 1              # r10 = i * 2
+0x00065500,   //PC = 0x000000D4,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
+0x000055AB,   //PC = 0x000000D8,     line:     lhu_d r11, r10, 0           # r11 = slot_val
+0x00E8CD93,   //PC = 0x000000DC,     line:     beq r11, r9, found_our_slot_remove_emergency, true
+0x0001C400,   //PC = 0x000000E0,     line:     add r8, r8, 1
+0x00C8FF93,   //PC = 0x000000E4,     line:     beq r15, r15, find_our_slot_remove_emergency, true
+0xFFFFA580,   //PC = 0x000000E8,     line:     add r11, r4, -1             # r11 = owner_count - 1
+0x0001DD85,   //PC = 0x000000EC,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
+0x00065D80,   //PC = 0x000000F0,     line:     add r11, r11, r6            # r11 = last_slot_addr
+0x00005E2B,   //PC = 0x000000F4,     line:     lhu_d r12, r11, 0           # r12 = last_val
+0x0000562E,   //PC = 0x000000F8,     line:     sh_d r12, r10, 0            # slots[i] = last_val
+0x0000E602,   //PC = 0x000000FC,     line:     and r12, r12, 0
+0x00005E2E,   //PC = 0x00000100,     line:     sh_d r12, r11, 0            # last slot = 0
+0x00189D00,   //PC = 0x00000104,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0xFFFFD630,   //PC = 0x00000108,     line:     atomadd_d r12, r10, -1     # core_owner_count--
+0x00149D00,   //PC = 0x0000010C,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x00000110,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x00000114,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x00000118,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x0000011C,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x00000120,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x0030811F,   //PC = 0x00000124,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+0x0034819F,   //PC = 0x00000128,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x0000012C,     line:     setmembits r2
+0x000C9A00,   //PC = 0x00000130,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x00000134,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000138,     line:     lw_d r4, r3, 16
+0x0138AA14,   //PC = 0x0000013C,     line:     bne r4, r5, ADD_TICKET_WAIT_EMERGENCY, true
+0x00149A00,   //PC = 0x00000140,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x00000144,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x00000148,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x0000014C,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x00000150,     line:     lw_d r9, r4, 0
+0x0150CA94,   //PC = 0x00000154,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT_EMERGENCY, true
+0x001C9B00,   //PC = 0x00000158,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x0000015C,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x00000160,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x00000164,     line:     lw_d r4, r4, 4    # r4 = owner_count
+0x0001A205,   //PC = 0x00000168,     line:     sll r4, r4, 1
+0x00043300,   //PC = 0x0000016C,     line:     add r6, r6, r4
+0x0004FE06,   //PC = 0x00000170,     line:     srl r12, r15, 4
+0x0000362E,   //PC = 0x00000174,     line:     sh_d r12, r6, 0           # r12 = last_val
+0x00189D00,   //PC = 0x00000178,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0x0001D630,   //PC = 0x0000017C,     line:     atomadd_d r12, r10, 1     # core_owner_count--
+0x00149D00,   //PC = 0x00000180,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x00000184,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x00000188,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x0000018C,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x00000190,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x00000194,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x14A4FF93,   //PC = 0x00000198,     line:     beq r15, r15, download_bvh_tree, true
+0x0030811F,   //PC = 0x0000019C,     line:     lw r2, RAY_QUEUE_HIGH   # r2 = q_high #assume high in r2, low in
+0x0034819F,   //PC = 0x000001A0,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x000001A4,     line:     setmembits r2
+0x000C9A00,   //PC = 0x000001A8,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x000001AC,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x000001B0,     line:     lw_d r4, r3, 16
+0x01B0AA14,   //PC = 0x000001B4,     line:     bne r4, r5, REMOVE_TICKET_WAIT, true
+0x00149A00,   //PC = 0x000001B8,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x000001BC,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x000001C0,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x000001C4,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x000001C8,     line:     lw_d r9, r4, 0
+0x01C8CA94,   //PC = 0x000001CC,     line:     bne r5, r9, LOCKING_BULLSHIT, true
+0x001C9B00,   //PC = 0x000001D0,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x000001D4,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x000001D8,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x000001DC,     line:     lw_d r4, r4, 4
+0x0100F500,   //PC = 0x000001E0,     line:     add r10, r14, 256
+0x029C5213,   //PC = 0x000001E4,     line:     beq r4, r10, RELEASE_INSERT_LOCK, false
+0x0001C505,   //PC = 0x000001E8,     line:     sll r10, r8, 1              # r10 = i * 2
+0x00065500,   //PC = 0x000001EC,     line:     add r10, r10, r6            # r10 = slots_base + i * 2
+0x000055AB,   //PC = 0x000001F0,     line:     lhu_d r11, r10, 0           # r11 = slot_val
+0x0200CD93,   //PC = 0x000001F4,     line:     beq r11, r9, found_our_slot_remove, true
+0x0001C400,   //PC = 0x000001F8,     line:     add r8, r8, 1
+0x01E0FF93,   //PC = 0x000001FC,     line:     beq r15, r15, find_our_slot_remove, true
+0xFFFFA580,   //PC = 0x00000200,     line:     add r11, r4, -1             # r11 = owner_count - 1
+0x0001DD85,   //PC = 0x00000204,     line:     sll r11, r11, 1             # r11 = (owner_count - 1) * 2
+0x00065D80,   //PC = 0x00000208,     line:     add r11, r11, r6            # r11 = last_slot_addr
+0x00005E2B,   //PC = 0x0000020C,     line:     lhu_d r12, r11, 0           # r12 = last_val
+0x0000562E,   //PC = 0x00000210,     line:     sh_d r12, r10, 0            # slots[i] = last_val
+0x0000E602,   //PC = 0x00000214,     line:     and r12, r12, 0
+0x00005E2E,   //PC = 0x00000218,     line:     sh_d r12, r11, 0            # last slot = 0
+0x00189D00,   //PC = 0x0000021C,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0xFFFFD630,   //PC = 0x00000220,     line:     atomadd_d r12, r10, -1     # core_owner_count--
+0x00149D00,   //PC = 0x00000224,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x00000228,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x0000022C,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x00000230,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x00000234,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x00000238,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x0390FF93,   //PC = 0x0000023C,     line:     beq r15, r15, RETURN_FROM_CORE_DRAM_QUEUE, true
+0x0030811F,   //PC = 0x00000240,     line:     lw r2, RAY_QUEUE_HIGH   # ASSUME: r2 = q_high
+0x0034819F,   //PC = 0x00000244,     line:     lw r3, RAY_QUEUE_LOW    # r3 = q_low
+0x000017A7,   //PC = 0x00000248,     line:     setmembits r2
+0x000C9A00,   //PC = 0x0000024C,     line:     add r4, r3, 12
+0x0001A2B0,   //PC = 0x00000250,     line:     atomadd_d r5, r4, 1
+0x00101A2C,   //PC = 0x00000254,     line:     lw_d r4, r3, 16
+0x0254AA14,   //PC = 0x00000258,     line:     bne r4, r5, ADD_TICKET_WAIT, true
+0x00149A00,   //PC = 0x0000025C,     line:     add r4, r3, 20
+0x0000AA82,   //PC = 0x00000260,     line:     and r5, r5, 0
+0xE000AA80,   //PC = 0x00000264,     line:     add r5, r5, -8192
+0x000527B0,   //PC = 0x00000268,     line:     atomadd_d r15, r4, r5
+0x000024AC,   //PC = 0x0000026C,     line:     lw_d r9, r4, 0
+0x026CCA94,   //PC = 0x00000270,     line:     bne r5, r9, LOCKING_BULLSHIT_INSERT, true
+0x001C9B00,   //PC = 0x00000274,     line:     add r6, r3, 28              # r6 = slots_base
+0x0000C402,   //PC = 0x00000278,     line:     and r8, r8, 0               # r8 = i = 0
+0x0004FC86,   //PC = 0x0000027C,     line:     srl r9, r15, 4              # r9 = core_id
+0x0004222C,   //PC = 0x00000280,     line:     lw_d r4, r4, 4    # r4 = owner_count
+0x0001A205,   //PC = 0x00000284,     line:     sll r4, r4, 1
+0x00043300,   //PC = 0x00000288,     line:     add r6, r6, r4
+0x0004FE06,   //PC = 0x0000028C,     line:     srl r12, r15, 4
+0x0000362E,   //PC = 0x00000290,     line:     sh_d r12, r6, 0           # r12 = last_val
+0x00189D00,   //PC = 0x00000294,     line:     add r10, r3, 24             # r10 = &core_owner_count
+0x0001D630,   //PC = 0x00000298,     line:     atomadd_d r12, r10, 1     # core_owner_count--
+0x00149D00,   //PC = 0x0000029C,     line:     add r10, r3, 20             # r10 = &lock
+0x2000D630,   //PC = 0x000002A0,     line:     atomadd_d r12, r10, 8192     # release lock
+0x00109D00,   //PC = 0x000002A4,     line:     add r10, r3, 16             # r10 = &now_serving
+0x0000AA82,   //PC = 0x000002A8,     line:     and r5, r5, 0
+0x0001AA80,   //PC = 0x000002AC,     line:     add r5, r5, 1
+0x00055630,   //PC = 0x000002B0,     line:     atomadd_d r12, r10, r5     # advance now_serving
+0x0418FF93,   //PC = 0x000002B4,     line:     beq r15, r15, RETURN_FROM_INSERT_DRAM_QUEUE, true
+0x0000C200,   //PC = 0x000002B8,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+0x00228037,   //PC = 0x000002BC,     line:     intdis 34                               # disable_interrupts(34)
+0x002283A1,   //PC = 0x000002C0,     line:     nonblock r7, 34                             # is_value = r7 = nb_recv(channel) (0 if no message waiting)
+0x0000F702,   //PC = 0x000002C4,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x02D4BF14,   //PC = 0x000002C8,     line:     bne r14, r7, CONTINUE_WITH_SWITCH_ROLES_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_SWITCH_ROLES_INTERRUPT
+0x00228026,   //PC = 0x000002CC,     line:     intena 34                               # enable_interrupts(channel) (nothing to do)
+0x00040797,   //PC = 0x000002D0,     line:     jmp r15, r4                             # return
+0x002283A0,   //PC = 0x000002D4,     line:     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
+0x2FA8849F,   //PC = 0x000002D8,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
+0x03107494,   //PC = 0x000002DC,     line:     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
+0x0000BD00,   //PC = 0x000002E0,     line:     add r10, r7, 0                      # r10 = switch_core_request
+0x000EF580,   //PC = 0x000002E4,     line:     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
+0x0018DD85,   //PC = 0x000002E8,     line:     sll r11, r11, 24                     # r11 = REJECT_CHANGE << 24
+0x000FD602,   //PC = 0x000002EC,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+0x0010E600,   //PC = 0x000002F0,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+0xFFF0D502,   //PC = 0x000002F4,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+0x0008D505,   //PC = 0x000002F8,     line:     sll r10, r10, 8                     
+0x0006D506,   //PC = 0x000002FC,     line:     srl r10, r10, 6
+0x000C5503,   //PC = 0x00000300,     line:     or r10, r10, r12                    # r10 = destination flit
+0x000055B1,   //PC = 0x00000304,     line:     sendflit r11, r10                   # send_flit(REJECT_CHANGE << 24, dest) (reject: target core not idle)
+0x00228026,   //PC = 0x00000308,     line:     intena 34                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x0000030C,     line:     jmp r15, r4                             # return
+0x0038849F,   //PC = 0x00000310,     line:     lw r9, IS_BRANCH_CORE
+0x0000F702,   //PC = 0x00000314,     line:     and r14, r14, 0
+0x0348F493,   //PC = 0x00000318,     line:     beq r9, r14, LEGAL_TO_SWITCH, true
+0x0030849F,   //PC = 0x0000031C,     line:     lw r9, RAY_QUEUE_HIGH
+0x00004FA7,   //PC = 0x00000320,     line:     setmembits r9
+0x0034849F,   //PC = 0x00000324,     line:     lw r9, RAY_QUEUE_LOW
+0x0014CC80,   //PC = 0x00000328,     line:     add r9, r9, 20
+0x0001CD30,   //PC = 0x0000032C,     line:     atomadd_d r10, r9, 1
+0x033CD715,   //PC = 0x00000330,     line:     blte r14, r10, HAVE_READER_LOCK_CORE_CNT, true
+0xFFFFCD30,   //PC = 0x00000334,     line:     atomadd_d r10, r9, -1
+0x032CFF93,   //PC = 0x00000338,     line:     beq r15, r15, GET_READER_LOCK_CORE_CNT, true
+0x00044CAC,   //PC = 0x0000033C,     line:     lw_d r9, r9, 4
+0x0001F500,   //PC = 0x00000340,     line:     add r10, r14, 1
+0x02E05493,   //PC = 0x00000344,     line:     beq r9, r10, REJECT_CHANGE, false
+0x31E4F480,   //PC = 0x00000348,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x0001CFB3,   //PC = 0x0000034C,     line:     atomadd r15, r9, 1
+0x0010F500,   //PC = 0x00000350,     line:     add r10, r14, 16 
+0x31E4849F,   //PC = 0x00000354,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x00000038,   //PC = 0x00000358,     line:     switchctx
+0x0354CD13,   //PC = 0x0000035C,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY, true
+0x0000BD00,   //PC = 0x00000360,     line:     add r10, r7, 0                      # r10 = switch_core_request
+0x000DF580,   //PC = 0x00000364,     line:     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
+0x0018DD85,   //PC = 0x00000368,     line:     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
+0x000FD602,   //PC = 0x0000036C,     line:     and r12, r10, 0xF                   # r12 = thread_id = switch_core_request & 0xF
+0x0010E600,   //PC = 0x00000370,     line:     add r12, r12, 16                     # r12 = thread_id + 16 (send channel)
+0xFFF0D502,   //PC = 0x00000374,     line:     and r10, r10, 0xFFF0                  # r10 = core_id high nibble
+0x0008D505,   //PC = 0x00000378,     line:     sll r10, r10, 8                     # r10 = core_id high nibble shifted to channel position
+0x0006D506,   //PC = 0x0000037C,     line:     srl r10, r10, 6
+0x000C5503,   //PC = 0x00000380,     line:     or r10, r10, r12                    # r10 = destination flit
+0x000055B1,   //PC = 0x00000384,     line:     sendflit r11, r10                   # send_flit(ACCEPT_CHANGE << 24 | self.is_branch_core, dest) (accept: target core idle)
+0x00000023,   //PC = 0x00000388,     line:     getowner                  # TODO ALex tf is this?
+0x019CFF93,   //PC = 0x0000038C,     line:     beq r15, r15, REMOVE_FROM_RAY_QUEUE_DRAM, true ; # if t0 == t1 then target
+0x00007520,   //PC = 0x00000390,     line:     block r10, r14                           # r10 = type_of_core = blocking_recv(0)
+0x0038859F,   //PC = 0x00000394,     line:     lw r11, IS_BRANCH_CORE             # r11 = self.is_branch_core
+0x03D45D13,   //PC = 0x00000398,     line:     beq r10, r11, CORE_TYPE_BRANCH, false # if type_of_core != self.is_branch_core goto SWITCH_ROLES_INTERRUPT_DONE
+0x0001F580,   //PC = 0x0000039C,     line:     add r11, r14, 1
+0x03ACDD13,   //PC = 0x000003A0,     line:     beq r10, r11, DO_BRANCH_START_OF_CODE, true
+0x19B4859F,   //PC = 0x000003A4,     line:     lw r11, leaf_start_of_code             # r11 = leaf_start_of_code    
+0x03B0FF93,   //PC = 0x000003A8,     line:     beq r15, r15, DONE_LOADING_CODE, true
+0x19DC859F,   //PC = 0x000003AC,     line:     lw r11, BRANCH_START_OF_CODE   
+0x0000E602,   //PC = 0x000003B0,     line:     and r12, r12, 0
+0x4384E600,   //PC = 0x000003B4,     line:     add r12, r12, 17284                     # num_instructions
+0x0000F702,   //PC = 0x000003B8,     line:     and r14, r14, 0             # 0
+0x0000CC82,   //PC = 0x000003BC,     line:     and r9, r9, 0               # i
+0x000076A0,   //PC = 0x000003C0,     line:     block r13, r14                           # r13 = instruction_to_recv = blocking_recv(0)
+0x00005E9A,   //PC = 0x000003C4,     line:     sw r13, r11, 0                         # *(starting_address + i) = instruction_to_recv
+0x0004DD80,   //PC = 0x000003C8,     line:     add r11, r11, 4
+0x0004CC80,   //PC = 0x000003CC,     line:     add r9, r9, 4                           # i += 4
+0x03C0CE16,   //PC = 0x000003D0,     line:     bgt r12, r9, FOR_NUM_INSTRUCTIONS, true # if i < num_instructions goto FOR_NUM_INSTRUCTIONS
+0x0001F580,   //PC = 0x000003D4,     line:     add r11, r14, 1
+0x0000E602,   //PC = 0x000003D8,     line:     and r12, r12, 0
+0x03F4DD14,   //PC = 0x000003DC,     line:     bne r10, r11, DONE_LOADING_GEO, true
+0x19B0859F,   //PC = 0x000003E0,     line:     lw r11, LEAF_START_OF_GEO              # r11 = leaf_start_of_geometry
+0x162EE600,   //PC = 0x000003E4,     line:     add r12, r12, 5678
+0x03F4FF93,   //PC = 0x000003E8,     line:     beq r15, r15, DONE_LOADING_GEO, true
+0x19E4859F,   //PC = 0x000003EC,     line:     lw r11, BRANCH_START_OF_GEO             # r11 = branch_start_of_geometry
+0x223DE600,   //PC = 0x000003F0,     line:     add r12, r12, 8765
+0x0000F702,   //PC = 0x000003F4,     line:     and r14, r14, 0             # 0
+0x0000CC82,   //PC = 0x000003F8,     line:     and r9, r9, 0               # i
+0x000076A0,   //PC = 0x000003FC,     line:     block r13, r14                           # r13 = word_to_transfer_of_geo = blocking_recv(0)
+0x00005E9A,   //PC = 0x00000400,     line:     sw r13, r11, 0                         # *(starting_address + i) = word_to_transfer_of_geo
+0x0004CC80,   //PC = 0x00000404,     line:     add r9, r9, 4                           # i += 4
+0x0004DD80,   //PC = 0x00000408,     line:     add r11, r11, 4
+0x03FCCE16,   //PC = 0x0000040C,     line:     bgt r12, r9, FOR_SIZE_OF_GEO, true     # if i < size_of_geo goto FOR_SIZE_OF_GEO
+0x0038851A,   //PC = 0x00000410,     line:     sw r10, IS_BRANCH_CORE             # self.is_branch_core = type_of_core
+0x0240FF93,   //PC = 0x00000414,     line:     beq r15, r15, ADD_TO_RAY_QUEUE_DRAM, true
+0x00008025,   //PC = 0x00000418,     line:     relinquish true
+0x0038851F,   //PC = 0x0000041C,     line:     lw r10, IS_BRANCH_CORE
+0x0000F702,   //PC = 0x00000420,     line:     and r14, r14, 0
+0x0001F580,   //PC = 0x00000424,     line:     add r11, r14, 1
+0x04D2DD13,   //PC = 0x00000428,     line:     beq r10, r11, 1234, true # if type_of_core == 1 (branch core) goto SWITCH_ROLES_INTERRUPT_DONE
+0x10E1FF93,   //PC = 0x0000042C,     line:     beq r15, r15, 4321, true
+0x003C811F,   //PC = 0x00000430,     line:     lw r2, ROOT_NODE_ID         # r2 = node
+0x00000422,   //PC = 0x00000434,     line:     yield r8                    # clobber r8
+0x003E029C,   //PC = 0x00000438,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0x0000A202,   //PC = 0x0000043C,     line:     and r4, r4, 0
+0x0001A200,   //PC = 0x00000440,     line:     add r4, r4, 1                   # r4 = 1
+0x00052205,   //PC = 0x00000444,     line:     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
+0x00022202,   //PC = 0x00000448,     line:     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
+0x00180B1E,   //PC = 0x0000044C,     line:     lhu r6, r1, 24                  # r6 = node->left_child
+0x0000BB82,   //PC = 0x00000450,     line:     and r7, r7, 0
+0xFFFFBB80,   //PC = 0x00000454,     line:     add r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
+0x0464BB13,   //PC = 0x00000458,     line:     beq r6, r7, LEFT_CHILD_NULL, true
+0x0000B302,   //PC = 0x0000045C,     line:     and r6, r6, 0                   # left_child != null => contribute 0
+0x0468FF93,   //PC = 0x00000460,     line:     beq r15, r15, LEFT_BITFIELD_DONE, true
+0x0001B300,   //PC = 0x00000464,     line:     add r6, r6, 1                   # left_child == null => contribute 1 (forces visited)
+0x00062203,   //PC = 0x00000468,     line:     or r4, r4, r6                   # r4 = left_bitfield_check
+0x003E029C,   //PC = 0x0000046C,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0x0000CC82,   //PC = 0x00000470,     line:     and r9, r9, 0
+0x0001CC80,   //PC = 0x00000474,     line:     add r9, r9, 1
+0x00054C85,   //PC = 0x00000478,     line:     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
+0x00034C82,   //PC = 0x0000047C,     line:     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
+0x001A0B1E,   //PC = 0x00000480,     line:     lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 25)
+0x0490BB13,   //PC = 0x00000484,     line:     beq r6, r7, RIGHT_CHILD_NULL, true
+0x0000B302,   //PC = 0x00000488,     line:     and r6, r6, 0
+0x0494FF93,   //PC = 0x0000048C,     line:     beq r15, r15, RIGHT_BITFIELD_DONE, true
+0x0001B300,   //PC = 0x00000490,     line:     add r6, r6, 1                   # right_child == null => contribute 1 (forces visited)
+0x00064C83,   //PC = 0x00000494,     line:     or r9, r9, r6                   # r9 = right_bitfield_check    
+0x00092302,   //PC = 0x00000498,     line:     and r6, r4, r9                  # r6 = left_bitfield_check & right_bitfield_check (nonzero if both set)
+0x0000BB82,   //PC = 0x0000049C,     line:     and r7, r7, 0                   # r7 = 0
+0x04F0BB13,   //PC = 0x000004A0,     line:     beq r6, r7, CHECK_BOTH_ZERO, true   # if r6 == 0, neither both set - check other cases
+0x00200B1C,   //PC = 0x000004A4,     line:     lbu r6, r1, 32                  # r6 = node->is_right
+0x0002B305,   //PC = 0x000004A8,     line:     sll r6, r6, 2                   # r6 = node->is_right * 4
+0x00060300,   //PC = 0x000004AC,     line:     add r6, r0, r6                  # r6 = &ray.check_left + is_right*4
+0x002C341F,   //PC = 0x000004B0,     line:     lw r8, r6, 44                    # r8 = bitfield
+0x003E029C,   //PC = 0x000004B4,     line:     lbu r5, r0, 62                  # r5 = ray->ray_depth
+0xFFFFAA80,   //PC = 0x000004B8,     line:     add r5, r5, -1                  # r5 = ray_depth - 1
+0x0000D502,   //PC = 0x000004BC,     line:     and r10, r10, 0
+0x0001D500,   //PC = 0x000004C0,     line:     add r10, r10, 1
+0x00055505,   //PC = 0x000004C4,     line:     sll r10, r10, r5                # r10 = or_value
+0x000A4403,   //PC = 0x000004C8,     line:     or r8, r8, r10
+0x0000341A,   //PC = 0x000004CC,     line:     sw r8, r6, 0                    # *(ray.check_left + is_right*4) = bitfield
+0x003E029C,   //PC = 0x000004D0,     line:     lbu r5, r0, 62
+0xFFFFAA80,   //PC = 0x000004D4,     line:     add r5, r5, -1
+0x003E0298,   //PC = 0x000004D8,     line:     sb r5, r0, 62
+0x001C0B1E,   //PC = 0x000004DC,     line:     lhu r6, r1, 28                  # r6 = node->parent
+0x0520BB13,   //PC = 0x000004E0,     line:     beq r6, r7, SEND_RAY_UP, true  # r7 = 0
+0x00008882,   //PC = 0x000004E4,     line:     and r1, r1, 0
+0x00060880,   //PC = 0x000004E8,     line:     add r1, r1, r6                  # r1 = node->parent (SRAM pointer)
+0x0434FF93,   //PC = 0x000004EC,     line:     beq r15, r15, START_SEARCHING, true
+0x00092303,   //PC = 0x000004F0,     line:     or r6, r4, r9                   # r6 = left | right
+0x09D43B14,   //PC = 0x000004F4,     line:     bne r6, r7, TRAVERSE_LEFT_OR_RIGHT, false       # both zero -> do AABB test
+0x12608417,   //PC = 0x000004F8,     line:     jmp r8, AABB_INTERSECT 
+0x09A0BD93,   //PC = 0x000004FC,     line:     beq r11, r7, AABB_MISS, true
+0x001F0B1C,   //PC = 0x00000500,     line:     lbu r6, r1, 31                  # TODO confirm offset
+0x0930BB14,   //PC = 0x00000504,     line:     bne r6, r7, IS_LEAF_NODE, true
+0x003E029C,   //PC = 0x00000508,     line:     lbu r5, r0, 62
+0x0001AA80,   //PC = 0x0000050C,     line:     add r5, r5, 1
+0x003E0298,   //PC = 0x00000510,     line:     sb r5, r0, 62
+0x002C0B1F,   //PC = 0x00000514,     line:     lw r6, r1, 44                  # r6 = node->node_id 
+0xFFFFCC83,   //PC = 0x00000518,     line:     or r9, r9, 0xFFFF
+0x0928CB13,   //PC = 0x0000051C,     line:     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
+0x31E0BC00,   //PC = 0x00000520,     line:     add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
+0x0001C7B3,   //PC = 0x00000524,     line:     atomadd r15, r8, 1               # r9 = clobber
+0xFFFFA203,   //PC = 0x00000528,     line:     or r4, r4, 0xFFFF
+0x00009982,   //PC = 0x0000052C,     line:     and r3, r3, 0                   # r3 = sent = 0
+0x00208037,   //PC = 0x00000530,     line:     intdis 32
+0x001C0D9E,   //PC = 0x00000534,     line:     lhu r11, r1, 28
+0x0020BD00,   //PC = 0x00000538,     line:     add r10, r7, 32
+0xFFFFEE83,   //PC = 0x0000053C,     line:     or r13, r13, 0xFFFF
+0x0548ED94,   //PC = 0x00000540,     line:     bne r11, r13, SKIP_ADDING_ONE_TO_BRANCH_CORE_MAILBOX, true
+0x0001D500,   //PC = 0x00000544,     line:     add r10, r10, 1
+0x0011B305,   //PC = 0x00000548,     line:     sll r6, r6, 17
+0x000F3303,   //PC = 0x0000054C,     line:     or r6, r6, r15                # r12 = request_word
+0x001E0C9E,   //PC = 0x00000550,     line:     lhu r9, r1, 30                  # r6 = node->core_owner
+0x0006CC85,   //PC = 0x00000554,     line:     sll r9, r9, 6
+0x000A4C80,   //PC = 0x00000558,     line:     add r9, r9, r10
+0x00004B31,   //PC = 0x0000055C,     line:     sendflit r6, r9            # TODO confirm notation w/ Alex
+0x000FFD02,   //PC = 0x00000560,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x0010D580,   //PC = 0x00000564,     line:     add r11, r10, 16                # r11 = thread_id + 16 (shallow mailbox)
+0x00005E21,   //PC = 0x00000568,     line:     nonblock r12, r11               # r12 = msg_available
+0x07DCBE13,   //PC = 0x0000056C,     line:     beq r12, r7, CHECK_DATA_MAILBOX, true   # r7=0, nothing on shallow mailbox
+0x00005E20,   //PC = 0x00000570,     line:     block r12, r11                  # r12 = msg
+0x0018E686,   //PC = 0x00000574,     line:     srl r13, r12, 24                # r13 = header
+0x0005BD80,   //PC = 0x00000578,     line:     add r11, r7, 5                 # r11 = 5 (ack_ray)
+0x0624DE94,   //PC = 0x0000057C,     line:     bne r13, r11, REJECT_PATH, true
+0x0004E486,   //PC = 0x00000580,     line:     srl r9, r12, 4
+0x0013CC85,   //PC = 0x00000584,     line:     sll r9, r9, 19
+0x000DCC86,   //PC = 0x00000588,     line:     srl r9, r9, 13    
+0x000FE582,   //PC = 0x0000058C,     line:     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+0x000B4C83,   //PC = 0x00000590,     line:     or r9, r9, r11                  # r13 = ray base ptr
+0x0000039F,   //PC = 0x00000594,     line:     lw r7, r0, 0
 0x00004BB1,   //PC = 0x00000598,     line:     sendflit r7, r9
-0x000C039F,   //PC = 0x0000059C,     line:     lw r7, r0, 12
+0x0004039F,   //PC = 0x0000059C,     line:     lw r7, r0, 4
 0x00004BB1,   //PC = 0x000005A0,     line:     sendflit r7, r9
-0x0010039F,   //PC = 0x000005A4,     line:     lw r7, r0, 16
+0x0008039F,   //PC = 0x000005A4,     line:     lw r7, r0, 8
 0x00004BB1,   //PC = 0x000005A8,     line:     sendflit r7, r9
-0x0014039F,   //PC = 0x000005AC,     line:     lw r7, r0, 20
+0x000C039F,   //PC = 0x000005AC,     line:     lw r7, r0, 12
 0x00004BB1,   //PC = 0x000005B0,     line:     sendflit r7, r9
-0x0018039F,   //PC = 0x000005B4,     line:     lw r7, r0, 24
+0x0010039F,   //PC = 0x000005B4,     line:     lw r7, r0, 16
 0x00004BB1,   //PC = 0x000005B8,     line:     sendflit r7, r9
-0x001C039F,   //PC = 0x000005BC,     line:     lw r7, r0, 28
+0x0014039F,   //PC = 0x000005BC,     line:     lw r7, r0, 20
 0x00004BB1,   //PC = 0x000005C0,     line:     sendflit r7, r9
-0x0020039F,   //PC = 0x000005C4,     line:     lw r7, r0, 32
+0x0018039F,   //PC = 0x000005C4,     line:     lw r7, r0, 24
 0x00004BB1,   //PC = 0x000005C8,     line:     sendflit r7, r9
-0x0024039F,   //PC = 0x000005CC,     line:     lw r7, r0, 36
+0x001C039F,   //PC = 0x000005CC,     line:     lw r7, r0, 28
 0x00004BB1,   //PC = 0x000005D0,     line:     sendflit r7, r9
-0x19B8839F,   //PC = 0x000005D4,     line:     lw r7, LEAF_CORE_INDEX_FOR_BRANCH
+0x0020039F,   //PC = 0x000005D4,     line:     lw r7, r0, 32
 0x00004BB1,   //PC = 0x000005D8,     line:     sendflit r7, r9
-0x002C039F,   //PC = 0x000005DC,     line:     lw r7, r0, 44
+0x0024039F,   //PC = 0x000005DC,     line:     lw r7, r0, 36
 0x00004BB1,   //PC = 0x000005E0,     line:     sendflit r7, r9
-0x0030039F,   //PC = 0x000005E4,     line:     lw r7, r0, 48
+0x19C8839F,   //PC = 0x000005E4,     line:     lw r7, LEAF_CORE_INDEX_FOR_BRANCH
 0x00004BB1,   //PC = 0x000005E8,     line:     sendflit r7, r9
-0x0034039F,   //PC = 0x000005EC,     line:     lw r7, r0, 52
+0x002C039F,   //PC = 0x000005EC,     line:     lw r7, r0, 44
 0x00004BB1,   //PC = 0x000005F0,     line:     sendflit r7, r9
-0x0038039F,   //PC = 0x000005F4,     line:     lw r7, r0, 56
+0x0030039F,   //PC = 0x000005F4,     line:     lw r7, r0, 48
 0x00004BB1,   //PC = 0x000005F8,     line:     sendflit r7, r9
-0x003C039F,   //PC = 0x000005FC,     line:     lw r7, r0, 60   
+0x0034039F,   //PC = 0x000005FC,     line:     lw r7, r0, 52
 0x00004BB1,   //PC = 0x00000600,     line:     sendflit r7, r9
-0x003F0398,   //PC = 0x00000604,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
-0x00009982,   //PC = 0x00000608,     line:     and r3, r3, 0
-0x00019980,   //PC = 0x0000060C,     line:     add r3, r3, 1                   # r3 = sent = 1
-0x07CCFF93,   //PC = 0x00000610,     line:     beq r15, r15, CHECK_DATA_MAILBOX, true
-0x00280C1E,   //PC = 0x00000614,     line:     lhu r8, r1, 40                  # r8 = node->queue_high_bit_addr
-0x000047A7,   //PC = 0x00000618,     line:     setmembits r8                   # set address bits to reach node's DRAM stack
-0x00240C9F,   //PC = 0x0000061C,     line:     lw r9, r1, 36                   # r9 = node->queue_low_bit_addr
-0x0008CC80,   //PC = 0x00000620,     line:     add r9, r9, 8
-0x0001CD30,   //PC = 0x00000624,     line:     atomadd_d r10, r9, 1               # r10 = cur_ray_count (count field is -12 from here)
-0x00FFBD80,   //PC = 0x00000628,     line:     add r11, r7, 255               # r11 = 255
-0x0638DD16,   //PC = 0x0000062C,     line:     bgt r10, r11, THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE, true   # spin while count > 255
-0xFFFFCFB0,   //PC = 0x00000630,     line:     atomadd_d r15, r9, -1
-0x0620FF93,   //PC = 0x00000634,     line:     beq r15, r15, ENSURE_SPACE_IN_QUEUE, true
-0xFFFCCC80,   //PC = 0x00000638,     line:     add r9, r9, -4                 # r9 = queue base (tail field)
-0x0040CD30,   //PC = 0x0000063C,     line:     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
-0x3FFFD502,   //PC = 0x00000640,     line:     and r10, r10, 0x3FFF            # r10 = tail & 0x3FFF (ring mask)
-0x3F60CC80,   //PC = 0x00000644,     line:     add r9, r9, 16224                # r11 = queue base + 540 (start of ray slots)
-0x000A4C80,   //PC = 0x00000648,     line:     add r9, r9, r10               # r11 = write_addr = slot base + tail offset
-0x003F4D29,   //PC = 0x0000064C,     line:     lbu_d r10, r9, 63              # r10 = slot[63] (valid byte)
-0x064CBD14,   //PC = 0x00000650,     line:     bne r10, r7, WAIT_FOR_SLOT_TO_OPEN, true   # spin while slot occupied (r7=0)
-0x0000051F,   //PC = 0x00000654,     line:     lw r10, r0, 0                  # r10 = ray word i
-0x00004D2D,   //PC = 0x00000658,     line:     sw_d r10, r9, 0                # write to DRAM slot
-0x0004051F,   //PC = 0x0000065C,     line:     lw r10, r0, 4                  # r10 = ray word i
-0x00044D2D,   //PC = 0x00000660,     line:     sw_d r10, r9, 4                # write to DRAM slot
-0x0008051F,   //PC = 0x00000664,     line:     lw r10, r0, 8                  # r10 = ray word i
-0x00084D2D,   //PC = 0x00000668,     line:     sw_d r10, r9, 8                # write to DRAM slot
-0x000C051F,   //PC = 0x0000066C,     line:     lw r10, r0, 12                  # r10 = ray word i
-0x000C4D2D,   //PC = 0x00000670,     line:     sw_d r10, r9, 12                # write to DRAM slot
-0x0010051F,   //PC = 0x00000674,     line:     lw r10, r0, 16                  # r10 = ray word i
-0x00104D2D,   //PC = 0x00000678,     line:     sw_d r10, r9, 16                # write to DRAM slot
-0x0014051F,   //PC = 0x0000067C,     line:     lw r10, r0, 20                  # r10 = ray word i
-0x00144D2D,   //PC = 0x00000680,     line:     sw_d r10, r9, 20                # write to DRAM slot
-0x0018051F,   //PC = 0x00000684,     line:     lw r10, r0, 24                  # r10 = ray word i
-0x00184D2D,   //PC = 0x00000688,     line:     sw_d r10, r9, 24                # write to DRAM slot
-0x001C051F,   //PC = 0x0000068C,     line:     lw r10, r0, 28                  # r10 = ray word i
-0x001C4D2D,   //PC = 0x00000690,     line:     sw_d r10, r9, 28                # write to DRAM slot
-0x0020051F,   //PC = 0x00000694,     line:     lw r10, r0, 32                  # r10 = ray word i
-0x00204D2D,   //PC = 0x00000698,     line:     sw_d r10, r9, 32                # write to DRAM slot
-0x0024051F,   //PC = 0x0000069C,     line:     lw r10, r0, 36                  # r10 = ray word i
-0x00244D2D,   //PC = 0x000006A0,     line:     sw_d r10, r9, 36                # write to DRAM slot
-0x0028051F,   //PC = 0x000006A4,     line:     lw r10, r0, 40                  # r10 = ray word i
-0x00284D2D,   //PC = 0x000006A8,     line:     sw_d r10, r9, 40                # write to DRAM slot
-0x002C051F,   //PC = 0x000006AC,     line:     lw r10, r0, 44                  # r10 = ray word i
-0x002C4D2D,   //PC = 0x000006B0,     line:     sw_d r10, r9, 44                # write to DRAM slot
-0x0030051F,   //PC = 0x000006B4,     line:     lw r10, r0, 48                  # r10 = ray word i
-0x00304D2D,   //PC = 0x000006B8,     line:     sw_d r10, r9, 48                # write to DRAM slot
-0x0034051F,   //PC = 0x000006BC,     line:     lw r10, r0, 52                  # r10 = ray word i
-0x00344D2D,   //PC = 0x000006C0,     line:     sw_d r10, r9, 52                # write to DRAM slot
-0x0038051F,   //PC = 0x000006C4,     line:     lw r10, r0, 56                  # r10 = ray word i
-0x00384D2D,   //PC = 0x000006C8,     line:     sw_d r10, r9, 56                # write to DRAM slot
-0x003C051F,   //PC = 0x000006CC,     line:     lw r10, r0, 60                  # r10 = ray word i
-0x003C4D2D,   //PC = 0x000006D0,     line:     sw_d r10, r9, 60                # write to DRAM slot
-0x0000F702,   //PC = 0x000006D4,     line:     and r14, r14, 0
-0x003F0718,   //PC = 0x000006D8,     line:     sb r14, r0, 63
-0x00240C9F,   //PC = 0x000006DC,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
-0x0014CC80,   //PC = 0x000006E0,     line:     add r9, r9, 20                  # r9 = &lock field (offset 20 from queue base)
-0x0001CD30,   //PC = 0x000006E4,     line:     atomadd_d r10, r9, 1            # r10 = old lock value, increment
-0x06F4D393,   //PC = 0x000006E8,     line:     beq r7, r10, SKIP_UNDO_LOCK, true   # old val >= 0 means no writer held it
-0xFFFFCDB0,   //PC = 0x000006EC,     line:     atomadd_d r11, r9, -1           # undo our increment
-0x06E4FF93,   //PC = 0x000006F0,     line:     beq r15, r15, ENSURE_NO_WRITERS, true        # retry claim
-0x00044D2C,   //PC = 0x000006F4,     line:     lw_d r10, r9, 4                 # r10 = core_owner_count
-0x0730BD13,   //PC = 0x000006F8,     line:     beq r10, r7, NO_OWNER, true     # r7=0, no owners
-0x000005B4,   //PC = 0x000006FC,     line:     getclk r11                      # r11 = clock
-0x0004FE06,   //PC = 0x00000700,     line:     srl r12, r15, 4                 # r12 = core_id
-0x000B6604,   //PC = 0x00000704,     line:     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
-0x00260E9E,   //PC = 0x00000708,     line:     lhu r13, r1, 38                 # r13 = node->prev_index
-0x0714EE14,   //PC = 0x0000070C,     line:     bne r12, r13, SKIP_BUMP, true    # if idx == prev_idx, bump to avoid repeat
-0x0001E600,   //PC = 0x00000710,     line:     add r12, r12, 1                 # r12 = idx + 1
-0x000A6632,   //PC = 0x00000714,     line:     mod r12, r12, r10               # r12 = idx % core_owner_count
-0x00260E19,   //PC = 0x00000718,     line:     sh r12, r1, 38                  # node->prev_index = idx
-0x0001E605,   //PC = 0x0000071C,     line:     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
-0x000C4C80,   //PC = 0x00000720,     line:     add r9, r9, r12                 # r9 = &core_slots[idx]
-0x00084D2A,   //PC = 0x00000724,     line:     lh_d r10, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
-0x00220D19,   //PC = 0x00000728,     line:     sh r10, r1, 34                  # node->core_owner = core_to_cache
-0x07B4FF93,   //PC = 0x0000072C,     line:     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
-0x0000DD82,   //PC = 0x00000730,     line:     and r11, r11, 0
-0xFFFFDD80,   //PC = 0x00000734,     line:     add r11, r11, 0xFFFF            # r11 = 0xFFFF
-0x00200D99,   //PC = 0x00000738,     line:     sh r11, r1, 32                  # node->core_owner = 0xFFFF
-0x00240C9F,   //PC = 0x0000073C,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
-0x00084D2C,   //PC = 0x00000740,     line:     lw_d r10, r9, 8               # r10 = cur_ray_count
-0x0000DD82,   //PC = 0x00000744,     line:     and r11, r11, 0
-0x00C8DD80,   //PC = 0x00000748,     line:     add r11, r11, 200               # r11 = 200
-0x07B4DD15,   //PC = 0x0000074C,     line:     blte r10, r11, SKIP_EMERGENCY_ENQUEUE, true   # if count <= 200 skip emergency
-0x421CCC80,   //PC = 0x00000750,     line:     add r9, r9, 16924               # r9 = &on_emergency_idle_queue flag
-0x0001CD30,   //PC = 0x00000754,     line:     atomadd_d r10, r9, 1            # r10 = old value
-0x07B4BD14,   //PC = 0x00000758,     line:     bne r10, r7, SKIP_EMERGENCY_ENQUEUE, true   # r7=0; if old != 0 someone else did it
-0x1A1C849F,   //PC = 0x0000075C,     line:     lw r9, EMERGENCY_QUEUE_HIGH     # r9 = emergency_queue_high
-0x00004FA7,   //PC = 0x00000760,     line:     setmembits r9                   # set address bits
-0x1A20849F,   //PC = 0x00000764,     line:     lw r9, EMERGENCY_QUEUE_LOW      # r9 = emergency_queue_low
-0x0008CC80,   //PC = 0x00000768,     line:     add r9, r9, 8                   # r9 = &count field
-0x0001CD30,   //PC = 0x0000076C,     line:     atomadd_d r10, r9, 1            # r10 = old count, increment
-0x0000DD82,   //PC = 0x00000770,     line:     and r11, r11, 0
-0x0040DD80,   //PC = 0x00000774,     line:     add r11, r11, 64                # r11 = 64 (max slots)
-0x0780DD16,   //PC = 0x00000778,     line:     bgt r10, r11, EMERGENCY_UNDO_AND_SPIN, true   # if old >= 64 queue full
-0x0788FF93,   //PC = 0x0000077C,     line:     beq r15, r15, EMERGENCY_CLAIM_SLOT, true
-0xFFFFCDB0,   //PC = 0x00000780,     line:     atomadd_d r11, r9, -1           # undo increment
-0x076CFF93,   //PC = 0x00000784,     line:     beq r15, r15, LOOP_EMERGENCY_QUEUE_INSERTION, true  # retry
-0xFFFCCC80,   //PC = 0x00000788,     line:     add r9, r9, -4                  # r9 = &tail field
-0x0004CD30,   //PC = 0x0000078C,     line:     atomadd_d r10, r9, 4            # r10 = old tail, advance by 4 bytes per slot
-0x00FFD502,   //PC = 0x00000790,     line:     and r10, r10, 0xFF              # r10 = tail & 0xFF (ring mask for 64 slots)
-0x000A4C80,   //PC = 0x00000794,     line:     add r9, r9, r10                 # r9 = &slots[tail]
-0x0008CC80,   //PC = 0x00000798,     line:     add r9, r9, 8                   # r9 = slot base (skip head+tail fields)
-0x00024DA9,   //PC = 0x0000079C,     line:     lbu_d r11, r9, 2                # r11 = slot->is_valid
-0x079CBD94,   //PC = 0x000007A0,     line:     bne r11, r7, ENSURE_EMERGENCY_SLOT_READY, true  # spin while slot occupied (r7=0)
-0x002C0D9F,   //PC = 0x000007A4,     line:     lw r11, r1, 44                  # r11 = node->node_id
-0x00004DAE,   //PC = 0x000007A8,     line:     sh_d r11, r9, 0                 # slot->node_id = node_id (uint16)
-0x0001BD80,   //PC = 0x000007AC,     line:     add r11, r7, 1                 # r11 = 1
-0x00024DAF,   //PC = 0x000007B0,     line:     sb_d r11, r9, 2                 # slot->is_valid = 1
-0x00240C9F,   //PC = 0x000007B4,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr
-0x0014CC80,   //PC = 0x000007B8,     line:     add r9, r9, 20                  # r9 = &lock field
-0xFFFFCDB0,   //PC = 0x000007BC,     line:     atomadd_d r11, r9, -1           # release lock (decrement back)
-0x003F0398,   //PC = 0x000007C0,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
-0x00009982,   //PC = 0x000007C4,     line:     and r3, r3, 0
-0x00019980,   //PC = 0x000007C8,     line:     add r3, r3, 1                   # r3 = sent = 1
-0x000FFD02,   //PC = 0x000007CC,     line:     and r10, r15, 0xF               # r10 = thread_id
-0x00005621,   //PC = 0x000007D0,     line:     nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
-0x0000BB82,   //PC = 0x000007D4,     line:     and r7, r7, 0
-0x0868BE13,   //PC = 0x000007D8,     line:     beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available.
-0x000055A0,   //PC = 0x000007DC,     line:     block r11, r10
-0x0000259A,   //PC = 0x000007E0,     line:     sw r11, r4, 0
-0x000055A0,   //PC = 0x000007E4,     line:     block r11, r10
-0x0004259A,   //PC = 0x000007E8,     line:     sw r11, r4, 4
+0x0038039F,   //PC = 0x00000604,     line:     lw r7, r0, 56
+0x00004BB1,   //PC = 0x00000608,     line:     sendflit r7, r9
+0x003C039F,   //PC = 0x0000060C,     line:     lw r7, r0, 60   
+0x00004BB1,   //PC = 0x00000610,     line:     sendflit r7, r9
+0x003F0398,   //PC = 0x00000614,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
+0x00009982,   //PC = 0x00000618,     line:     and r3, r3, 0
+0x00019980,   //PC = 0x0000061C,     line:     add r3, r3, 1                   # r3 = sent = 1
+0x07DCFF93,   //PC = 0x00000620,     line:     beq r15, r15, CHECK_DATA_MAILBOX, true
+0x00280C1E,   //PC = 0x00000624,     line:     lhu r8, r1, 40                  # r8 = node->queue_high_bit_addr
+0x000047A7,   //PC = 0x00000628,     line:     setmembits r8                   # set address bits to reach node's DRAM stack
+0x00240C9F,   //PC = 0x0000062C,     line:     lw r9, r1, 36                   # r9 = node->queue_low_bit_addr
+0x0008CC80,   //PC = 0x00000630,     line:     add r9, r9, 8
+0x0001CD30,   //PC = 0x00000634,     line:     atomadd_d r10, r9, 1               # r10 = cur_ray_count (count field is -12 from here)
+0x00FFBD80,   //PC = 0x00000638,     line:     add r11, r7, 255               # r11 = 255
+0x0648DD16,   //PC = 0x0000063C,     line:     bgt r10, r11, THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE, true   # spin while count > 255
+0xFFFFCFB0,   //PC = 0x00000640,     line:     atomadd_d r15, r9, -1
+0x0630FF93,   //PC = 0x00000644,     line:     beq r15, r15, ENSURE_SPACE_IN_QUEUE, true
+0xFFFCCC80,   //PC = 0x00000648,     line:     add r9, r9, -4                 # r9 = queue base (tail field)
+0x0040CD30,   //PC = 0x0000064C,     line:     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
+0x3FFFD502,   //PC = 0x00000650,     line:     and r10, r10, 0x3FFF            # r10 = tail & 0x3FFF (ring mask)
+0x3F60CC80,   //PC = 0x00000654,     line:     add r9, r9, 16224                # r11 = queue base + 540 (start of ray slots)
+0x000A4C80,   //PC = 0x00000658,     line:     add r9, r9, r10               # r11 = write_addr = slot base + tail offset
+0x003F4D29,   //PC = 0x0000065C,     line:     lbu_d r10, r9, 63              # r10 = slot[63] (valid byte)
+0x065CBD14,   //PC = 0x00000660,     line:     bne r10, r7, WAIT_FOR_SLOT_TO_OPEN, true   # spin while slot occupied (r7=0)
+0x0000051F,   //PC = 0x00000664,     line:     lw r10, r0, 0                  # r10 = ray word i
+0x00004D2D,   //PC = 0x00000668,     line:     sw_d r10, r9, 0                # write to DRAM slot
+0x0004051F,   //PC = 0x0000066C,     line:     lw r10, r0, 4                  # r10 = ray word i
+0x00044D2D,   //PC = 0x00000670,     line:     sw_d r10, r9, 4                # write to DRAM slot
+0x0008051F,   //PC = 0x00000674,     line:     lw r10, r0, 8                  # r10 = ray word i
+0x00084D2D,   //PC = 0x00000678,     line:     sw_d r10, r9, 8                # write to DRAM slot
+0x000C051F,   //PC = 0x0000067C,     line:     lw r10, r0, 12                  # r10 = ray word i
+0x000C4D2D,   //PC = 0x00000680,     line:     sw_d r10, r9, 12                # write to DRAM slot
+0x0010051F,   //PC = 0x00000684,     line:     lw r10, r0, 16                  # r10 = ray word i
+0x00104D2D,   //PC = 0x00000688,     line:     sw_d r10, r9, 16                # write to DRAM slot
+0x0014051F,   //PC = 0x0000068C,     line:     lw r10, r0, 20                  # r10 = ray word i
+0x00144D2D,   //PC = 0x00000690,     line:     sw_d r10, r9, 20                # write to DRAM slot
+0x0018051F,   //PC = 0x00000694,     line:     lw r10, r0, 24                  # r10 = ray word i
+0x00184D2D,   //PC = 0x00000698,     line:     sw_d r10, r9, 24                # write to DRAM slot
+0x001C051F,   //PC = 0x0000069C,     line:     lw r10, r0, 28                  # r10 = ray word i
+0x001C4D2D,   //PC = 0x000006A0,     line:     sw_d r10, r9, 28                # write to DRAM slot
+0x0020051F,   //PC = 0x000006A4,     line:     lw r10, r0, 32                  # r10 = ray word i
+0x00204D2D,   //PC = 0x000006A8,     line:     sw_d r10, r9, 32                # write to DRAM slot
+0x0024051F,   //PC = 0x000006AC,     line:     lw r10, r0, 36                  # r10 = ray word i
+0x00244D2D,   //PC = 0x000006B0,     line:     sw_d r10, r9, 36                # write to DRAM slot
+0x0028051F,   //PC = 0x000006B4,     line:     lw r10, r0, 40                  # r10 = ray word i
+0x00284D2D,   //PC = 0x000006B8,     line:     sw_d r10, r9, 40                # write to DRAM slot
+0x002C051F,   //PC = 0x000006BC,     line:     lw r10, r0, 44                  # r10 = ray word i
+0x002C4D2D,   //PC = 0x000006C0,     line:     sw_d r10, r9, 44                # write to DRAM slot
+0x0030051F,   //PC = 0x000006C4,     line:     lw r10, r0, 48                  # r10 = ray word i
+0x00304D2D,   //PC = 0x000006C8,     line:     sw_d r10, r9, 48                # write to DRAM slot
+0x0034051F,   //PC = 0x000006CC,     line:     lw r10, r0, 52                  # r10 = ray word i
+0x00344D2D,   //PC = 0x000006D0,     line:     sw_d r10, r9, 52                # write to DRAM slot
+0x0038051F,   //PC = 0x000006D4,     line:     lw r10, r0, 56                  # r10 = ray word i
+0x00384D2D,   //PC = 0x000006D8,     line:     sw_d r10, r9, 56                # write to DRAM slot
+0x003C051F,   //PC = 0x000006DC,     line:     lw r10, r0, 60                  # r10 = ray word i
+0x003C4D2D,   //PC = 0x000006E0,     line:     sw_d r10, r9, 60                # write to DRAM slot
+0x0000F702,   //PC = 0x000006E4,     line:     and r14, r14, 0
+0x003F0718,   //PC = 0x000006E8,     line:     sb r14, r0, 63
+0x00240C9F,   //PC = 0x000006EC,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
+0x0014CC80,   //PC = 0x000006F0,     line:     add r9, r9, 20                  # r9 = &lock field (offset 20 from queue base)
+0x0001CD30,   //PC = 0x000006F4,     line:     atomadd_d r10, r9, 1            # r10 = old lock value, increment
+0x0704D393,   //PC = 0x000006F8,     line:     beq r7, r10, SKIP_UNDO_LOCK, true   # old val >= 0 means no writer held it
+0xFFFFCDB0,   //PC = 0x000006FC,     line:     atomadd_d r11, r9, -1           # undo our increment
+0x06F4FF93,   //PC = 0x00000700,     line:     beq r15, r15, ENSURE_NO_WRITERS, true        # retry claim
+0x00044D2C,   //PC = 0x00000704,     line:     lw_d r10, r9, 4                 # r10 = core_owner_count
+0x0740BD13,   //PC = 0x00000708,     line:     beq r10, r7, NO_OWNER, true     # r7=0, no owners
+0x000005B4,   //PC = 0x0000070C,     line:     getclk r11                      # r11 = clock
+0x0004FE06,   //PC = 0x00000710,     line:     srl r12, r15, 4                 # r12 = core_id
+0x000B6604,   //PC = 0x00000714,     line:     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
+0x00260E9E,   //PC = 0x00000718,     line:     lhu r13, r1, 38                 # r13 = node->prev_index
+0x0724EE14,   //PC = 0x0000071C,     line:     bne r12, r13, SKIP_BUMP, true    # if idx == prev_idx, bump to avoid repeat
+0x0001E600,   //PC = 0x00000720,     line:     add r12, r12, 1                 # r12 = idx + 1
+0x000A6632,   //PC = 0x00000724,     line:     mod r12, r12, r10               # r12 = idx % core_owner_count
+0x00260E19,   //PC = 0x00000728,     line:     sh r12, r1, 38                  # node->prev_index = idx
+0x0001E605,   //PC = 0x0000072C,     line:     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
+0x000C4C80,   //PC = 0x00000730,     line:     add r9, r9, r12                 # r9 = &core_slots[idx]
+0x00084D2A,   //PC = 0x00000734,     line:     lh_d r10, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
+0x00220D19,   //PC = 0x00000738,     line:     sh r10, r1, 34                  # node->core_owner = core_to_cache
+0x07C4FF93,   //PC = 0x0000073C,     line:     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
+0x0000DD82,   //PC = 0x00000740,     line:     and r11, r11, 0
+0xFFFFDD80,   //PC = 0x00000744,     line:     add r11, r11, 0xFFFF            # r11 = 0xFFFF
+0x00200D99,   //PC = 0x00000748,     line:     sh r11, r1, 32                  # node->core_owner = 0xFFFF
+0x00240C9F,   //PC = 0x0000074C,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
+0x00084D2C,   //PC = 0x00000750,     line:     lw_d r10, r9, 8               # r10 = cur_ray_count
+0x0000DD82,   //PC = 0x00000754,     line:     and r11, r11, 0
+0x00C8DD80,   //PC = 0x00000758,     line:     add r11, r11, 200               # r11 = 200
+0x07C4DD15,   //PC = 0x0000075C,     line:     blte r10, r11, SKIP_EMERGENCY_ENQUEUE, true   # if count <= 200 skip emergency
+0x421CCC80,   //PC = 0x00000760,     line:     add r9, r9, 16924               # r9 = &on_emergency_idle_queue flag
+0x0001CD30,   //PC = 0x00000764,     line:     atomadd_d r10, r9, 1            # r10 = old value
+0x07C4BD14,   //PC = 0x00000768,     line:     bne r10, r7, SKIP_EMERGENCY_ENQUEUE, true   # r7=0; if old != 0 someone else did it
+0x1A2C849F,   //PC = 0x0000076C,     line:     lw r9, EMERGENCY_QUEUE_HIGH     # r9 = emergency_queue_high
+0x00004FA7,   //PC = 0x00000770,     line:     setmembits r9                   # set address bits
+0x1A30849F,   //PC = 0x00000774,     line:     lw r9, EMERGENCY_QUEUE_LOW      # r9 = emergency_queue_low
+0x0008CC80,   //PC = 0x00000778,     line:     add r9, r9, 8                   # r9 = &count field
+0x0001CD30,   //PC = 0x0000077C,     line:     atomadd_d r10, r9, 1            # r10 = old count, increment
+0x0000DD82,   //PC = 0x00000780,     line:     and r11, r11, 0
+0x0040DD80,   //PC = 0x00000784,     line:     add r11, r11, 64                # r11 = 64 (max slots)
+0x0790DD16,   //PC = 0x00000788,     line:     bgt r10, r11, EMERGENCY_UNDO_AND_SPIN, true   # if old >= 64 queue full
+0x0798FF93,   //PC = 0x0000078C,     line:     beq r15, r15, EMERGENCY_CLAIM_SLOT, true
+0xFFFFCDB0,   //PC = 0x00000790,     line:     atomadd_d r11, r9, -1           # undo increment
+0x077CFF93,   //PC = 0x00000794,     line:     beq r15, r15, LOOP_EMERGENCY_QUEUE_INSERTION, true  # retry
+0xFFFCCC80,   //PC = 0x00000798,     line:     add r9, r9, -4                  # r9 = &tail field
+0x0004CD30,   //PC = 0x0000079C,     line:     atomadd_d r10, r9, 4            # r10 = old tail, advance by 4 bytes per slot
+0x00FFD502,   //PC = 0x000007A0,     line:     and r10, r10, 0xFF              # r10 = tail & 0xFF (ring mask for 64 slots)
+0x000A4C80,   //PC = 0x000007A4,     line:     add r9, r9, r10                 # r9 = &slots[tail]
+0x0008CC80,   //PC = 0x000007A8,     line:     add r9, r9, 8                   # r9 = slot base (skip head+tail fields)
+0x00024DA9,   //PC = 0x000007AC,     line:     lbu_d r11, r9, 2                # r11 = slot->is_valid
+0x07ACBD94,   //PC = 0x000007B0,     line:     bne r11, r7, ENSURE_EMERGENCY_SLOT_READY, true  # spin while slot occupied (r7=0)
+0x002C0D9F,   //PC = 0x000007B4,     line:     lw r11, r1, 44                  # r11 = node->node_id
+0x00004DAE,   //PC = 0x000007B8,     line:     sh_d r11, r9, 0                 # slot->node_id = node_id (uint16)
+0x0001BD80,   //PC = 0x000007BC,     line:     add r11, r7, 1                 # r11 = 1
+0x00024DAF,   //PC = 0x000007C0,     line:     sb_d r11, r9, 2                 # slot->is_valid = 1
+0x00240C9F,   //PC = 0x000007C4,     line:     lw r9, r1, 36                   # r9 = queue_low_bit_addr
+0x0014CC80,   //PC = 0x000007C8,     line:     add r9, r9, 20                  # r9 = &lock field
+0xFFFFCDB0,   //PC = 0x000007CC,     line:     atomadd_d r11, r9, -1           # release lock (decrement back)
+0x003F0398,   //PC = 0x000007D0,     line:     sb r7, r0, 63                   # ray->active_ray = 0  (r7=0)
+0x00009982,   //PC = 0x000007D4,     line:     and r3, r3, 0
+0x00019980,   //PC = 0x000007D8,     line:     add r3, r3, 1                   # r3 = sent = 1
+0x000FFD02,   //PC = 0x000007DC,     line:     and r10, r15, 0xF               # r10 = thread_id
+0x00005621,   //PC = 0x000007E0,     line:     nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
+0x0000BB82,   //PC = 0x000007E4,     line:     and r7, r7, 0
+0x0878BE13,   //PC = 0x000007E8,     line:     beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available.
 0x000055A0,   //PC = 0x000007EC,     line:     block r11, r10
-0x0008259A,   //PC = 0x000007F0,     line:     sw r11, r4, 8
+0x0000259A,   //PC = 0x000007F0,     line:     sw r11, r4, 0
 0x000055A0,   //PC = 0x000007F4,     line:     block r11, r10
-0x000C259A,   //PC = 0x000007F8,     line:     sw r11, r4, 12
+0x0004259A,   //PC = 0x000007F8,     line:     sw r11, r4, 4
 0x000055A0,   //PC = 0x000007FC,     line:     block r11, r10
-0x0010259A,   //PC = 0x00000800,     line:     sw r11, r4, 16
+0x0008259A,   //PC = 0x00000800,     line:     sw r11, r4, 8
 0x000055A0,   //PC = 0x00000804,     line:     block r11, r10
-0x0014259A,   //PC = 0x00000808,     line:     sw r11, r4, 20
+0x000C259A,   //PC = 0x00000808,     line:     sw r11, r4, 12
 0x000055A0,   //PC = 0x0000080C,     line:     block r11, r10
-0x0018259A,   //PC = 0x00000810,     line:     sw r11, r4, 24
+0x0010259A,   //PC = 0x00000810,     line:     sw r11, r4, 16
 0x000055A0,   //PC = 0x00000814,     line:     block r11, r10
-0x001C259A,   //PC = 0x00000818,     line:     sw r11, r4, 28
+0x0014259A,   //PC = 0x00000818,     line:     sw r11, r4, 20
 0x000055A0,   //PC = 0x0000081C,     line:     block r11, r10
-0x0020259A,   //PC = 0x00000820,     line:     sw r11, r4, 32
+0x0018259A,   //PC = 0x00000820,     line:     sw r11, r4, 24
 0x000055A0,   //PC = 0x00000824,     line:     block r11, r10
-0x0024259A,   //PC = 0x00000828,     line:     sw r11, r4, 36
+0x001C259A,   //PC = 0x00000828,     line:     sw r11, r4, 28
 0x000055A0,   //PC = 0x0000082C,     line:     block r11, r10
-0x0028259A,   //PC = 0x00000830,     line:     sw r11, r4, 40
+0x0020259A,   //PC = 0x00000830,     line:     sw r11, r4, 32
 0x000055A0,   //PC = 0x00000834,     line:     block r11, r10
-0x002C259A,   //PC = 0x00000838,     line:     sw r11, r4, 44
+0x0024259A,   //PC = 0x00000838,     line:     sw r11, r4, 36
 0x000055A0,   //PC = 0x0000083C,     line:     block r11, r10
-0x0030259A,   //PC = 0x00000840,     line:     sw r11, r4, 48
+0x0028259A,   //PC = 0x00000840,     line:     sw r11, r4, 40
 0x000055A0,   //PC = 0x00000844,     line:     block r11, r10
-0x0034259A,   //PC = 0x00000848,     line:     sw r11, r4, 52
+0x002C259A,   //PC = 0x00000848,     line:     sw r11, r4, 44
 0x000055A0,   //PC = 0x0000084C,     line:     block r11, r10
-0x0038259A,   //PC = 0x00000850,     line:     sw r11, r4, 56
+0x0030259A,   //PC = 0x00000850,     line:     sw r11, r4, 48
 0x000055A0,   //PC = 0x00000854,     line:     block r11, r10
-0x003C259A,   //PC = 0x00000858,     line:     sw r11, r4, 60
-0x0001BD80,   //PC = 0x0000085C,     line:     add r11, r7, 1
-0x003F2598,   //PC = 0x00000860,     line:     sb r11, r4, 63
-0x31E8809F,   //PC = 0x00000864,     line:     lw r1, ROOT_NODE_ADDRESS
-0x002085A1,   //PC = 0x00000868,     line:     nonblock r11, 32
-0x08FCBD93,   //PC = 0x0000086C,     line:     beq r11, r7, SKIP_INTERRUPT_MAILBOX, true
-0x002085A0,   //PC = 0x00000870,     line:     block r11, 32
-0x0011DE06,   //PC = 0x00000874,     line:     srl r12, r11, 17
-0x002C831F,   //PC = 0x00000878,     line:     lw r6, ROOT_NODE_ID
-0x08A0B613,   //PC = 0x0000087C,     line:     beq r12, r6, CORRECT_NODE_ID, true
-0x0008BE00,   //PC = 0x00000880,     line:     add r12, r7, 8
-0x0004DE86,   //PC = 0x00000884,     line:     srl r13, r11, 4
-0x0013EE85,   //PC = 0x00000888,     line:     sll r13, r13, 19
-0x000DEE86,   //PC = 0x0000088C,     line:     srl r13, r13, 13
-0x000FDD82,   //PC = 0x00000890,     line:     and r11, r11, 0xF
-0x000B6E83,   //PC = 0x00000894,     line:     or r13, r13, r11
-0x00006E31,   //PC = 0x00000898,     line:     sendflit r12, r13
-0x08FCFF93,   //PC = 0x0000089C,     line:     beq r15, r15, SKIP_INTERRUPT_MAILBOX, true
-0x003F051C,   //PC = 0x000008A0,     line:     lbu r10, r0, 63
-0x08B0BD14,   //PC = 0x000008A4,     line:     bne r10, r7, NO_ROOM_IN_RAY_SLOT, true
-0x00008200,   //PC = 0x000008A8,     line:     add r4, r0, 0
-0x08DCFF93,   //PC = 0x000008AC,     line:     beq r15, r15, SEND_ACK_PACKET, true
-0x1F94BD00,   //PC = 0x000008B0,     line:     add r10, r7, RAY_QUEUE_CNT
-0x0001D2B3,   //PC = 0x000008B4,     line:     atomadd r5, r10, 1
-0x001FBB00,   //PC = 0x000008B8,     line:     add r6, r7, 31
-0x08C8AB15,   //PC = 0x000008BC,     line:     blte r6, r5, SPACE_IN_QUEUE_RAY_SEND, true
-0xFFFFD7B3,   //PC = 0x000008C0,     line:     atomadd r15, r10, -1
-0x0880FF93,   //PC = 0x000008C4,     line:     beq r15, r15, SEND_REJECT_RAY_MSG, true
-0xFFFCD500,   //PC = 0x000008C8,     line:     add r10, r10, -4
-0x0040D333,   //PC = 0x000008CC,     line:     atomadd r6, r10, 64
-0x07FFB302,   //PC = 0x000008D0,     line:     and r6, r6, 0x7FF
-0x00065500,   //PC = 0x000008D4,     line:     add r10, r10, r6
-0x0008D200,   //PC = 0x000008D8,     line:     add r4, r10, 8
-0x0005BE00,   //PC = 0x000008DC,     line:     add r12, r7, 5
-0x0004DE86,   //PC = 0x000008E0,     line:     srl r13, r11, 4
-0x0013EE85,   //PC = 0x000008E4,     line:     sll r13, r13, 19
-0x000DEE86,   //PC = 0x000008E8,     line:     srl r13, r13, 13
-0x000FDD82,   //PC = 0x000008EC,     line:     and r11, r11, 0xF
-0x000B6E83,   //PC = 0x000008F0,     line:     or r13, r13, r11
-0x000F6603,   //PC = 0x000008F4,     line:     or r12, r12, r15
-0x00006E31,   //PC = 0x000008F8,     line:     sendflit r12, r13
-0xFFFFE603,   //PC = 0x000008FC,     line:     or r12, r12, 0xFFFF
-0x05502614,   //PC = 0x00000900,     line:     bne r12, r4, send_ray_loop, false
-0x05503993,   //PC = 0x00000904,     line:     beq r3, r7, send_ray_loop, false
-0x00208026,   //PC = 0x00000908,     line:     intena 32
-0x2FA4B980,   //PC = 0x0000090C,     line:     add r3, r7, RAY_SEND_PENDING 
-0xFFFF9FB3,   //PC = 0x00000910,     line:     atomadd r15, r3, -1
-0x0A74FF93,   //PC = 0x00000914,     line:     beq r15, r15, ray_done, true
-0x0018089E,   //PC = 0x00000918,     line:     lhu r1, r1, 24                  # r1 = node->left_child
-0x0424FF93,   //PC = 0x0000091C,     line:     beq r15, r15, START_SEARCHING, true
-0x0000BB82,   //PC = 0x00000920,     line:     and r7, r7, 0
-0x001E0D1C,   //PC = 0x00000924,     line:     lbu r10, r1, 30
-0x0002D505,   //PC = 0x00000928,     line:     sll r10, r10, 2
-0x00005500,   //PC = 0x0000092C,     line:     add r10, r10, r0
-0x002C559F,   //PC = 0x00000930,     line:     lw r11, r10, 44
-0x003E061C,   //PC = 0x00000934,     line:     lbu r12, r0, 62
-0x0001BE80,   //PC = 0x00000938,     line:     add r13, r7, 1
-0xFFFFE600,   //PC = 0x0000093C,     line:     add r12, r12, -1
-0x003E061A,   //PC = 0x00000940,     line:     sw r12, r0, 62
-0x000C6E85,   //PC = 0x00000944,     line:     sll r13, r13, r12
-0x000B6D83,   //PC = 0x00000948,     line:     or r11, r13, r11
-0x002C559A,   //PC = 0x0000094C,     line:     sw r11, r10, 44
-0x0020091E,   //PC = 0x00000950,     line:     lhu r2, r1, 32              # r2 - tri_index
-0x001F099C,   //PC = 0x00000954,     line:     lbu r3, r1, 31              # r3 = tri_count
-0x0F24FF93,   //PC = 0x00000958,     line:     beq r15, r15, triangle_intersect, true
-0x00069100,   //PC = 0x0000095C,     line:     add r2, r2, 6
-0x003D029C,   //PC = 0x00000960,     line:     lbu r5, r0, 61
-0x0000A202,   //PC = 0x00000964,     line:     and r4, r4, 0
-0x0038031F,   //PC = 0x00000968,     line:     lw r6, r0, 56
-0x0980AA13,   //PC = 0x0000096C,     line:     beq r4, r5, SHADOW_RAY_NOT_OCCLUDED, true
-0x0000AA82,   //PC = 0x00000970,     line:     and r5, r5, 0
-0xFFFFAA80,   //PC = 0x00000974,     line:     add r5, r5, -1
-0x0980B293,   //PC = 0x00000978,     line:     beq r5, r6, SHADOW_RAY_NOT_OCCLUDED, true
-0x0A14FF93,   //PC = 0x0000097C,     line:     beq r15, r15, SHADOW_RAY_OCCLUDED, true
-0xFFFF9980,   //PC = 0x00000980,     line:     add r3, r3, -1
-0x09589A14,   //PC = 0x00000984,     line:     bne r4, r3, TRIANGLE_INTERSECT_LOOP, true
-0x001C089E,   //PC = 0x00000988,     line:     lhu r1, r1, 28
-0x0424FF93,   //PC = 0x0000098C,     line:     beq r15, r15, START_SEARCHING, true
-0x001E0D1C,   //PC = 0x00000990,     line:     lbu r10, r1, 30
-0x0002D505,   //PC = 0x00000994,     line:     sll r10, r10, 2
-0x00005500,   //PC = 0x00000998,     line:     add r10, r10, r0
-0x002C559F,   //PC = 0x0000099C,     line:     lw r11, r10, 44
-0x003E061C,   //PC = 0x000009A0,     line:     lbu r12, r0, 62
-0x0001BE80,   //PC = 0x000009A4,     line:     add r13, r7, 1
-0xFFFFE600,   //PC = 0x000009A8,     line:     add r12, r12, -1
-0x003E061A,   //PC = 0x000009AC,     line:     sw r12, r0, 62
-0x000C6E85,   //PC = 0x000009B0,     line:     sll r13, r13, r12
-0x000B6D83,   //PC = 0x000009B4,     line:     or r11, r13, r11
-0x002C559A,   //PC = 0x000009B8,     line:     sw r11, r10, 44
-0x001C089E,   //PC = 0x000009BC,     line:     lhu r1, r1, 28
-0x0424FF93,   //PC = 0x000009C0,     line:     beq r15, r15, START_SEARCHING, true
-0xFFFFD503,   //PC = 0x000009C4,     line:     or r10, r10, 0xFFFF
-0x003E061C,   //PC = 0x000009C8,     line:     lbu r12, r0, 62
-0x0001E600,   //PC = 0x000009CC,     line:     add r12, r12, 1
-0x000C5505,   //PC = 0x000009D0,     line:     sll r10, r10, r12
-0xFFFFD504,   //PC = 0x000009D4,     line:     xor r10, r10, 0xFFFF
-0x002C049F,   //PC = 0x000009D8,     line:     lw r9, r0, 44
-0x0030069F,   //PC = 0x000009DC,     line:     lw r13, r0, 48
-0x000A4C82,   //PC = 0x000009E0,     line:     and r9, r9, r10
-0x000A6E82,   //PC = 0x000009E4,     line:     and r13, r13, r10
-0x002C049A,   //PC = 0x000009E8,     line:     sw r9, r0, 44
-0x0030069A,   //PC = 0x000009EC,     line:     sw r13, r0, 48
-0x0000E602,   //PC = 0x000009F0,     line:     and r12, r12, 0
-0x09FC6213,   //PC = 0x000009F4,     line:     beq r4, r12, SKIP_LEFT_BITFIELD_INCREMENT, false
-0x0002E600,   //PC = 0x000009F8,     line:     add r12, r12, 2
-0x000C0880,   //PC = 0x000009FC,     line:     add r1, r1, r12
-0x0018089E,   //PC = 0x00000A00,     line:     lhu r1, r1, 24
-0x003E051C,   //PC = 0x00000A04,     line:     lbu r10, r0, 62
-0x0001D500,   //PC = 0x00000A08,     line:     add r10, r10, 1
-0x003E0518,   //PC = 0x00000A0C,     line:     sb r10, r0, 62
-0x0424FF93,   //PC = 0x00000A10,     line:     beq r15, r15, START_SEARCHING, true
-0x0000BB82,   //PC = 0x00000A14,     line:     and r7, r7, 0
-0x1A34851F,   //PC = 0x00000A18,     line:     lw r10, RAY_RESULT_HIGH # r10 = finished_ray_high TODO Alex tf is this
-0x000057A7,   //PC = 0x00000A1C,     line:     setmembits r10
-0x1A38859F,   //PC = 0x00000A20,     line:     lw r11, RAY_RESULT_LOW # r11 = result_addr_low
-0x0001DE30,   //PC = 0x00000A24,     line:     atomadd_d r12, r11, 1           # r12 = old finished ray count, increment
-0x0036069E,   //PC = 0x00000A28,     line:     lhu r13, r0, 54         # r13 = pix_index
-0x0009EE85,   //PC = 0x00000A2C,     line:     sll r13, r13, 9         # r13 = pix_index * 512
-0x0000EE00,   //PC = 0x00000A30,     line:     add r12, r13, 0         # r12 = pix_index * 512
-0x0002EE85,   //PC = 0x00000A34,     line:     sll r13, r13, 2         # r13 = pix_index * 2048
-0x000C6E00,   //PC = 0x00000A38,     line:     add r12, r13, r12        # r12 = pix_index * 2560
-0x0034069E,   //PC = 0x00000A3C,     line:     lhu r13, r0, 52         # r13 = ray -> pix_x 
-0x000C6E00,   //PC = 0x00000A40,     line:     add r12, r13, r12        # pix_index += pix_x
-0x0008E605,   //PC = 0x00000A44,     line:     sll r12, r12, 8         # pix_index <<= 8
-0x000B6580,   //PC = 0x00000A48,     line:     add r11, r12, r11        # result_addr_low += pix_index
-0x003C051C,   //PC = 0x00000A4C,     line:     lbu r10, r0, 60         # r10 = bounce_count
-0x0006D505,   //PC = 0x00000A50,     line:     sll r10, r10, 6         # bounce <<= 6
-0x000B5580,   //PC = 0x00000A54,     line:     add r11, r10, r11        # result_addr_low += bounce
-0x003D051C,   //PC = 0x00000A58,     line:     lbu r10, r0, 61         # r10 = shadow
-0x0004D505,   //PC = 0x00000A5C,     line:     sll r10, r10, 4         # shadow <<= 4
-0x000B5580,   //PC = 0x00000A60,     line:     add r11, r10, r11        # result_addr_low += shadow
-0x1A04851F,   //PC = 0x00000A64,     line:     lw r10, ONE
-0x000CDD80,   //PC = 0x00000A68,     line:     add r11, r11, 12         # r11 = result_addr_low + 12
-0x00005D2D,   //PC = 0x00000A6C,     line:     sw_d r10, r11, 0         # store 1.0 to len_sq slot
-0x003F0398,   //PC = 0x00000A70,     line:     sb r7, r0, 63           # ray->active_ray = 0 (r7=0)
-0x0000BB82,   //PC = 0x00000A74,     line:     and r7, r7, 0
-0x0001BB80,   //PC = 0x00000A78,     line:     add r7, r7, 1
-0x003F041B,   //PC = 0x00000A7C,     line:     lb r8, r0, 63
-0x0420BC13,   //PC = 0x00000A80,     line:     beq r8, r7, START_RAY_TRAVERSAL, true
-0x00000422,   //PC = 0x00000A84,     line:     yield r8
-0x1F8C841F,   //PC = 0x00000A88,     line:     lw r8, RAY_QUEUE_HEAD # r8 = local_queue_addr
-0x0008C400,   //PC = 0x00000A8C,     line:     add r8, r8, 8           # r8 = local_queue_addr + 8
-0x0000449F,   //PC = 0x00000A90,     line:     lw r9, r8, 0           # r9 = local_ray_count
-0x0000BB82,   //PC = 0x00000A94,     line:     and r7, r7, 0
-0x0B103C95,   //PC = 0x00000A98,     line:     blte r9, r7, NEGATIVE_RAY_COUNT, false
-0xFFFFC533,   //PC = 0x00000A9C,     line:     atomadd r10, r8, -1          # r10 = old_count, decrement local_ray_count
-0x0AACBD16,   //PC = 0x00000AA0,     line:     bgt r10, r7, CHECK_SRAM_HEAD, true
-0x0001C533,   //PC = 0x00000AA4,     line:     atomadd r10, r8, 1          # r10 = old_count, decrement local_ray_count
-0x0B20FF93,   //PC = 0x00000AA8,     line:     beq r15, r15, CHECK_DRAM_QUEUE, true
-0x0000BB82,   //PC = 0x00000AAC,     line:     and r7, r7, 0
-0x0040BB80,   //PC = 0x00000AB0,     line:     add r7, r7, 64
-0x1F8C841F,   //PC = 0x00000AB4,     line:     lw r8, RAY_QUEUE_HEAD
-0x00074533,   //PC = 0x00000AB8,     line:     atomadd r10, r8, r7          # r10 = head, advance head by 64 bytes
+0x0034259A,   //PC = 0x00000858,     line:     sw r11, r4, 52
+0x000055A0,   //PC = 0x0000085C,     line:     block r11, r10
+0x0038259A,   //PC = 0x00000860,     line:     sw r11, r4, 56
+0x000055A0,   //PC = 0x00000864,     line:     block r11, r10
+0x003C259A,   //PC = 0x00000868,     line:     sw r11, r4, 60
+0x0001BD80,   //PC = 0x0000086C,     line:     add r11, r7, 1
+0x003F2598,   //PC = 0x00000870,     line:     sb r11, r4, 63
+0x31F8809F,   //PC = 0x00000874,     line:     lw r1, ROOT_NODE_ADDRESS
+0x002085A1,   //PC = 0x00000878,     line:     nonblock r11, 32
+0x090CBD93,   //PC = 0x0000087C,     line:     beq r11, r7, SKIP_INTERRUPT_MAILBOX, true
+0x002085A0,   //PC = 0x00000880,     line:     block r11, 32
+0x0011DE06,   //PC = 0x00000884,     line:     srl r12, r11, 17
+0x003C831F,   //PC = 0x00000888,     line:     lw r6, ROOT_NODE_ID
+0x08B0B613,   //PC = 0x0000088C,     line:     beq r12, r6, CORRECT_NODE_ID, true
+0x0008BE00,   //PC = 0x00000890,     line:     add r12, r7, 8
+0x0004DE86,   //PC = 0x00000894,     line:     srl r13, r11, 4
+0x0013EE85,   //PC = 0x00000898,     line:     sll r13, r13, 19
+0x000DEE86,   //PC = 0x0000089C,     line:     srl r13, r13, 13
+0x000FDD82,   //PC = 0x000008A0,     line:     and r11, r11, 0xF
+0x000B6E83,   //PC = 0x000008A4,     line:     or r13, r13, r11
+0x00006E31,   //PC = 0x000008A8,     line:     sendflit r12, r13
+0x090CFF93,   //PC = 0x000008AC,     line:     beq r15, r15, SKIP_INTERRUPT_MAILBOX, true
+0x003F051C,   //PC = 0x000008B0,     line:     lbu r10, r0, 63
+0x08C0BD14,   //PC = 0x000008B4,     line:     bne r10, r7, NO_ROOM_IN_RAY_SLOT, true
+0x00008200,   //PC = 0x000008B8,     line:     add r4, r0, 0
+0x08ECFF93,   //PC = 0x000008BC,     line:     beq r15, r15, SEND_ACK_PACKET, true
+0x1FA4BD00,   //PC = 0x000008C0,     line:     add r10, r7, RAY_QUEUE_CNT
+0x0001D2B3,   //PC = 0x000008C4,     line:     atomadd r5, r10, 1
+0x001FBB00,   //PC = 0x000008C8,     line:     add r6, r7, 31
+0x08D8AB15,   //PC = 0x000008CC,     line:     blte r6, r5, SPACE_IN_QUEUE_RAY_SEND, true
+0xFFFFD7B3,   //PC = 0x000008D0,     line:     atomadd r15, r10, -1
+0x0890FF93,   //PC = 0x000008D4,     line:     beq r15, r15, SEND_REJECT_RAY_MSG, true
+0xFFFCD500,   //PC = 0x000008D8,     line:     add r10, r10, -4
+0x0040D333,   //PC = 0x000008DC,     line:     atomadd r6, r10, 64
+0x07FFB302,   //PC = 0x000008E0,     line:     and r6, r6, 0x7FF
+0x00065500,   //PC = 0x000008E4,     line:     add r10, r10, r6
+0x0008D200,   //PC = 0x000008E8,     line:     add r4, r10, 8
+0x0005BE00,   //PC = 0x000008EC,     line:     add r12, r7, 5
+0x0004DE86,   //PC = 0x000008F0,     line:     srl r13, r11, 4
+0x0013EE85,   //PC = 0x000008F4,     line:     sll r13, r13, 19
+0x000DEE86,   //PC = 0x000008F8,     line:     srl r13, r13, 13
+0x000FDD82,   //PC = 0x000008FC,     line:     and r11, r11, 0xF
+0x000B6E83,   //PC = 0x00000900,     line:     or r13, r13, r11
+0x000F6603,   //PC = 0x00000904,     line:     or r12, r12, r15
+0x00006E31,   //PC = 0x00000908,     line:     sendflit r12, r13
+0xFFFFE603,   //PC = 0x0000090C,     line:     or r12, r12, 0xFFFF
+0x05602614,   //PC = 0x00000910,     line:     bne r12, r4, send_ray_loop, false
+0x05603993,   //PC = 0x00000914,     line:     beq r3, r7, send_ray_loop, false
+0x00208026,   //PC = 0x00000918,     line:     intena 32
+0x2FB4B980,   //PC = 0x0000091C,     line:     add r3, r7, RAY_SEND_PENDING 
+0xFFFF9FB3,   //PC = 0x00000920,     line:     atomadd r15, r3, -1
+0x0A84FF93,   //PC = 0x00000924,     line:     beq r15, r15, ray_done, true
+0x0018089E,   //PC = 0x00000928,     line:     lhu r1, r1, 24                  # r1 = node->left_child
+0x0434FF93,   //PC = 0x0000092C,     line:     beq r15, r15, START_SEARCHING, true
+0x0000BB82,   //PC = 0x00000930,     line:     and r7, r7, 0
+0x001E0D1C,   //PC = 0x00000934,     line:     lbu r10, r1, 30
+0x0002D505,   //PC = 0x00000938,     line:     sll r10, r10, 2
+0x00005500,   //PC = 0x0000093C,     line:     add r10, r10, r0
+0x002C559F,   //PC = 0x00000940,     line:     lw r11, r10, 44
+0x003E061C,   //PC = 0x00000944,     line:     lbu r12, r0, 62
+0x0001BE80,   //PC = 0x00000948,     line:     add r13, r7, 1
+0xFFFFE600,   //PC = 0x0000094C,     line:     add r12, r12, -1
+0x003E061A,   //PC = 0x00000950,     line:     sw r12, r0, 62
+0x000C6E85,   //PC = 0x00000954,     line:     sll r13, r13, r12
+0x000B6D83,   //PC = 0x00000958,     line:     or r11, r13, r11
+0x002C559A,   //PC = 0x0000095C,     line:     sw r11, r10, 44
+0x0020091E,   //PC = 0x00000960,     line:     lhu r2, r1, 32              # r2 - tri_index
+0x001F099C,   //PC = 0x00000964,     line:     lbu r3, r1, 31              # r3 = tri_count
+0x0F34FF93,   //PC = 0x00000968,     line:     beq r15, r15, triangle_intersect, true
+0x00069100,   //PC = 0x0000096C,     line:     add r2, r2, 6
+0x003D029C,   //PC = 0x00000970,     line:     lbu r5, r0, 61
+0x0000A202,   //PC = 0x00000974,     line:     and r4, r4, 0
+0x0038031F,   //PC = 0x00000978,     line:     lw r6, r0, 56
+0x0990AA13,   //PC = 0x0000097C,     line:     beq r4, r5, SHADOW_RAY_NOT_OCCLUDED, true
+0x0000AA82,   //PC = 0x00000980,     line:     and r5, r5, 0
+0xFFFFAA80,   //PC = 0x00000984,     line:     add r5, r5, -1
+0x0990B293,   //PC = 0x00000988,     line:     beq r5, r6, SHADOW_RAY_NOT_OCCLUDED, true
+0x0A24FF93,   //PC = 0x0000098C,     line:     beq r15, r15, SHADOW_RAY_OCCLUDED, true
+0xFFFF9980,   //PC = 0x00000990,     line:     add r3, r3, -1
+0x09689A14,   //PC = 0x00000994,     line:     bne r4, r3, TRIANGLE_INTERSECT_LOOP, true
+0x001C089E,   //PC = 0x00000998,     line:     lhu r1, r1, 28
+0x0434FF93,   //PC = 0x0000099C,     line:     beq r15, r15, START_SEARCHING, true
+0x001E0D1C,   //PC = 0x000009A0,     line:     lbu r10, r1, 30
+0x0002D505,   //PC = 0x000009A4,     line:     sll r10, r10, 2
+0x00005500,   //PC = 0x000009A8,     line:     add r10, r10, r0
+0x002C559F,   //PC = 0x000009AC,     line:     lw r11, r10, 44
+0x003E061C,   //PC = 0x000009B0,     line:     lbu r12, r0, 62
+0x0001BE80,   //PC = 0x000009B4,     line:     add r13, r7, 1
+0xFFFFE600,   //PC = 0x000009B8,     line:     add r12, r12, -1
+0x003E061A,   //PC = 0x000009BC,     line:     sw r12, r0, 62
+0x000C6E85,   //PC = 0x000009C0,     line:     sll r13, r13, r12
+0x000B6D83,   //PC = 0x000009C4,     line:     or r11, r13, r11
+0x002C559A,   //PC = 0x000009C8,     line:     sw r11, r10, 44
+0x001C089E,   //PC = 0x000009CC,     line:     lhu r1, r1, 28
+0x0434FF93,   //PC = 0x000009D0,     line:     beq r15, r15, START_SEARCHING, true
+0xFFFFD503,   //PC = 0x000009D4,     line:     or r10, r10, 0xFFFF
+0x003E061C,   //PC = 0x000009D8,     line:     lbu r12, r0, 62
+0x0001E600,   //PC = 0x000009DC,     line:     add r12, r12, 1
+0x000C5505,   //PC = 0x000009E0,     line:     sll r10, r10, r12
+0xFFFFD504,   //PC = 0x000009E4,     line:     xor r10, r10, 0xFFFF
+0x002C049F,   //PC = 0x000009E8,     line:     lw r9, r0, 44
+0x0030069F,   //PC = 0x000009EC,     line:     lw r13, r0, 48
+0x000A4C82,   //PC = 0x000009F0,     line:     and r9, r9, r10
+0x000A6E82,   //PC = 0x000009F4,     line:     and r13, r13, r10
+0x002C049A,   //PC = 0x000009F8,     line:     sw r9, r0, 44
+0x0030069A,   //PC = 0x000009FC,     line:     sw r13, r0, 48
+0x0000E602,   //PC = 0x00000A00,     line:     and r12, r12, 0
+0x0A0C6213,   //PC = 0x00000A04,     line:     beq r4, r12, SKIP_LEFT_BITFIELD_INCREMENT, false
+0x0002E600,   //PC = 0x00000A08,     line:     add r12, r12, 2
+0x000C0880,   //PC = 0x00000A0C,     line:     add r1, r1, r12
+0x0018089E,   //PC = 0x00000A10,     line:     lhu r1, r1, 24
+0x003E051C,   //PC = 0x00000A14,     line:     lbu r10, r0, 62
+0x0001D500,   //PC = 0x00000A18,     line:     add r10, r10, 1
+0x003E0518,   //PC = 0x00000A1C,     line:     sb r10, r0, 62
+0x0434FF93,   //PC = 0x00000A20,     line:     beq r15, r15, START_SEARCHING, true
+0x0000BB82,   //PC = 0x00000A24,     line:     and r7, r7, 0
+0x1A44851F,   //PC = 0x00000A28,     line:     lw r10, RAY_RESULT_HIGH # r10 = finished_ray_high TODO Alex tf is this
+0x000057A7,   //PC = 0x00000A2C,     line:     setmembits r10
+0x1A48859F,   //PC = 0x00000A30,     line:     lw r11, RAY_RESULT_LOW # r11 = result_addr_low
+0x0001DE30,   //PC = 0x00000A34,     line:     atomadd_d r12, r11, 1           # r12 = old finished ray count, increment
+0x0036069E,   //PC = 0x00000A38,     line:     lhu r13, r0, 54         # r13 = pix_index
+0x0009EE85,   //PC = 0x00000A3C,     line:     sll r13, r13, 9         # r13 = pix_index * 512
+0x0000EE00,   //PC = 0x00000A40,     line:     add r12, r13, 0         # r12 = pix_index * 512
+0x0002EE85,   //PC = 0x00000A44,     line:     sll r13, r13, 2         # r13 = pix_index * 2048
+0x000C6E00,   //PC = 0x00000A48,     line:     add r12, r13, r12        # r12 = pix_index * 2560
+0x0034069E,   //PC = 0x00000A4C,     line:     lhu r13, r0, 52         # r13 = ray -> pix_x 
+0x000C6E00,   //PC = 0x00000A50,     line:     add r12, r13, r12        # pix_index += pix_x
+0x0008E605,   //PC = 0x00000A54,     line:     sll r12, r12, 8         # pix_index <<= 8
+0x000B6580,   //PC = 0x00000A58,     line:     add r11, r12, r11        # result_addr_low += pix_index
+0x003C051C,   //PC = 0x00000A5C,     line:     lbu r10, r0, 60         # r10 = bounce_count
+0x0006D505,   //PC = 0x00000A60,     line:     sll r10, r10, 6         # bounce <<= 6
+0x000B5580,   //PC = 0x00000A64,     line:     add r11, r10, r11        # result_addr_low += bounce
+0x003D051C,   //PC = 0x00000A68,     line:     lbu r10, r0, 61         # r10 = shadow
+0x0004D505,   //PC = 0x00000A6C,     line:     sll r10, r10, 4         # shadow <<= 4
+0x000B5580,   //PC = 0x00000A70,     line:     add r11, r10, r11        # result_addr_low += shadow
+0x1A14851F,   //PC = 0x00000A74,     line:     lw r10, ONE
+0x000CDD80,   //PC = 0x00000A78,     line:     add r11, r11, 12         # r11 = result_addr_low + 12
+0x00005D2D,   //PC = 0x00000A7C,     line:     sw_d r10, r11, 0         # store 1.0 to len_sq slot
+0x003F0398,   //PC = 0x00000A80,     line:     sb r7, r0, 63           # ray->active_ray = 0 (r7=0)
+0x0000BB82,   //PC = 0x00000A84,     line:     and r7, r7, 0
+0x0001BB80,   //PC = 0x00000A88,     line:     add r7, r7, 1
+0x003F041B,   //PC = 0x00000A8C,     line:     lb r8, r0, 63
+0x0430BC13,   //PC = 0x00000A90,     line:     beq r8, r7, START_RAY_TRAVERSAL, true
+0x00000422,   //PC = 0x00000A94,     line:     yield r8
+0x1F9C841F,   //PC = 0x00000A98,     line:     lw r8, RAY_QUEUE_HEAD # r8 = local_queue_addr
+0x0008C400,   //PC = 0x00000A9C,     line:     add r8, r8, 8           # r8 = local_queue_addr + 8
+0x0000449F,   //PC = 0x00000AA0,     line:     lw r9, r8, 0           # r9 = local_ray_count
+0x0000BB82,   //PC = 0x00000AA4,     line:     and r7, r7, 0
+0x0B203C95,   //PC = 0x00000AA8,     line:     blte r9, r7, NEGATIVE_RAY_COUNT, false
+0xFFFFC533,   //PC = 0x00000AAC,     line:     atomadd r10, r8, -1          # r10 = old_count, decrement local_ray_count
+0x0ABCBD16,   //PC = 0x00000AB0,     line:     bgt r10, r7, CHECK_SRAM_HEAD, true
+0x0001C533,   //PC = 0x00000AB4,     line:     atomadd r10, r8, 1          # r10 = old_count, decrement local_ray_count
+0x0B30FF93,   //PC = 0x00000AB8,     line:     beq r15, r15, CHECK_DRAM_QUEUE, true
 0x0000BB82,   //PC = 0x00000ABC,     line:     and r7, r7, 0
-0x07FFD502,   //PC = 0x00000AC0,     line:     and r10, r10, 0x7FF          # r10 = head & 0x7FF (ring buffer mask)
-0x000CD500,   //PC = 0x00000AC4,     line:     add r10, r10, 12             # r10 = local_queue_addr + 12 + head (ray slot address)
-0x00085500,   //PC = 0x00000AC8,     line:     add r10, r10, r8
-0x00008580,   //PC = 0x00000ACC,     line:     add r11, r0, 0
-0x0000BB82,   //PC = 0x00000AD0,     line:     and r7, r7, 0
-0x0010BB00,   //PC = 0x00000AD4,     line:     add r6, r7, 16
-0x0AF4B393,   //PC = 0x00000AD8,     line:     beq r7, r6, RAY_UPDATE_LOOP_DONE, true
-0x0000561F,   //PC = 0x00000ADC,     line:     lw r12, r10, 0
-0x00005E1A,   //PC = 0x00000AE0,     line:     sw r12, r11, 0
-0x0004D500,   //PC = 0x00000AE4,     line:     add r10, r10, 4
-0x0004DD80,   //PC = 0x00000AE8,     line:     add r11, r11, 4
-0x0001BB80,   //PC = 0x00000AEC,     line:     add r7, r7, 1
-0x0AD8FF93,   //PC = 0x00000AF0,     line:     beq r15, r15, RAY_UPDATE_LOOP, true
-0x0000BB82,   //PC = 0x00000AF4,     line:     and r7, r7, 0
-0xFFFCD500,   //PC = 0x00000AF8,     line:     add r10, r10, -4 # <- I think??
-0x19A8841F,   //PC = 0x00000AFC,     line:     lw r8, BRANCH_LOCAL_LEAF_INDEX # TODO Alex what
-0x0001BB80,   //PC = 0x00000B00,     line:     add r7, r7, 1
-0x003F0398,   //PC = 0x00000B04,     line:     sb r7, r0, 63           # ray->active_ray = 1 (r7=0)
-0x31E8809F,   //PC = 0x00000B08,     line:     lw r1, ROOT_NODE_ADDRESS
-0x0420FF93,   //PC = 0x00000B0C,     line:     beq r15, r15, START_RAY_TRAVERSAL, true
-0x31D4841F,   //PC = 0x00000B10,     line:     lw r8, LOCAL_QUEUE_FLUSHING # r8 = &local_queue_flushing
-0x0000441C,   //PC = 0x00000B14,     line:     lbu r8, r8, 0
-0x0000BB82,   //PC = 0x00000B18,     line:     and r7, r7, 0
-0x0EB0BC14,   //PC = 0x00000B1C,     line:     bne r8, r7, INF_LOOP, true
-0x00000422,   //PC = 0x00000B20,     line:     yield r8
-0x0024849F,   //PC = 0x00000B24,     line:     lw r9, RAY_QUEUE_LOW # TODO Alex what is this
-0x0020851F,   //PC = 0x00000B28,     line:     lw r10, RAY_QUEUE_HIGH
-0x000057A7,   //PC = 0x00000B2C,     line:     setmembits r10
-0x0008CC80,   //PC = 0x00000B30,     line:     add r9, r9, 8           # r9 = queue_address_low + 8
-0x00004DAC,   //PC = 0x00000B34,     line:     lw_d r11, r9, 0       # r11 = cur_ray_count
-0x0000BB82,   //PC = 0x00000B38,     line:     and r7, r7, 0
-0x0BFC3D95,   //PC = 0x00000B3C,     line:     blte r11, r7, NO_DRAM_RAYS, false
-0x0000BB82,   //PC = 0x00000B40,     line:     and r7, r7, 0
-0x0100BB80,   //PC = 0x00000B44,     line:     add r7, r7, 256
-0x0B68BD95,   //PC = 0x00000B48,     line:     blte r11, r7, DONT_ASK_FOR_HELP, true
-0x0000CC82,   //PC = 0x00000B4C,     line:     and r9, r9, 0
-0x2FA8CC80,   //PC = 0x00000B50,     line:     add r9, r9, PULLED_FROM_FULL_QUEUE_CNT
-0x0001CCB3,   //PC = 0x00000B54,     line:     atomadd r9, r9, 1           # r9 = old count, increment
-0x0000BB82,   //PC = 0x00000B58,     line:     and r7, r7, 0
-0x00C8BB80,   //PC = 0x00000B5C,     line:     add r7, r7, 200
-0x0B70BC95,   //PC = 0x00000B60,     line:     blte r9, r7, CHECK_CUR_RAY_COUNT, true
-0x18008797,   //PC = 0x00000B64,     line:     jmp r15, SEARCH_FOR_IDLE_CORES 
+0x0040BB80,   //PC = 0x00000AC0,     line:     add r7, r7, 64
+0x1F9C841F,   //PC = 0x00000AC4,     line:     lw r8, RAY_QUEUE_HEAD
+0x00074533,   //PC = 0x00000AC8,     line:     atomadd r10, r8, r7          # r10 = head, advance head by 64 bytes
+0x0000BB82,   //PC = 0x00000ACC,     line:     and r7, r7, 0
+0x07FFD502,   //PC = 0x00000AD0,     line:     and r10, r10, 0x7FF          # r10 = head & 0x7FF (ring buffer mask)
+0x000CD500,   //PC = 0x00000AD4,     line:     add r10, r10, 12             # r10 = local_queue_addr + 12 + head (ray slot address)
+0x00085500,   //PC = 0x00000AD8,     line:     add r10, r10, r8
+0x00008580,   //PC = 0x00000ADC,     line:     add r11, r0, 0
+0x0000BB82,   //PC = 0x00000AE0,     line:     and r7, r7, 0
+0x0010BB00,   //PC = 0x00000AE4,     line:     add r6, r7, 16
+0x0B04B393,   //PC = 0x00000AE8,     line:     beq r7, r6, RAY_UPDATE_LOOP_DONE, true
+0x0000561F,   //PC = 0x00000AEC,     line:     lw r12, r10, 0
+0x00005E1A,   //PC = 0x00000AF0,     line:     sw r12, r11, 0
+0x0004D500,   //PC = 0x00000AF4,     line:     add r10, r10, 4
+0x0004DD80,   //PC = 0x00000AF8,     line:     add r11, r11, 4
+0x0001BB80,   //PC = 0x00000AFC,     line:     add r7, r7, 1
+0x0AE8FF93,   //PC = 0x00000B00,     line:     beq r15, r15, RAY_UPDATE_LOOP, true
+0x0000BB82,   //PC = 0x00000B04,     line:     and r7, r7, 0
+0xFFFCD500,   //PC = 0x00000B08,     line:     add r10, r10, -4 # <- I think??
+0x19B8841F,   //PC = 0x00000B0C,     line:     lw r8, BRANCH_LOCAL_LEAF_INDEX # TODO Alex what
+0x0001BB80,   //PC = 0x00000B10,     line:     add r7, r7, 1
+0x003F0398,   //PC = 0x00000B14,     line:     sb r7, r0, 63           # ray->active_ray = 1 (r7=0)
+0x31F8809F,   //PC = 0x00000B18,     line:     lw r1, ROOT_NODE_ADDRESS
+0x0430FF93,   //PC = 0x00000B1C,     line:     beq r15, r15, START_RAY_TRAVERSAL, true
+0x31E4841F,   //PC = 0x00000B20,     line:     lw r8, LOCAL_QUEUE_FLUSHING # r8 = &local_queue_flushing
+0x0000441C,   //PC = 0x00000B24,     line:     lbu r8, r8, 0
+0x0000BB82,   //PC = 0x00000B28,     line:     and r7, r7, 0
+0x0EC0BC14,   //PC = 0x00000B2C,     line:     bne r8, r7, INF_LOOP, true
+0x00000422,   //PC = 0x00000B30,     line:     yield r8
+0x0034849F,   //PC = 0x00000B34,     line:     lw r9, RAY_QUEUE_LOW # TODO Alex what is this
+0x0030851F,   //PC = 0x00000B38,     line:     lw r10, RAY_QUEUE_HIGH
+0x000057A7,   //PC = 0x00000B3C,     line:     setmembits r10
+0x0008CC80,   //PC = 0x00000B40,     line:     add r9, r9, 8           # r9 = queue_address_low + 8
+0x00004DAC,   //PC = 0x00000B44,     line:     lw_d r11, r9, 0       # r11 = cur_ray_count
+0x0000BB82,   //PC = 0x00000B48,     line:     and r7, r7, 0
+0x0C0C3D95,   //PC = 0x00000B4C,     line:     blte r11, r7, NO_DRAM_RAYS, false
+0x0000BB82,   //PC = 0x00000B50,     line:     and r7, r7, 0
+0x0100BB80,   //PC = 0x00000B54,     line:     add r7, r7, 256
+0x0B78BD95,   //PC = 0x00000B58,     line:     blte r11, r7, DONT_ASK_FOR_HELP, true
+0x0000CC82,   //PC = 0x00000B5C,     line:     and r9, r9, 0
+0x2FB8CC80,   //PC = 0x00000B60,     line:     add r9, r9, PULLED_FROM_FULL_QUEUE_CNT
+0x0001CCB3,   //PC = 0x00000B64,     line:     atomadd r9, r9, 1           # r9 = old count, increment
 0x0000BB82,   //PC = 0x00000B68,     line:     and r7, r7, 0
-0x2FA8839A,   //PC = 0x00000B6C,     line:     sw r7, PULLED_FROM_FULL_QUEUE_CNT
-0x0024849F,   //PC = 0x00000B70,     line:     lw r9, RAY_QUEUE_LOW # TODO Alex what is this
-0x0008CC80,   //PC = 0x00000B74,     line:     add r9, r9, 8           # r9 = queue_address_low + 8
-0xFFFFCDB0,   //PC = 0x00000B78,     line:     atomadd_d r11, r9, -1       # r11 = cur_ray_count_check, decrement    
-0x0000BB82,   //PC = 0x00000B7C,     line:     and r7, r7, 0
-0x0B8CBD96,   //PC = 0x00000B80,     line:     bgt r11, r7, PROCEED_TO_READ_RAY, true
-0x0001CDB0,   //PC = 0x00000B84,     line:     atomadd_d r11, r9, 1
-0x0A74FF93,   //PC = 0x00000B88,     line:     beq r15, r15, ray_done, true
-0xFFF8CC80,   //PC = 0x00000B8C,     line:     add r9, r9, -8 
-0x0000BB82,   //PC = 0x00000B90,     line:     and r7, r7, 0
-0x0040BB80,   //PC = 0x00000B94,     line:     add r7, r7, 64
-0x00074D30,   //PC = 0x00000B98,     line:     atomadd_d r10, r9, r7       # r10 = head, advance head by 64 bytes
-0x3F60CC80,   //PC = 0x00000B9C,     line:     add r9, r9, 16224                # r9 = queue_address_low + 536 (start of ray slots)
-0x3FFFD502,   //PC = 0x00000BA0,     line:     and r10, r10, 0x3FFF            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue)
-0x000A4C80,   //PC = 0x00000BA4,     line:     add r9, r9, r10               # r9 = queue_address_low + 536 + head (ray slot address)
-0x003FCD00,   //PC = 0x00000BA8,     line:     add r10, r9, 63              # r10 = queue_address_low + 63
-0x0000551C,   //PC = 0x00000BAC,     line:     lbu r10, r10, 0              # r10 = ready byte
-0x0000BB82,   //PC = 0x00000BB0,     line:     and r7, r7, 0
-0x0BA8BD13,   //PC = 0x00000BB4,     line:     beq r10, r7, WAIT_FOR_WRITE, true   # r7=0, spin while not ready
-0x00008580,   //PC = 0x00000BB8,     line:     add r11, r0, 0
-0x0000BB82,   //PC = 0x00000BBC,     line:     and r7, r7, 0
-0x0010BB00,   //PC = 0x00000BC0,     line:     add r6, r7, 16
-0x0BE0B393,   //PC = 0x00000BC4,     line:     beq r7, r6, WRITE_TO_RAY_IDX_LOOP_DONE, true
-0x00004E2C,   //PC = 0x00000BC8,     line:     lw_d r12, r9, 0           # r12 = load_dram_word(queue_address_low)
-0x00005E1A,   //PC = 0x00000BCC,     line:     sw r12, r11, 0         # *(ray_index) = ray_word
-0x0004CC80,   //PC = 0x00000BD0,     line:     add r9, r9, 4           # queue_address_low = queue_address_low + 4
-0x0004DD80,   //PC = 0x00000BD4,     line:     add r11, r11, 4         # ray_index = ray_index + 4
-0x0001BB80,   //PC = 0x00000BD8,     line:     add r7, r7, 1
-0x0BC4FF93,   //PC = 0x00000BDC,     line:     beq r15, r15, WRITE_TO_RAY_IDX_LOOP, true
-0x31E8809F,   //PC = 0x00000BE0,     line:     lw r1, ROOT_NODE_ADDRESS
-0xFFFFCC80,   //PC = 0x00000BE4,     line:     add r9, r9, -1          # r9 = queue_address_low - 1
-0x00004BAF,   //PC = 0x00000BE8,     line:     sb_d r7, r9, 0           # write 0 to ready byte to mark consumed
-0x0001CC80,   //PC = 0x00000BEC,     line:     add r9, r9, 1           # restore r9 to point to start of ray slot
-0x19A8841F,   //PC = 0x00000BF0,     line:     lw r8, BRANCH_LOCAL_LEAF_INDEX
-0x0028041A,   //PC = 0x00000BF4,     line:     sw r8, r0, 40          # ray->leaf_node_starting_point = branch_local_leaf_index
-0x0420FF93,   //PC = 0x00000BF8,     line:     beq r15, r15, START_RAY_TRAVERSAL, true 
-0x1A1C851F,   //PC = 0x00000BFC,     line:     lw r10, EMERGENCY_QUEUE_HIGH # r10 = emergency_queue_high
-0x000057A7,   //PC = 0x00000C00,     line:     setmembits r10
-0x1A20849F,   //PC = 0x00000C04,     line:     lw r9, EMERGENCY_QUEUE_LOW # r9 = emergency_queue_low
-0x0008CC80,   //PC = 0x00000C08,     line:     add r9, r9, 8           # r9 = &count field
-0x00004DAC,   //PC = 0x00000C0C,     line:     lw_d r11, r9, 0       # r11 = count
-0xFFF8CC80,   //PC = 0x00000C10,     line:     add r9, r9, -8
-0x0000BB82,   //PC = 0x00000C14,     line:     and r7, r7, 0
-0x0C74BD95,   //PC = 0x00000C18,     line:     blte r11, r7, CHECK_DONE, true
-0x0008CC80,   //PC = 0x00000C1C,     line:     add r9, r9, 8
-0x0001CDB0,   //PC = 0x00000C20,     line:     atomadd_d r11, r9, 1       # r11 = old_cnt, increment count
+0x00C8BB80,   //PC = 0x00000B6C,     line:     add r7, r7, 200
+0x0B80BC95,   //PC = 0x00000B70,     line:     blte r9, r7, CHECK_CUR_RAY_COUNT, true
+0x18108797,   //PC = 0x00000B74,     line:     jmp r15, SEARCH_FOR_IDLE_CORES 
+0x0000BB82,   //PC = 0x00000B78,     line:     and r7, r7, 0
+0x2FB8839A,   //PC = 0x00000B7C,     line:     sw r7, PULLED_FROM_FULL_QUEUE_CNT
+0x0034849F,   //PC = 0x00000B80,     line:     lw r9, RAY_QUEUE_LOW # TODO Alex what is this
+0x0008CC80,   //PC = 0x00000B84,     line:     add r9, r9, 8           # r9 = queue_address_low + 8
+0xFFFFCDB0,   //PC = 0x00000B88,     line:     atomadd_d r11, r9, -1       # r11 = cur_ray_count_check, decrement    
+0x0000BB82,   //PC = 0x00000B8C,     line:     and r7, r7, 0
+0x0B9CBD96,   //PC = 0x00000B90,     line:     bgt r11, r7, PROCEED_TO_READ_RAY, true
+0x0001CDB0,   //PC = 0x00000B94,     line:     atomadd_d r11, r9, 1
+0x0A84FF93,   //PC = 0x00000B98,     line:     beq r15, r15, ray_done, true
+0xFFF8CC80,   //PC = 0x00000B9C,     line:     add r9, r9, -8 
+0x0000BB82,   //PC = 0x00000BA0,     line:     and r7, r7, 0
+0x0040BB80,   //PC = 0x00000BA4,     line:     add r7, r7, 64
+0x00074D30,   //PC = 0x00000BA8,     line:     atomadd_d r10, r9, r7       # r10 = head, advance head by 64 bytes
+0x3F60CC80,   //PC = 0x00000BAC,     line:     add r9, r9, 16224                # r9 = queue_address_low + 536 (start of ray slots)
+0x3FFFD502,   //PC = 0x00000BB0,     line:     and r10, r10, 0x3FFF            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue)
+0x000A4C80,   //PC = 0x00000BB4,     line:     add r9, r9, r10               # r9 = queue_address_low + 536 + head (ray slot address)
+0x003FCD00,   //PC = 0x00000BB8,     line:     add r10, r9, 63              # r10 = queue_address_low + 63
+0x0000551C,   //PC = 0x00000BBC,     line:     lbu r10, r10, 0              # r10 = ready byte
+0x0000BB82,   //PC = 0x00000BC0,     line:     and r7, r7, 0
+0x0BB8BD13,   //PC = 0x00000BC4,     line:     beq r10, r7, WAIT_FOR_WRITE, true   # r7=0, spin while not ready
+0x00008580,   //PC = 0x00000BC8,     line:     add r11, r0, 0
+0x0000BB82,   //PC = 0x00000BCC,     line:     and r7, r7, 0
+0x0010BB00,   //PC = 0x00000BD0,     line:     add r6, r7, 16
+0x0BF0B393,   //PC = 0x00000BD4,     line:     beq r7, r6, WRITE_TO_RAY_IDX_LOOP_DONE, true
+0x00004E2C,   //PC = 0x00000BD8,     line:     lw_d r12, r9, 0           # r12 = load_dram_word(queue_address_low)
+0x00005E1A,   //PC = 0x00000BDC,     line:     sw r12, r11, 0         # *(ray_index) = ray_word
+0x0004CC80,   //PC = 0x00000BE0,     line:     add r9, r9, 4           # queue_address_low = queue_address_low + 4
+0x0004DD80,   //PC = 0x00000BE4,     line:     add r11, r11, 4         # ray_index = ray_index + 4
+0x0001BB80,   //PC = 0x00000BE8,     line:     add r7, r7, 1
+0x0BD4FF93,   //PC = 0x00000BEC,     line:     beq r15, r15, WRITE_TO_RAY_IDX_LOOP, true
+0x31F8809F,   //PC = 0x00000BF0,     line:     lw r1, ROOT_NODE_ADDRESS
+0xFFFFCC80,   //PC = 0x00000BF4,     line:     add r9, r9, -1          # r9 = queue_address_low - 1
+0x00004BAF,   //PC = 0x00000BF8,     line:     sb_d r7, r9, 0           # write 0 to ready byte to mark consumed
+0x0001CC80,   //PC = 0x00000BFC,     line:     add r9, r9, 1           # restore r9 to point to start of ray slot
+0x19B8841F,   //PC = 0x00000C00,     line:     lw r8, BRANCH_LOCAL_LEAF_INDEX
+0x0028041A,   //PC = 0x00000C04,     line:     sw r8, r0, 40          # ray->leaf_node_starting_point = branch_local_leaf_index
+0x0430FF93,   //PC = 0x00000C08,     line:     beq r15, r15, START_RAY_TRAVERSAL, true 
+0x1A2C851F,   //PC = 0x00000C0C,     line:     lw r10, EMERGENCY_QUEUE_HIGH # r10 = emergency_queue_high
+0x000057A7,   //PC = 0x00000C10,     line:     setmembits r10
+0x1A30849F,   //PC = 0x00000C14,     line:     lw r9, EMERGENCY_QUEUE_LOW # r9 = emergency_queue_low
+0x0008CC80,   //PC = 0x00000C18,     line:     add r9, r9, 8           # r9 = &count field
+0x00004DAC,   //PC = 0x00000C1C,     line:     lw_d r11, r9, 0       # r11 = count
+0xFFF8CC80,   //PC = 0x00000C20,     line:     add r9, r9, -8
 0x0000BB82,   //PC = 0x00000C24,     line:     and r7, r7, 0
-0x0C34BD96,   //PC = 0x00000C28,     line:     bgt r11, r7, EMERGANCY_QUEUE_CONTINUE, true
-0xFFFFCDB0,   //PC = 0x00000C2C,     line:     atomadd_d r11, r9, -1      # undo increment
-0x0C74FF93,   //PC = 0x00000C30,     line:     beq r15, r15, CHECK_DONE, true
-0xFFF8CC80,   //PC = 0x00000C34,     line:     add r9, r9, -8
-0x0004CD30,   //PC = 0x00000C38,     line:     atomadd_d r10, r9, 4 
-0x00FFD502,   //PC = 0x00000C3C,     line:     and r10, r10, 0xFF
-0x000A4C80,   //PC = 0x00000C40,     line:     add r9, r9, r10
-0x000CCC80,   //PC = 0x00000C44,     line:     add r9, r9, 12
-0x0002CD00,   //PC = 0x00000C48,     line:     add r10, r9, 2           # r10 = emergency_queue_low + 2
-0x00005529,   //PC = 0x00000C4C,     line:     lbu_d r10, r10, 0          # r10 = is_ready
-0x0000BB82,   //PC = 0x00000C50,     line:     and r7, r7, 0
-0x0001BB80,   //PC = 0x00000C54,     line:     add r7, r7, 1
-0x0C48BD13,   //PC = 0x00000C58,     line:     beq r10, r7, ENSURE_EMERGENCY_SLOT_READY_TWO, true
-0x00004DAC,   //PC = 0x00000C5C,     line:     lw_d r11, r9, 0           # r11 = new_node_id (uint32 loaded from slot)
-0x0002CD00,   //PC = 0x00000C60,     line:     add r10, r9, 2           # r10 = emergency_queue_low + 2
-0x0000BB82,   //PC = 0x00000C64,     line:     and r7, r7, 0
-0x000053AF,   //PC = 0x00000C68,     line:     sb_d r7, r10, 0          # mark slot as empty by writing 0 to is_ready
-0x0034FF93,   //PC = 0x00000C6C,     line:     beq r15, r15, SWITCH_DRAM_QUEUE, true
-0x00000422,   //PC = 0x00000C70,     line:     yield r8
-0x0EB88117,   //PC = 0x00000C74,     line:     jmp r2, is_idle_leaf# r2 is return address @ ALEX LOOK AT THIS
-0x00000422,   //PC = 0x00000C78,     line:     yield r8                             # yield()
-0x1A7C811F,   //PC = 0x00000C7C,     line:     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
-0x000017A7,   //PC = 0x00000C80,     line:     setmembits r2                        # set_address_bits(finished_ray_high)
-0x1A80811F,   //PC = 0x00000C84,     line:     lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
-0x0000112C,   //PC = 0x00000C88,     line:     lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
-0x1A08819F,   //PC = 0x00000C8C,     line:     lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
-0x0A749914,   //PC = 0x00000C90,     line:     bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
-0x00000422,   //PC = 0x00000C94,     line:     yield r8                             # yield()
-0x00000023,   //PC = 0x00000C98,     line:     getowner                             # get_thread_ownership()
-0x000E8024,   //PC = 0x00000C9C,     line:     setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
-0x00008025,   //PC = 0x00000CA0,     line:     relinquish true                         # relinquish_ownership(1)
-0x000007A2,   //PC = 0x00000CA4,     line:     yield r15                            # yield()
-0x1A34801F,   //PC = 0x00000CA8,     line:     lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
-0x000007A7,   //PC = 0x00000CAC,     line:     setmembits r0                        # set_address_bits(pixel_addr_high)
-0x1A38801F,   //PC = 0x00000CB0,     line:     lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
-0x0004F886,   //PC = 0x00000CB4,     line:     srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
-0x000FF902,   //PC = 0x00000CB8,     line:     and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
-0x000F8888,   //PC = 0x00000CBC,     line:     mul r1, r1, 15                       # pix_index *= 15
-0x00088886,   //PC = 0x00000CC0,     line:     srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
-0x00010000,   //PC = 0x00000CC4,     line:     add r0, r0, r1                       # pixel_addr_low += pix_increment
-0x0000F702,   //PC = 0x00000CC8,     line:     and r14, r14, 0                      # r14 = 0
-0x00008882,   //PC = 0x00000CCC,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
-0x0002F100,   //PC = 0x00000CD0,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
-0x1A8CF200,   //PC = 0x00000CD4,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
-0x000FFA82,   //PC = 0x00000CD8,     line:     and r5, r15, 0xF                     # r5 = thread_index
-0x0006AA85,   //PC = 0x00000CDC,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
-0x00052200,   //PC = 0x00000CE0,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
-0x0000271A,   //PC = 0x00000CE4,     line:     sw r14, r4, 0                        # carried_r = 0.0f
-0x0004271A,   //PC = 0x00000CE8,     line:     sw r14, r4, 4                        # carried_g = 0.0f
-0x0008271A,   //PC = 0x00000CEC,     line:     sw r14, r4, 8                        # carried_b = 0.0f
-0x00069285,   //PC = 0x00000CF0,     line:     sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
-0x00050280,   //PC = 0x00000CF4,     line:     add r5, r0, r5                       # bounce_addr += pixel_addr_low
-0x00002B2C,   //PC = 0x00000CF8,     line:     lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
-0x00042BAC,   //PC = 0x00000CFC,     line:     lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
-0x00082C2C,   //PC = 0x00000D00,     line:     lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
-0x000C2CAC,   //PC = 0x00000D04,     line:     lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
-0x000C231A,   //PC = 0x00000D08,     line:     sw r6, r4, 12                        # scratch->sr = sr
-0x0010239A,   //PC = 0x00000D0C,     line:     sw r7, r4, 16                        # scratch->sg = sg
-0x0014241A,   //PC = 0x00000D10,     line:     sw r8, r4, 20                        # scratch->sb = sb
-0x0018249A,   //PC = 0x00000D14,     line:     sw r9, r4, 24                        # scratch->metallic = metallic
-0x001C271A,   //PC = 0x00000D18,     line:     sw r14, r4, 28                       # acc_r = 0.0f
-0x0020271A,   //PC = 0x00000D1C,     line:     sw r14, r4, 32                       # acc_g = 0.0f
-0x0024271A,   //PC = 0x00000D20,     line:     sw r14, r4, 36                       # acc_b = 0.0f
-0x0010AA80,   //PC = 0x00000D24,     line:     add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
-0x0000B302,   //PC = 0x00000D28,     line:     and r6, r6, 0                        # uint32_t light = 0
-0x000C2CAC,   //PC = 0x00000D2C,     line:     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
-0xFFFFC403,   //PC = 0x00000D30,     line:     or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
-0x0D784493,   //PC = 0x00000D34,     line:     beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
-0x119C8517,   //PC = 0x00000D38,     line:     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
-0x00002BAC,   //PC = 0x00000D3C,     line:     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
-0x00042C2C,   //PC = 0x00000D40,     line:     lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
-0x00082D2C,   //PC = 0x00000D44,     line:     lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
-0x00093B8B,   //PC = 0x00000D48,     line:     fpmul.32 r7, r7, r9                   # lr *= atten
-0x0009440B,   //PC = 0x00000D4C,     line:     fpmul.32 r8, r8, r9                   # lg *= atten
-0x0009550B,   //PC = 0x00000D50,     line:     fpmul.32 r10, r10, r9                 # lb *= atten
-0x001C259F,   //PC = 0x00000D54,     line:     lw r11, r4, 28                       # r11 = acc_r
-0x0020261F,   //PC = 0x00000D58,     line:     lw r12, r4, 32                       # r12 = acc_g
-0x0024269F,   //PC = 0x00000D5C,     line:     lw r13, r4, 36                       # r13 = acc_b
-0x00075D8A,   //PC = 0x00000D60,     line:     fpadd.32 r11, r11, r7                 # acc_r += lr 
-0x0008660A,   //PC = 0x00000D64,     line:     fpadd.32 r12, r12, r8                 # acc_g += lg
-0x000A6E8A,   //PC = 0x00000D68,     line:     fpadd.32 r13, r13, r10               # acc_b += lb
-0x001C259A,   //PC = 0x00000D6C,     line:     sw r11, r4, 28                       # store acc_r
-0x0020261A,   //PC = 0x00000D70,     line:     sw r12, r4, 32                       # store acc_g
-0x0024269A,   //PC = 0x00000D74,     line:     sw r13, r4, 36                       # store acc_b
-0x0010AA80,   //PC = 0x00000D78,     line:     add r5, r5, 16                       # shadow_addr += 16 (next light slot)
-0x0001B300,   //PC = 0x00000D7C,     line:     add r6, r6, 1                        # light += 1
-0x0003F380,   //PC = 0x00000D80,     line:     add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
-0x0D2CB396,   //PC = 0x00000D84,     line:     bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
-0x001C231F,   //PC = 0x00000D88,     line:     lw r6, r4, 28                        # r6 = acc_r
-0x0020239F,   //PC = 0x00000D8C,     line:     lw r7, r4, 32                        # r7 = acc_g
-0x0024241F,   //PC = 0x00000D90,     line:     lw r8, r4, 36                        # r8 = acc_b
-0x000C249F,   //PC = 0x00000D94,     line:     lw r9, r4, 12                        # r9 = sr
-0x0010251F,   //PC = 0x00000D98,     line:     lw r10, r4, 16                       # r10 = sg
-0x0014259F,   //PC = 0x00000D9C,     line:     lw r11, r4, 20                       # r11 = sb
-0x0018261F,   //PC = 0x00000DA0,     line:     lw r12, r4, 24                       # r12 = metallic
-0x1A04869F,   //PC = 0x00000DA4,     line:     lw r13, ONE                          # r13 = 1.0f
-0x000C6E8C,   //PC = 0x00000DA8,     line:     fpsub.32 r13, r13, r12                   # float inv_metallic = 1.0f - metallic
-0x0009330B,   //PC = 0x00000DAC,     line:     fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
-0x000A3B8B,   //PC = 0x00000DB0,     line:     fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
-0x000B440B,   //PC = 0x00000DB4,     line:     fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
-0x000D330B,   //PC = 0x00000DB8,     line:     fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
-0x000D3B8B,   //PC = 0x00000DBC,     line:     fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
-0x000D440B,   //PC = 0x00000DC0,     line:     fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
-0x0000269F,   //PC = 0x00000DC4,     line:     lw r13, r4, 0                        # r13 = carried_r
-0x00096E8B,   //PC = 0x00000DC8,     line:     fpmul.32 r13, r13, r9                 # carried_r *= sr
-0x000C6E8B,   //PC = 0x00000DCC,     line:     fpmul.32 r13, r13, r12               # carried_r *= metallic
-0x000D330A,   //PC = 0x00000DD0,     line:     fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
-0x0000231A,   //PC = 0x00000DD4,     line:     sw r6, r4, 0                         # store new carried_r
-0x0004269F,   //PC = 0x00000DD8,     line:     lw r13, r4, 4                        # r13 = carried_g
-0x000A6E8B,   //PC = 0x00000DDC,     line:     fpmul.32 r13, r13, r10               # carried_g *= sg
-0x000C6E8B,   //PC = 0x00000DE0,     line:     fpmul.32 r13, r13, r12               # carried_g *= metallic
-0x000D3B8A,   //PC = 0x00000DE4,     line:     fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
-0x0004239A,   //PC = 0x00000DE8,     line:     sw r7, r4, 4                         # store new carried_g
-0x0008269F,   //PC = 0x00000DEC,     line:     lw r13, r4, 8                        # r13 = carried_b
-0x000B6E8B,   //PC = 0x00000DF0,     line:     fpmul.32 r13, r13, r11               # carried_b *= sb
-0x000C6E8B,   //PC = 0x00000DF4,     line:     fpmul.32 r13, r13, r12               # carried_b *= metallic
-0x000D440A,   //PC = 0x00000DF8,     line:     fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
-0x0008241A,   //PC = 0x00000DFC,     line:     sw r8, r4, 8                         # store new carried_b
-0xFFFF9100,   //PC = 0x00000E00,     line:     add r2, r2, -1                       # bounce -= 1
-0x0CF09715,   //PC = 0x00000E04,     line:     blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
-0x1A04869F,   //PC = 0x00000E08,     line:     lw r13, ONE                          # r13 = 1.0f
-0x0000251F,   //PC = 0x00000E0C,     line:     lw r10, r4, 0                        # r10 = carried_r
-0x0004259F,   //PC = 0x00000E10,     line:     lw r11, r4, 4                        # r11 = carried_g
-0x0008261F,   //PC = 0x00000E14,     line:     lw r12, r4, 8                        # r12 = carried_b
-0x000D550A,   //PC = 0x00000E18,     line:     fpadd.32 r10, r10, r13               # carried_r += 1.0f
-0x000D5D8A,   //PC = 0x00000E1C,     line:     fpadd.32 r11, r11, r13               # carried_g += 1.0f
-0x000D660A,   //PC = 0x00000E20,     line:     fpadd.32 r12, r12, r13               # carried_b += 1.0f
-0x000ED506,   //PC = 0x00000E24,     line:     srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
-0x000EDD86,   //PC = 0x00000E28,     line:     srl r11, r11, 14                     # carried_g >>= 14
-0x000EE606,   //PC = 0x00000E2C,     line:     srl r12, r12, 14                     # carried_b >>= 14
-0x01FFD502,   //PC = 0x00000E30,     line:     and r10, r10, 0x1FF                  # carried_r &= 0x1FF
-0x01FFDD82,   //PC = 0x00000E34,     line:     and r11, r11, 0x1FF                  # carried_g &= 0x1FF
-0x01FFE602,   //PC = 0x00000E38,     line:     and r12, r12, 0x1FF                  # carried_b &= 0x1FF
-0x2FD0551C,   //PC = 0x00000E3C,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
-0x2FD05D9C,   //PC = 0x00000E40,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
-0x2FD0661C,   //PC = 0x00000E44,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
-0x1A3C869F,   //PC = 0x00000E48,     line:     lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
-0x00006FA7,   //PC = 0x00000E4C,     line:     setmembits r13                       # set_address_bits(pixel_addr_high)
-0x1A40869F,   //PC = 0x00000E50,     line:     lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
-0x0004FF06,   //PC = 0x00000E54,     line:     srl r14, r15, 4                      # r14 = core_id >> 4
-0x000FF708,   //PC = 0x00000E58,     line:     mul r14, r14, 15                     # r14 *= 15
-0x000FF482,   //PC = 0x00000E5C,     line:     and r9, r14, 0xF                     # r9 = thread_index
-0x000E4F00,   //PC = 0x00000E60,     line:     add r14, r9, r14                     # r14 += thread_index
-0x0002F705,   //PC = 0x00000E64,     line:     sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
-0x000E6E80,   //PC = 0x00000E68,     line:     add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
-0x20008C88,   //PC = 0x00000E6C,     line:     mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
-0x003CCC88,   //PC = 0x00000E70,     line:     mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
-0x00096E80,   //PC = 0x00000E74,     line:     add r13, r13, r9                     # pixel_addr_low += r9
-0x00006D18,   //PC = 0x00000E78,     line:     sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
-0x00016D98,   //PC = 0x00000E7C,     line:     sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
-0x00026E18,   //PC = 0x00000E80,     line:     sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
-0x00018880,   //PC = 0x00000E84,     line:     add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
-0x20008E88,   //PC = 0x00000E88,     line:     mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
-0x0F00EE88,   //PC = 0x00000E8C,     line:     mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
-0x000D0000,   //PC = 0x00000E90,     line:     add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
-0x0000F702,   //PC = 0x00000E94,     line:     and r14, r14, 0                      # r14 = 0
-0x001EF700,   //PC = 0x00000E98,     line:     add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
-0x1A84869F,   //PC = 0x00000E9C,     line:     lw r13, PIXEL_DONE_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
-0x00006FA7,   //PC = 0x00000EA0,     line:     setmembits r13                       # set_address_bits(finished_pixel_high)
-0x1A88869F,   //PC = 0x00000EA4,     line:     lw r13, PIXEL_DONE_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
-0x0001EEB0,   //PC = 0x00000EA8,     line:     atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
-0x0CD08F16,   //PC = 0x00000EAC,     line:     bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
-0x00000422,   //PC = 0x00000EB0,     line:     yield r8                            # yield()
-0x0EB0FF93,   //PC = 0x00000EB4,     line:     beq r15, r15, INF_LOOP, true         # goto inf_loop
-0x000001B4,   //PC = 0x00000EB8,     line:     getclk r3                               # r3 = current_cycle = get_cycle_count()
-0x2FA0821F,   //PC = 0x00000EBC,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
-0x00041981,   //PC = 0x00000EC0,     line:     sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
-0x0000F702,   //PC = 0x00000EC4,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x19E0829F,   //PC = 0x00000EC8,     line:     lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
-0x0ED42996,   //PC = 0x00000ECC,     line:     bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
-0x00020797,   //PC = 0x00000ED0,     line:     jmp r15, r2                             # return 0 (not enough time has passed)
-0x2F98821F,   //PC = 0x00000ED4,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
-0x0EE07213,   //PC = 0x00000ED8,     line:     beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
-0x00020797,   //PC = 0x00000EDC,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
-0x000002B4,   //PC = 0x00000EE0,     line:     getclk r5                               # r5 = current_cycle (fresh timestamp)
-0x2FA0829A,   //PC = 0x00000EE4,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
-0x2F9C829F,   //PC = 0x00000EE8,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
-0x2F9C871A,   //PC = 0x00000EEC,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
-0x0010AA85,   //PC = 0x00000EF0,     line:     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
-0x00032A89,   //PC = 0x00000EF4,     line:     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
-0x19DC821F,   //PC = 0x00000EF8,     line:     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
-0x0F042A15,   //PC = 0x00000EFC,     line:     blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
-0x00020797,   //PC = 0x00000F00,     line:     jmp r15, r2                             # return 0 (not idle enough to enqueue)
-0x17BC819F,   //PC = 0x00000F04,     line:     lw r3, ADD_IDLE_CORE
-0x00030717,   //PC = 0x00000F08,     line:     jmp r14, r3
-0x00009982,   //PC = 0x00000F0C,     line:     and r3, r3, 0
-0x2F989980,   //PC = 0x00000F10,     line:     add r3, r3, PREVIOUSLY_IDLE
-0x000199B3,   //PC = 0x00000F14,     line:     atomadd r3, r3, 1    
-0x0000F702,   //PC = 0x00000F18,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x0001F700,   //PC = 0x00000F1C,     line:     add r14, r14, 1
-0x00020797,   //PC = 0x00000F20,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
-0x31E4869F,   //PC = 0x00000F24,     line:     lw r13, INDEX_ARRAY_BASE                   # r13 = Vertex * vertices
-0x0000F702,   //PC = 0x00000F28,     line:     and r14, r14, 0
-0x2B98F200,   //PC = 0x00000F2C,     line:     add r4, r14, RAY_TRIANGLE_REG_SPILL
-0x000FFA82,   //PC = 0x00000F30,     line:     and r5, r15, 0xF
-0x0006AA85,   //PC = 0x00000F34,     line:     sll r5, r5, 6
-0x00052200,   //PC = 0x00000F38,     line:     add r4, r4, r5
-0x000D1400,   //PC = 0x00000F3C,     line:     add r8, r2, r13
-0x0004429E,   //PC = 0x00000F40,     line:     lhu r5, r8, 4
-0x0006431E,   //PC = 0x00000F44,     line:     lhu r6, r8, 6
-0x0008439E,   //PC = 0x00000F48,     line:     lhu r7, r8, 8
-0x31E0841F,   //PC = 0x00000F4C,     line:     lw r8, VERTEX_ARRAY_BASE
-0x00082A80,   //PC = 0x00000F50,     line:     add r5, r5, r8 #v0
-0x00083300,   //PC = 0x00000F54,     line:     add r6, r6, r8 #V1
-0x00083B80,   //PC = 0x00000F58,     line:     add r7, r7, r8 #V2
-0x00002E1F,   //PC = 0x00000F5C,     line:     lw r12, r5, 0 #v0x
-0x0000349F,   //PC = 0x00000F60,     line:     lw r9, r6, 0
-0x000C4C0C,   //PC = 0x00000F64,     line:     fpsub.32 r8, r9, r12 #e1x
-0x0004349F,   //PC = 0x00000F68,     line:     lw r9, r6, 4
-0x00042E9F,   //PC = 0x00000F6C,     line:     lw r13, r5, 4 #v0y
-0x000D4C8C,   //PC = 0x00000F70,     line:     fpsub.32 r9, r9, r13 #e1y
-0x0008351F,   //PC = 0x00000F74,     line:     lw r10, r6, 8 
-0x00082F1F,   //PC = 0x00000F78,     line:     lw r14, r5, 8 #v0z
-0x000E550C,   //PC = 0x00000F7C,     line:     fpsub.32 r10, r10, r14 #e1z
-0x0000241A,   //PC = 0x00000F80,     line:     sw r8, r4, 0
-0x0004249A,   //PC = 0x00000F84,     line:     sw r9, r4, 4
-0x0008251A,   //PC = 0x00000F88,     line:     sw r10, r4, 8
-0x00003C1F,   //PC = 0x00000F8C,     line:     lw r8, r7, 0
-0x00043C9F,   //PC = 0x00000F90,     line:     lw r9, r7, 4
-0x00083D1F,   //PC = 0x00000F94,     line:     lw r10, r7, 8
-0x000C440C,   //PC = 0x00000F98,     line:     fpsub.32 r8, r8, r12 #e2x
-0x000D4C8C,   //PC = 0x00000F9C,     line:     fpsub.32 r9, r9, r13 #e2y
-0x000E550C,   //PC = 0x00000FA0,     line:     fpsub.32 r10, r10, r14 #e2z i have 11-14 now i think
-0x000C241A,   //PC = 0x00000FA4,     line:     sw r8, r4, 12
-0x0010249A,   //PC = 0x00000FA8,     line:     sw r9, r4, 16
-0x0014251A,   //PC = 0x00000FAC,     line:     sw r10, r4, 20
-0x0010059F,   //PC = 0x00000FB0,     line:     lw r11, r0, 16 #dy
-0x000A5D8B,   //PC = 0x00000FB4,     line:     fpmul.32 r11, r11, r10 # ray->dy * e2z
-0x0014061F,   //PC = 0x00000FB8,     line:     lw r12, r0, 20 #dz
-0x000C4E8B,   //PC = 0x00000FBC,     line:     fpmul.32 r13, r9, r12 #ray->dz * e2y I now have  r14, r10 available
-0x000D5D8C,   //PC = 0x00000FC0,     line:     fpsub.32 r11, r11, r13 #px, now available registers are r13, r14, r10
-0x0008660B,   //PC = 0x00000FC4,     line:     fpmul.32 r12, r12, r8 # ray->dz * e2x 
-0x000C071F,   //PC = 0x00000FC8,     line:     lw r14, r0, 12 #dx
-0x000A768B,   //PC = 0x00000FCC,     line:     fpmul.32 r13, r14, r10 #ray->dx * e2z
-0x000D668C,   //PC = 0x00000FD0,     line:     fpsub.32 r13, r12, r13 #py i now have r12, r10
-0x0009770B,   //PC = 0x00000FD4,     line:     fpmul.32 r14, r14, r9  #ray->dx * e2y
-0x0010061F,   //PC = 0x00000FD8,     line:     lw r12, r0, 16 #dy
-0x0008660B,   //PC = 0x00000FDC,     line:     fpmul.32 r12, r12, r8 #ray->dy * e2x
-0x000C770C,   //PC = 0x00000FE0,     line:     fpsub.32 r14, r14, r12 #pz
-0x0000E602,   //PC = 0x00000FE4,     line:     and r12, r12, 0
-0x00006010,   //PC = 0x00000FE8,     line:     fpsetacc.32 r12
-0x0000241F,   //PC = 0x00000FEC,     line:     lw r8, r4, 0
-0x0004249F,   //PC = 0x00000FF0,     line:     lw r9, r4, 4
-0x0008251F,   //PC = 0x00000FF4,     line:     lw r10, r4, 8
-0x000B400D,   //PC = 0x00000FF8,     line:     fpmac.32 r8, r11
-0x000D480D,   //PC = 0x00000FFC,     line:     fpmac.32 r9, r13
-0x000E500D,   //PC = 0x00001000,     line:     fpmac.32 r10, r14
-0x00000411,   //PC = 0x00001004,     line:     fpstoreacc.32 r8
-0x095C6413,   //PC = 0x00001008,     line:     beq r8, r12, TRIANGLE_INTERSECT_RETURN, false #I have 9, 10, and 12 available
-0x0000031F,   //PC = 0x0000100C,     line:     lw r6, r0, 0
-0x00002B9F,   //PC = 0x00001010,     line:     lw r7, r5, 0
-0x0007330C,   //PC = 0x00001014,     line:     fpsub.32 r6, r6, r7
-0x0004039F,   //PC = 0x00001018,     line:     lw r7, r0, 4
-0x00042C9F,   //PC = 0x0000101C,     line:     lw r9, r5, 4
-0x00093B8C,   //PC = 0x00001020,     line:     fpsub.32 r7, r7, r9
-0x0008049F,   //PC = 0x00001024,     line:     lw r9, r0, 8
-0x00082D1F,   //PC = 0x00001028,     line:     lw r10, r5, 8
-0x000A4C8C,   //PC = 0x0000102C,     line:     fpsub.32 r9, r9, r10
-0x0000D502,   //PC = 0x00001030,     line:     and r10, r10, 0
-0x00005010,   //PC = 0x00001034,     line:     fpsetacc.32 r10
-0x000B300D,   //PC = 0x00001038,     line:     fpmac.32 r6, r11 
-0x000D380D,   //PC = 0x0000103C,     line:     fpmac.32 r7, r13
-0x000E480D,   //PC = 0x00001040,     line:     fpmac.32 r9, r14
-0x00000611,   //PC = 0x00001044,     line:     fpstoreacc.32 r12
-0x0020231A,   //PC = 0x00001048,     line:     sw r6, r4, 32
-0x0024239A,   //PC = 0x0000104C,     line:     sw r7, r4, 36
-0x0028249A,   //PC = 0x00001050,     line:     sw r9, r4, 40
-0x0008530F,   //PC = 0x00001054,     line:     fplt r6, r10, r8
-0x10705314,   //PC = 0x00001058,     line:     bne r6, r10, TRIANGLE_INTERSECT_ELSE_BLOCK_1, false
-0x000A630F,   //PC = 0x0000105C,     line:     fplt r6, r12, r10
-0x000C438F,   //PC = 0x00001060,     line:     fplt r7, r8, r12
-0x00073303,   //PC = 0x00001064,     line:     or r6, r6, r7
-0x095CD314,   //PC = 0x00001068,     line:     bne r6, r10, TRIANGLE_INTERSECT_RETURN, true
-0x1080FF93,   //PC = 0x0000106C,     line:     beq r15, r15, TRIANGLE_INTERSECT_END_IF_BLOCK_1, true
-0x000C530F,   //PC = 0x00001070,     line:     fplt r6, r10, r12
-0x0008638F,   //PC = 0x00001074,     line:     fplt r7, r12, r8
-0x00073303,   //PC = 0x00001078,     line:     or r6, r6, r7
-0x095CD314,   //PC = 0x0000107C,     line:     bne r6, r10, TRIANGLE_INTERSECT_RETURN, true
-0x002C259A,   //PC = 0x00001080,     line:     sw r11, r4, 44
-0x0030269A,   //PC = 0x00001084,     line:     sw r13, r4, 48
-0x0034271A,   //PC = 0x00001088,     line:     sw r14, r4, 52
-0x0028231F,   //PC = 0x0000108C,     line:     lw r6, r4, 40
-0x0000239F,   //PC = 0x00001090,     line:     lw r7, r4, 0
-0x0004249F,   //PC = 0x00001094,     line:     lw r9, r4, 4 #e1y
-0x0007350B,   //PC = 0x00001098,     line:     fpmul.32 r10, r6, r7 #tz * e1x
-0x0009330B,   //PC = 0x0000109C,     line:     fpmul.32 r6, r6, r9  #tz * e1y
-0x0024259F,   //PC = 0x000010A0,     line:     lw r11, r4, 36 #ty
-0x00075E8B,   //PC = 0x000010A4,     line:     fpmul.32 r13, r11, r7 #ty * e1x
-0x0008239F,   //PC = 0x000010A8,     line:     lw r7, r4, 8 #e1z
-0x000B3F0B,   //PC = 0x000010AC,     line:     fpmul.32 r14, r7, r11 #ty * e1z
-0x0006770C,   //PC = 0x000010B0,     line:     fpsub.32 r14, r14, r6 #qx
-0x0020231F,   //PC = 0x000010B4,     line:     lw r6, r4, 32 #tx
-0x0007338B,   //PC = 0x000010B8,     line:     fpmul.32 r7, r6, r7 #tx * e1z
-0x0007550C,   //PC = 0x000010BC,     line:     fpsub.32 r10, r10, r7 #qy
-0x00064C8B,   //PC = 0x000010C0,     line:     fpmul.32 r9, r9, r6 #tx * e1y
-0x000D4C8C,   //PC = 0x000010C4,     line:     fpsub.32 r9, r9, r13 #qz
-0x0000DD82,   //PC = 0x000010C8,     line:     and r11, r11, 0
-0x00005810,   //PC = 0x000010CC,     line:     fpsetacc.32 r11
-0x000C031F,   //PC = 0x000010D0,     line:     lw r6, r0, 12
-0x000E300D,   //PC = 0x000010D4,     line:     fpmac.32 r6, r14
-0x0010031F,   //PC = 0x000010D8,     line:     lw r6, r0, 16
-0x000A300D,   //PC = 0x000010DC,     line:     fpmac.32 r6, r10
-0x0014031F,   //PC = 0x000010E0,     line:     lw r6, r0, 20
-0x0009300D,   //PC = 0x000010E4,     line:     fpmac.32 r6, r9
-0x00000391,   //PC = 0x000010E8,     line:     fpstoreacc.32 r7 #r7 = v_unscaled
-0x000C3E0A,   //PC = 0x000010EC,     line:     fpadd.32 r12, r7, r12 #r12 = uv_sum
-0x00085E8F,   //PC = 0x000010F0,     line:     fplt.32 r13, r11, r8 #r8 = det
-0x110C5E93,   //PC = 0x000010F4,     line:     beq r13, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_2, false
-0x000B3A8F,   //PC = 0x000010F8,     line:     fplt.32 r5, r7, r11
-0x000C430F,   //PC = 0x000010FC,     line:     fplt.32 r6, r8, r12
-0x00062A83,   //PC = 0x00001100,     line:     or r5, r5, r6
-0x1120DA94,   //PC = 0x00001104,     line:     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
-0x095CFF93,   //PC = 0x00001108,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
-0x00075A8F,   //PC = 0x0000110C,     line:     fplt.32 r5, r11, r7
-0x0008630F,   //PC = 0x00001110,     line:     fplt.32 r6, r12, r8
-0x00062A83,   //PC = 0x00001114,     line:     or r5, r5, r6
-0x1120DA94,   //PC = 0x00001118,     line:     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
-0x095CFF93,   //PC = 0x0000111C,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
-0x00005810,   //PC = 0x00001120,     line:     fpsetacc.32 r11
-0x000C229F,   //PC = 0x00001124,     line:     lw r5, r4, 12
-0x000E280D,   //PC = 0x00001128,     line:     fpmac.32 r5, r14
-0x0010229F,   //PC = 0x0000112C,     line:     lw r5, r4, 16
-0x000A280D,   //PC = 0x00001130,     line:     fpmac.32 r5, r10
-0x0014229F,   //PC = 0x00001134,     line:     lw r5, r4, 20
-0x0009280D,   //PC = 0x00001138,     line:     fpmac.32 r5, r9
-0x00000291,   //PC = 0x0000113C,     line:     fpstoreacc.32 r5 #t_unscaled
-0x1A0C831F,   //PC = 0x00001140,     line:     lw r6, EPSILON
-0x0008330B,   //PC = 0x00001144,     line:     fpmul.32 r6, r6, r8 #tmin_scaled
-0x0024039F,   //PC = 0x00001148,     line:     lw r7, r0, 36
-0x00083B8B,   //PC = 0x0000114C,     line:     fpmul.32 r7, r7, r8 #tmax_scaled
-0x00085C8F,   //PC = 0x00001150,     line:     fplt.32 r9, r11, r8
-0x116C5C93,   //PC = 0x00001154,     line:     beq r9, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_3, false
-0x00062B0F,   //PC = 0x00001158,     line:     fplt.32 r6, r5, r6
-0x00053B8F,   //PC = 0x0000115C,     line:     fplt.32 r7, r7, r5
-0x00073303,   //PC = 0x00001160,     line:     or r6, r6, r7
-0x11803593,   //PC = 0x00001164,     line:     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
-0x095CFF93,   //PC = 0x00001168,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
-0x0005330F,   //PC = 0x0000116C,     line:     fplt.32 r6, r6, r5
-0x00072B8F,   //PC = 0x00001170,     line:     fplt.32 r7, r5, r7
-0x00073303,   //PC = 0x00001174,     line:     or r6, r6, r7
-0x11803593,   //PC = 0x00001178,     line:     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
-0x095CFF93,   //PC = 0x0000117C,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
-0x0000C480,   //PC = 0x00001180,     line:     add r9, r8, 0
-0x119C8517,   //PC = 0x00001184,     line:     jmp r10, RECIPROCAL
-0x00092A8B,   //PC = 0x00001188,     line:     fpmul.32 r5, r5, r9
-0x0024029A,   //PC = 0x0000118C,     line:     sw r5, r0, 36
-0x0000131F,   //PC = 0x00001190,     line:     lw r6, r2, 0
-0x0038031A,   //PC = 0x00001194,     line:     sw r6, r0, 56
-0x095CFF93,   //PC = 0x00001198,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
-0x19F0859F,   //PC = 0x0000119C,     line:     lw r11, NEG_MAX                     # r11 = 0x80000000
-0x00095E02,   //PC = 0x000011A0,     line:     and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
-0xFFFFDD84,   //PC = 0x000011A4,     line:     xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
-0x00095D82,   //PC = 0x000011A8,     line:     and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
-0x0017CE86,   //PC = 0x000011AC,     line:     srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
-0x00FEEE81,   //PC = 0x000011B0,     line:     sub r13, r13, 254                   # r13 = new_exp = 254 - exp
-0x000CCC86,   //PC = 0x000011B4,     line:     srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
-0x1FFCCC82,   //PC = 0x000011B8,     line:     and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
-0x1A5C871F,   //PC = 0x000011BC,     line:     lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
-0x00007727,   //PC = 0x000011C0,     line:     setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
-0x1A60871F,   //PC = 0x000011C4,     line:     lw r14, DIV_TABLE_LOW               # r14 = div_table_low
-0x00097700,   //PC = 0x000011C8,     line:     add r14, r14, r9                    # r14 = &div_table[index]
-0x000074AC,   //PC = 0x000011CC,     line:     lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
-0x0017EF05,   //PC = 0x000011D0,     line:     sll r14, r13, 23                    # r14 = new_exp << 23
-0x00097483,   //PC = 0x000011D4,     line:     or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
-0x00FEEE81,   //PC = 0x000011D8,     line:     sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
-0x00095E8B,   //PC = 0x000011DC,     line:     fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
-0x19EC859F,   //PC = 0x000011E0,     line:     lw r11, TWO                         # r11 = 2.0f
-0x000D5E8C,   //PC = 0x000011E4,     line:     fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
-0x000D4C8B,   //PC = 0x000011E8,     line:     fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
-0x000C4C83,   //PC = 0x000011EC,     line:     or r9, r9, r12                      # r9 |= sign (restore sign bit)
-0x00007727,   //PC = 0x000011F0,     line:     setmembits r14, r14                 # restore membits
-0x000A0797,   //PC = 0x000011F4,     line:     jmp r15, r10                        # return (result in r9)
-0x000BC506,   //PC = 0x000011F8,     line:     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
-0x1A64859F,   //PC = 0x000011FC,     line:     lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
-0x00005DA7,   //PC = 0x00001200,     line:     setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
-0x1A68861F,   //PC = 0x00001204,     line:     lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
-0x0017C686,   //PC = 0x00001208,     line:     srl r13, r8, 23
-0x017DEE81,   //PC = 0x0000120C,     line:     sub r13, r13, 381
-0x0001EE86,   //PC = 0x00001210,     line:     srl r13, r13, 1
-0x0017EE85,   //PC = 0x00001214,     line:     sll r13, r13, 23
-0x1FFFD502,   //PC = 0x00001218,     line:     and r10, r10, 0x1FFF
-0x0002D505,   //PC = 0x0000121C,     line:     sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
-0x000A6600,   //PC = 0x00001220,     line:     add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
-0x0000662C,   //PC = 0x00001224,     line:     lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
-0x000D6603,   //PC = 0x00001228,     line:     or r12, r12, r13
-0x19E8869F,   //PC = 0x0000122C,     line:     lw r13, HALF                        # r13 = 0.5f
-0x00086E8B,   //PC = 0x00001230,     line:     fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
-0x19F4871F,   //PC = 0x00001234,     line:     lw r14, ONE_POINT_FIVE              # r14 = 1.5f
-0x000C6E8B,   //PC = 0x00001238,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
-0x000C6E8B,   //PC = 0x0000123C,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
-0x000D740C,   //PC = 0x00001240,     line:     fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
-0x000C440B,   //PC = 0x00001244,     line:     fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
-0x00005FA7,   //PC = 0x00001248,     line:     setmembits r11                      # restore old membits (r11 holds saved value)
-0x00090797,   //PC = 0x0000124C,     line:     jmp r15, r9                              # return (result in r8)    
-0x0000091F,   //PC = 0x00001250,     line:     lw r2, r1, 0                        
-0x0000019F,   //PC = 0x00001254,     line:     lw r3, r0, 0
-0x0003110C,   //PC = 0x00001258,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
-0x0018029F,   //PC = 0x0000125C,     line:     lw r5, r0, 24
-0x0005110B,   //PC = 0x00001260,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
-0x00040B1F,   //PC = 0x00001264,     line:     lw r6, r1, 4
-0x0003318C,   //PC = 0x00001268,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
-0x0005198B,   //PC = 0x0000126C,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
-0x00031612,   //PC = 0x00001270,     line:     fpminmax.32 r12, r2, r3, false         # float tmin = min(t1, t2)
-0x00039192,   //PC = 0x00001274,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
-0x0024011F,   //PC = 0x00001278,     line:     lw r2, r0, 36
-0x00031692,   //PC = 0x0000127C,     line:     fpminmax.32 r13, r2, r3, false          # tmax = min(tmax, ray->t_max)
-0x000D630F,   //PC = 0x00001280,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
-0x1A0C851F,   //PC = 0x00001284,     line:     lw r10, EPSILON                 # float epsilon = self.epsilon
-0x000D540F,   //PC = 0x00001288,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
-0x00083582,   //PC = 0x0000128C,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-0x04EC5B95,   //PC = 0x00001290,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
-0x0008091F,   //PC = 0x00001294,     line:     lw r2, r1, 8
-0x0004019F,   //PC = 0x00001298,     line:     lw r3, r0, 4
-0x0003110C,   //PC = 0x0000129C,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
-0x001C029F,   //PC = 0x000012A0,     line:     lw r5, r0, 28
-0x0005110B,   //PC = 0x000012A4,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
-0x000C0B1F,   //PC = 0x000012A8,     line:     lw r6, r1, 12
-0x0003318C,   //PC = 0x000012AC,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
-0x0005198B,   //PC = 0x000012B0,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
-0x00031292,   //PC = 0x000012B4,     line:     fpminmax.32 r5, r2, r3, false         # float tmin = min(t1, t2)
-0x00039192,   //PC = 0x000012B8,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
-0x00036E92,   //PC = 0x000012BC,     line:     fpminmax.32 r13, r13, r3, false          # tmax = min(tmax, ray->t_max)
-0x0005E612,   //PC = 0x000012C0,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, t1)
-0x000D630F,   //PC = 0x000012C4,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
-0x000D540F,   //PC = 0x000012C8,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
-0x00083582,   //PC = 0x000012CC,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-0x04EC5B95,   //PC = 0x000012D0,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
-0x0010091F,   //PC = 0x000012D4,     line:     lw r2, r1, 16                           # r2 = node->z_min
-0x0008019F,   //PC = 0x000012D8,     line:     lw r3, r0, 8                            # r3 = ray->oz
-0x0003110C,   //PC = 0x000012DC,     line:     fpsub.32 r2, r2, r3                     # r2 = node->z_min - ray->oz
-0x0020029F,   //PC = 0x000012E0,     line:     lw r5, r0, 32                           # r5 = ray->inv_dz
-0x0005110B,   //PC = 0x000012E4,     line:     fpmul.32 r2, r2, r5                     # tz1 = (node->z_min - ray->oz) * ray->inv_dz
-0x00140B1F,   //PC = 0x000012E8,     line:     lw r6, r1, 20                           # r6 = node->z_max
-0x0003318C,   //PC = 0x000012EC,     line:     fpsub.32 r3, r6, r3                     # r3 = node->z_max - ray->oz
-0x0005198B,   //PC = 0x000012F0,     line:     fpmul.32 r3, r3, r5                     # tz2 = (node->z_max - ray->oz) * ray->inv_dz
-0x00031292,   //PC = 0x000012F4,     line:     fpminmax.32 r5, r2, r3, false           # r5 = min(tz1, tz2)
-0x00039192,   //PC = 0x000012F8,     line:     fpminmax.32 r3, r2, r3, true            # r3 = max(tz1, tz2)
-0x00036E92,   //PC = 0x000012FC,     line:     fpminmax.32 r13, r13, r3, false         # tmax = min(tmax, max(tz1, tz2))
-0x0005E612,   //PC = 0x00001300,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, min(tz1, tz2))
-0x000D630F,   //PC = 0x00001304,     line:     fplt.32 r6, r12, r13                    # r6 = tmin < tmax
-0x000D540F,   //PC = 0x00001308,     line:     fplt.32 r8, r10, r13                     # r8 = epsilon < tmax
-0x00083582,   //PC = 0x0000130C,     line:     and r11, r6, r8                         # r11 = (tmin <= tmax) && (0.0 < tmax)
-0x04ECFF93,   //PC = 0x00001310,     line:     beq r15, r15, AABB_INTERSECT_RETURN, true # return r11
-0x0000C200,   //PC = 0x00001314,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
-0x00208037,   //PC = 0x00001318,     line:     intdis 32                               # disable_interrupts(channel)
-0x002083A1,   //PC = 0x0000131C,     line:     nonblock r7, 32                             # r7 = nb_recv(channel) (0 if no message waiting)
-0x0000F702,   //PC = 0x00001320,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
-0x1330BF14,   //PC = 0x00001324,     line:     bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
-0x00208026,   //PC = 0x00001328,     line:     intena 32                               # enable_interrupts(channel) (nothing to do)
-0x00040797,   //PC = 0x0000132C,     line:     jmp r15, r4                             # return
-0x002083A0,   //PC = 0x00001330,     line:     block r7, 32                                # r7 = blocking_recv(channel) (full flit value)
-0x19E4841F,   //PC = 0x00001334,     line:     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
-0x00083C02,   //PC = 0x00001338,     line:     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
-0x0011BE86,   //PC = 0x0000133C,     line:     srl r13, r7, 17                         # r13 = node_id = flit >> 17
-0x002C849F,   //PC = 0x00001340,     line:     lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
-0x1378CE93,   //PC = 0x00001344,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
-0x0008F500,   //PC = 0x00001348,     line:     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
-0x0018D505,   //PC = 0x0000134C,     line:     sll r10, r10, 24                        # r10 = wrong_core << 24
-0x000FBD82,   //PC = 0x00001350,     line:     and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
-0xFFF0BE02,   //PC = 0x00001354,     line:     and r12, r7, 0xFFF0                      # r12 = core_id high nibble
-0x000FE605,   //PC = 0x00001358,     line:     sll r12, r12, 15
-0x000FE606,   //PC = 0x0000135C,     line:     srl r12, r12, 15
-0x0002E605,   //PC = 0x00001360,     line:     sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
-0x0010DD80,   //PC = 0x00001364,     line:     add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
-0x000B6583,   //PC = 0x00001368,     line:     or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
-0x00005D31,   //PC = 0x0000136C,     line:     sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
-0x00208026,   //PC = 0x00001370,     line:     intena 32                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x00001374,     line:     jmp r15, r4                             # return
-0x31D4839F,   //PC = 0x00001378,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
-0x13483F14,   //PC = 0x0000137C,     line:     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
-0x003F039C,   //PC = 0x00001380,     line:     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
-0x00008480,   //PC = 0x00001384,     line:     add r9, r0, 0                           # r9 = local_queue = ray base address
-0x13DC3F14,   //PC = 0x00001388,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
-0x1F94849F,   //PC = 0x0000138C,     line:     lw r9, RAY_QUEUE_CNT                # r9 = sender ray queue base address
-0x0001CBB3,   //PC = 0x00001390,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
-0x0020F600,   //PC = 0x00001394,     line:     add r12, r14, 32                        # r12 = 16 (max queue entries)
-0x13C8BE16,   //PC = 0x00001398,     line:     bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
-0xFFFFCBB3,   //PC = 0x0000139C,     line:     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
-0x0007F380,   //PC = 0x000013A0,     line:     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
-0x0018BB85,   //PC = 0x000013A4,     line:     sll r7, r7, 24                          # r7 = reject_ray << 24
-0x00F0C482,   //PC = 0x000013A8,     line:     and r9, r8, 0xF0                        # r9 = core_id high nibble
-0x0002CC85,   //PC = 0x000013AC,     line:     sll r9, r9, 2                           # r9 = high nibble shifted to channel position
-0x000FC402,   //PC = 0x000013B0,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
-0x0010C400,   //PC = 0x000013B4,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
-0x00084C83,   //PC = 0x000013B8,     line:     or r9, r9, r8                           # r9 = destination flit
-0x00004BB1,   //PC = 0x000013BC,     line:     sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
-0x00208026,   //PC = 0x000013C0,     line:     intena 32                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x000013C4,     line:     jmp r15, r4                             # return
-0xFFFCCC80,   //PC = 0x000013C8,     line:     add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
-0x0040CBB3,   //PC = 0x000013CC,     line:     atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
-0x03FFBB82,   //PC = 0x000013D0,     line:     and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
-0x00074B80,   //PC = 0x000013D4,     line:     add r7, r9, r7                          # r7 = queue_base + tail_relative
-0x0008BB80,   //PC = 0x000013D8,     line:     add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
-0x0005F480,   //PC = 0x000013DC,     line:     add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
-0x0018CC85,   //PC = 0x000013E0,     line:     sll r9, r9, 24                          # r9 = ray_ack << 24
-0x000F4C83,   //PC = 0x000013E4,     line:     or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
-0x00F0C502,   //PC = 0x000013E8,     line:     and r10, r8, 0xF0                       # r10 = core_id high nibble
-0x0002D505,   //PC = 0x000013EC,     line:     sll r10, r10, 2                         # r10 = high nibble shifted to channel position
-0x000FC402,   //PC = 0x000013F0,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
-0x0010C400,   //PC = 0x000013F4,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
-0x00085503,   //PC = 0x000013F8,     line:     or r10, r10, r8                         # r10 = destination flit
-0x000054B1,   //PC = 0x000013FC,     line:     sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
-0x000FFC02,   //PC = 0x00001400,     line:     and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
-0x0010C400,   //PC = 0x00001404,     line:     add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
-0x000044A0,   //PC = 0x00001408,     line:     block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
-0x00004520,   //PC = 0x0000140C,     line:     block r10, r8                           # r10 = ray_data[1]
-0x000045A0,   //PC = 0x00001410,     line:     block r11, r8                           # r11 = ray_data[2]
-0x00004620,   //PC = 0x00001414,     line:     block r12, r8                           # r12 = ray_data[3]
-0x00003C9A,   //PC = 0x00001418,     line:     sw r9, r7, 0                            # slot[0]  = ray_data[0]
-0x00043D1A,   //PC = 0x0000141C,     line:     sw r10, r7, 4                           # slot[4]  = ray_data[1]
-0x00083D9A,   //PC = 0x00001420,     line:     sw r11, r7, 8                           # slot[8]  = ray_data[2]
-0x000C3E1A,   //PC = 0x00001424,     line:     sw r12, r7, 12                          # slot[12] = ray_data[3]
-0x000044A0,   //PC = 0x00001428,     line:     block r9, r8                            # r9  = ray_data[4]
-0x00004520,   //PC = 0x0000142C,     line:     block r10, r8                           # r10 = ray_data[5]
-0x000045A0,   //PC = 0x00001430,     line:     block r11, r8                           # r11 = ray_data[6]
-0x00004620,   //PC = 0x00001434,     line:     block r12, r8                           # r12 = ray_data[7]
-0x00103C9A,   //PC = 0x00001438,     line:     sw r9, r7, 16                           # slot[16] = ray_data[4]
-0x00143D1A,   //PC = 0x0000143C,     line:     sw r10, r7, 20                          # slot[20] = ray_data[5]
-0x00183D9A,   //PC = 0x00001440,     line:     sw r11, r7, 24                          # slot[24] = ray_data[6]
-0x001C3E1A,   //PC = 0x00001444,     line:     sw r12, r7, 28                          # slot[28] = ray_data[7]
-0x000044A0,   //PC = 0x00001448,     line:     block r9, r8                            # r9  = ray_data[8]
-0x00004520,   //PC = 0x0000144C,     line:     block r10, r8                           # r10 = ray_data[9]
-0x000045A0,   //PC = 0x00001450,     line:     block r11, r8                           # r11 = ray_data[10]
-0x00004620,   //PC = 0x00001454,     line:     block r12, r8                           # r12 = ray_data[11]
-0x00203C9A,   //PC = 0x00001458,     line:     sw r9, r7, 32                           # slot[32] = ray_data[8]
-0x00243D1A,   //PC = 0x0000145C,     line:     sw r10, r7, 36                          # slot[36] = ray_data[9]
-0x00283D9A,   //PC = 0x00001460,     line:     sw r11, r7, 40                          # slot[40] = ray_data[10]
-0x002C3E1A,   //PC = 0x00001464,     line:     sw r12, r7, 44                          # slot[44] = ray_data[11]
-0x000044A0,   //PC = 0x00001468,     line:     block r9, r8                            # r9  = ray_data[12]
-0x00004520,   //PC = 0x0000146C,     line:     block r10, r8                           # r10 = ray_data[13]
-0x000045A0,   //PC = 0x00001470,     line:     block r11, r8                           # r11 = ray_data[14]
-0x00004620,   //PC = 0x00001474,     line:     block r12, r8                           # r12 = ray_data[15]
-0x00303C9A,   //PC = 0x00001478,     line:     sw r9, r7, 48                           # slot[48] = ray_data[12]
-0x00343D1A,   //PC = 0x0000147C,     line:     sw r10, r7, 52                          # slot[52] = ray_data[13]
-0x00383D9A,   //PC = 0x00001480,     line:     sw r11, r7, 56                          # slot[56] = ray_data[14]
-0x003C3E1A,   //PC = 0x00001484,     line:     sw r12, r7, 60                          # slot[60] = ray_data[15]
-0x31E8809F,   //PC = 0x00001488,     line:     lw r1, ROOT_NODE_ADDRESS
-0x00208026,   //PC = 0x0000148C,     line:     intena 32                               # enable_interrupts(channel)
-0x00040797,   //PC = 0x00001490,     line:     jmp r15, r4                             # return
-0x0000F702,   //PC = 0x00001494,     line:     and r14, r14, 0                          # r14 = 0
-0x19C8859F,   //PC = 0x00001498,     line:     lw r11, NODE_ARRAY_TOP
-0x19C0859A,   //PC = 0x0000149C,     line:     sw r11, SRAM_ALLOC_COUNT
-0x1A44861F,   //PC = 0x000014A0,     line:     lw r12, NODE_ARRAY_HIGH
-0x000065A7,   //PC = 0x000014A4,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
-0x2798F100,   //PC = 0x000014A8,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
-0x0030849F,   //PC = 0x000014AC,     line:     lw r9, NODE_INDEX_OF_ROOT
-0xFFFFDD83,   //PC = 0x000014B0,     line:     or r11, r11, 0xFFFF
-0x0030CC88,   //PC = 0x000014B4,     line:     mul r9, r9, 48
-0x000C4C80,   //PC = 0x000014B8,     line:     add r9, r9, r12
-0x00244D2C,   //PC = 0x000014BC,     line:     lw_d r10, r9, 36
-0x14CC5593,   //PC = 0x000014C0,     line:     beq r11, r10, FOUND_BRANCH_CORE_NODE, false
-0x001C4CAC,   //PC = 0x000014C4,     line:     lw_d r9, r9, 28                        # parent index
-0x14B4FF93,   //PC = 0x000014C8,     line:     beq r15, r15, FIND_BRANCH_NODE, true
-0x0000151A,   //PC = 0x000014CC,     line:     sw r10, r2, 0                            # dram_idx = 0
-0xFFFFF583,   //PC = 0x000014D0,     line:     or r11, r14, 0xFFFF
-0x00041599,   //PC = 0x000014D4,     line:     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
-0x00061719,   //PC = 0x000014D8,     line:     sh r14, r2, 6                            # patch_left = 0
-0x00081719,   //PC = 0x000014DC,     line:     sh r14, r2, 8                            # patch_right = 0
-0x000A1719,   //PC = 0x000014E0,     line:     sh r14, r2, 10                           # is_right = 0
-0x000C171A,   //PC = 0x000014E4,     line:     sw r14, r2, 12                           # depth = 0
-0x00109100,   //PC = 0x000014E8,     line:     add r2, r2, 16                           # stack_top++
-0x2798F580,   //PC = 0x000014EC,     line:     add r11, r14, DFS_STACK
-0x1694D913,   //PC = 0x000014F0,     line:     beq r2, r11, dfs_done, true
-0xFFF09100,   //PC = 0x000014F4,     line:     add r2, r2, -16
-0x0000121F,   //PC = 0x000014F8,     line:     lw r4, r2, 0                             # dram_idx
-0x0004129E,   //PC = 0x000014FC,     line:     lhu r5, r2, 4                            # parent_ptr
-0x0006131E,   //PC = 0x00001500,     line:     lhu r6, r2, 6                            # patch_left
-0x0008139E,   //PC = 0x00001504,     line:     lhu r7, r2, 8                            # patch_right
-0x000A141E,   //PC = 0x00001508,     line:     lhu r8, r2, 10                           # is_right
-0x000C149F,   //PC = 0x0000150C,     line:     lw r9, r2, 12                            # depth
-0x19C4F500,   //PC = 0x00001510,     line:     add r10, r14, SRAM_NODE_ALLOC_PTR              # address of alloc pointer / next free slot
-0x0030D6B3,   //PC = 0x00001514,     line:     atomadd r13, r10, 48                     # r13 = node = atomic_add(sram_slot_address, 48)
-0x1A48861F,   //PC = 0x00001518,     line:     lw r12, NODE_ARRAY_LOW                   # r12 = bottom_node_bits base
-0x0004A585,   //PC = 0x0000151C,     line:     sll r11, r4, 4                           # r11 = dram_idx * 16
-0x0005A505,   //PC = 0x00001520,     line:     sll r10, r4, 5                           # r10 = dram_idx * 32
-0x000B6600,   //PC = 0x00001524,     line:     add r12, r12, r11
-0x000A6600,   //PC = 0x00001528,     line:     add r12, r12, r10                        # r12 = bottom_node_bits + dram_idx * 48
-0x0000652C,   //PC = 0x0000152C,     line:     lw_d r10, r12, 0
-0x00006D1A,   //PC = 0x00001530,     line:     sw r10, r13, 0
-0x0004652C,   //PC = 0x00001534,     line:     lw_d r10, r12, 4
-0x00046D1A,   //PC = 0x00001538,     line:     sw r10, r13, 4
-0x0008652C,   //PC = 0x0000153C,     line:     lw_d r10, r12, 8
-0x00086D1A,   //PC = 0x00001540,     line:     sw r10, r13, 8
-0x000C652C,   //PC = 0x00001544,     line:     lw_d r10, r12, 12
-0x000C6D1A,   //PC = 0x00001548,     line:     sw r10, r13, 12
-0x0010652C,   //PC = 0x0000154C,     line:     lw_d r10, r12, 16
-0x00106D1A,   //PC = 0x00001550,     line:     sw r10, r13, 16
-0x0014652C,   //PC = 0x00001554,     line:     lw_d r10, r12, 20
-0x00146D1A,   //PC = 0x00001558,     line:     sw r10, r13, 20
-0xFFFFF503,   //PC = 0x0000155C,     line:     or r10, r14, 0xFFFF
-0x001E6D19,   //PC = 0x00001560,     line:     sh r10, r13, 30                          # core_owner
-0x002A652B,   //PC = 0x00001564,     line:     lhu_d r10, r12, 42
-0x1590D713,   //PC = 0x00001568,     line:     beq r14, r10, NOT_BRANCH_IMPORT, true
-0x0028652B,   //PC = 0x0000156C,     line:     lhu_d r10, r12, 40
-0x00286D19,   //PC = 0x00001570,     line:     sh r10, r13, 40                          # queue_high_bit_addr
-0x0024652C,   //PC = 0x00001574,     line:     lw_d r10, r12, 36
-0x5FC0D500,   //PC = 0x00001578,     line:     add r10, r10, 24512
-0x00246D1A,   //PC = 0x0000157C,     line:     sw r10, r13, 36                          # queue_low_bit_addr
-0x002C652C,   //PC = 0x00001580,     line:     lw_d r10, r12, 44
-0x2000D500,   //PC = 0x00001584,     line:     add r10, r10, 8192
-0x002C6D1A,   //PC = 0x00001588,     line:     sw r10, r13, 44                          # node_id
-0x15A8FF93,   //PC = 0x0000158C,     line:     beq r15, r15, SKIP_NON_BRANCH_IMPORT, true
-0x0028652B,   //PC = 0x00001590,     line:     lhu_d r10, r12, 40
-0x00286D19,   //PC = 0x00001594,     line:     sh r10, r13, 40                          # queue_high_bit_addr
-0x0024652C,   //PC = 0x00001598,     line:     lw_d r10, r12, 36
-0x00246D1A,   //PC = 0x0000159C,     line:     sw r10, r13, 36                          # queue_low_bit_addr
-0x002C652C,   //PC = 0x000015A0,     line:     lw_d r10, r12, 44
-0x002C6D1A,   //PC = 0x000015A4,     line:     sw r10, r13, 44                          # node_id
-0xFFFFF580,   //PC = 0x000015A8,     line:     add r11, r14, 0xFFFF
-0x002A6D99,   //PC = 0x000015AC,     line:     sh r11, r13, 42                          # prev_index = 0xFFFF
-0x00206C18,   //PC = 0x000015B0,     line:     sb r8, r13, 32                           # is_right = is_right (byte field)
-0x001C6A99,   //PC = 0x000015B4,     line:     sh r5, r13, 28                           # node->parent = parent_ptr
-0x00186D99,   //PC = 0x000015B8,     line:     sh r11, r13, 24                          # left_child = 0xFFFF
-0x001A6D99,   //PC = 0x000015BC,     line:     sh r11, r13, 26                          # right_child = 0xFFFF
-0x0024859F,   //PC = 0x000015C0,     line:     lw r11, RAY_QUEUE_LOW
-0x0000F702,   //PC = 0x000015C4,     line:     and r14, r14, 0
-0xFFFFF600,   //PC = 0x000015C8,     line:     add r12, r14, 0xFFFF
-0x15E4E293,   //PC = 0x000015CC,     line:     beq r5, r12, SKIP_PATCH, true
-0x0001F600,   //PC = 0x000015D0,     line:     add r12, r14, 1
-0x15E0E413,   //PC = 0x000015D4,     line:     beq r8, r12, PATCH_RIGHT_CHILD, true
-0x00003699,   //PC = 0x000015D8,     line:     sh r13, r6, 0                            # *patch_left = node
-0x15E4FF93,   //PC = 0x000015DC,     line:     beq r15, r15, SKIP_PATCH, true
-0x00003E99,   //PC = 0x000015E0,     line:     sh r13, r7, 0                            # *patch_right = node
-0x00246D1F,   //PC = 0x000015E4,     line:     lw r10, r13, 36                         # owner = dram_node->core_owner
-0x15F0DD14,   //PC = 0x000015E8,     line:     bne r10, r11, CHECK_RECURSE, true
-0x002C869A,   //PC = 0x000015EC,     line:     sw r13, ROOT_NODE_ID
-0xFFFFF703,   //PC = 0x000015F0,     line:     or r14, r14, 0xFFFF
-0x1634F513,   //PC = 0x000015F4,     line:     beq r10, r14, DO_RECURSE, true
-0x0000F702,   //PC = 0x000015F8,     line:     and r14, r14, 0
-0x1618DD13,   //PC = 0x000015FC,     line:     beq r10, r11, SET_NODE_ID, true
-0x19BC851F,   //PC = 0x00001600,     line:     lw r10, FOUND_LEAF_CORE_INDEX_FOR_BRANCH
-0x0000F702,   //PC = 0x00001604,     line:     and r14, r14, 0
-0x14EC5714,   //PC = 0x00001608,     line:     bne r14, r10, dfs_loop, false
-0x19B8F500,   //PC = 0x0000160C,     line:     add r10, r14, LEAF_CORE_INDEX_FOR_BRANCH
-0x0001D7B3,   //PC = 0x00001610,     line:     atomadd r15, r10, 1
-0x14ECFF93,   //PC = 0x00001614,     line:     beq r15, r15, dfs_loop, true             # foreign owner: stop here
-0x0001F500,   //PC = 0x00001618,     line:     add r10, r14, 1
-0x19BC851A,   //PC = 0x0000161C,     line:     sw r10, FOUND_LEAF_CORE_INDEX_FOR_BRANCH
-0x002C651F,   //PC = 0x00001620,     line:     lw r10, r12, 44                        # node_id
-0x002C851A,   //PC = 0x00001624,     line:     sw r10, ROOT_NODE_ID
-0x19C4851F,   //PC = 0x00001628,     line:     lw r10, SRAM_NODE_ALLOC_PTR
-0xFFD0D500,   //PC = 0x0000162C,     line:     add r10, r10, -48
-0x31E8851A,   //PC = 0x00001630,     line:     sw r10, ROOT_NODE_ADDRESS
-0x0000F702,   //PC = 0x00001634,     line:     and r14, r14, 0
-0x001865AC,   //PC = 0x00001638,     line:     lw_d r11, r12, 24                        # left index
-0x0001DD00,   //PC = 0x0000163C,     line:     add r10, r11, 1                          #right index
-0x0001CE00,   //PC = 0x00001640,     line:     add r12, r9, 1                           # child_depth = depth + 1
-0x0000151A,   //PC = 0x00001644,     line:     sw r10, r2, 0                            # right_idx
-0x00041699,   //PC = 0x00001648,     line:     sh r13, r2, 4                            # parent = node
-0x0018ED00,   //PC = 0x0000164C,     line:     add r10, r13, 24
-0x00061519,   //PC = 0x00001650,     line:     sh r10, r2, 6                            # patch_left = &node->left_child
-0x001AED00,   //PC = 0x00001654,     line:     add r10, r13, 26
-0x00081519,   //PC = 0x00001658,     line:     sh r10, r2, 8                            # patch_right = &node->right_child
-0x0001F500,   //PC = 0x0000165C,     line:     add r10, r14, 1
-0x000A1519,   //PC = 0x00001660,     line:     sh r10, r2, 10                           # is_right = 1
-0x000C161A,   //PC = 0x00001664,     line:     sw r12, r2, 12                           # depth + 1
-0x00109100,   //PC = 0x00001668,     line:     add r2, r2, 16
-0x0000159A,   //PC = 0x0000166C,     line:     sw r11, r2, 0                            # left_idx
-0x00041699,   //PC = 0x00001670,     line:     sh r13, r2, 4
-0x0018ED00,   //PC = 0x00001674,     line:     add r10, r13, 24
-0x00061519,   //PC = 0x00001678,     line:     sh r10, r2, 6
-0x001AED00,   //PC = 0x0000167C,     line:     add r10, r13, 26
-0x00081519,   //PC = 0x00001680,     line:     sh r10, r2, 8
-0x000A1719,   //PC = 0x00001684,     line:     sh r14, r2, 10                           # is_right = 0
-0x000C161A,   //PC = 0x00001688,     line:     sw r12, r2, 12
-0x00109100,   //PC = 0x0000168C,     line:     add r2, r2, 16
-0x14ECFF93,   //PC = 0x00001690,     line:     beq r15, r15, dfs_loop, true
-0x0000F702,   //PC = 0x00001694,     line:     and r14, r14, 0
-0x1998851F,   //PC = 0x00001698,     line:     lw r10, JUMP_TO_RAY_EAT_INTERRUPT
-0xBF80851A,   //PC = 0x0000169C,     line:     sw r10, 49024
-0xBF84851A,   //PC = 0x000016A0,     line:     sw r10, 49028
-0x199C851F,   //PC = 0x000016A4,     line:     lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
-0xBF88851A,   //PC = 0x000016A8,     line:     sw r10, 49032
-0x1A44861F,   //PC = 0x000016AC,     line:     lw r12, NODE_ARRAY_HIGH
-0x000066A7,   //PC = 0x000016B0,     line:     setmembits r13, r12
-0x00008882,   //PC = 0x000016B4,     line:     and r1, r1, 0
-0x7F648880,   //PC = 0x000016B8,     line:     add r1, r1, 32612
-0x0024811F,   //PC = 0x000016BC,     line:     lw r2, RAY_QUEUE_LOW
-0x00020880,   //PC = 0x000016C0,     line:     add r1, r1, r2
-0x0000092C,   //PC = 0x000016C4,     line:     lw_d r2, r1, 0
-0x000409AC,   //PC = 0x000016C8,     line:     lw_d r3, r1, 4
-0x00088880,   //PC = 0x000016CC,     line:     add r1, r1, 8
-0x19C4831F,   //PC = 0x000016D0,     line:     lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
-0x00061200,   //PC = 0x000016D4,     line:     add r4, r2, r6              # i = 0
-0x31E4831A,   //PC = 0x000016D8,     line:     sw r6, INDEX_ARRAY_BASE     
-0x31E0821A,   //PC = 0x000016DC,     line:     sw r4, VERTEX_ARRAY_BASE    
-0x16F83215,   //PC = 0x000016E0,     line:     blte r4, r6, index_copy_done, false
-0x00000AAC,   //PC = 0x000016E4,     line:     lw_d r5, r1, 0
-0x0000329A,   //PC = 0x000016E8,     line:     sw r5, r6, 0                # *(sram_dst) = ...
-0x00048880,   //PC = 0x000016EC,     line:     add r1, r1, 4               # dram_src += 4
-0x0004B300,   //PC = 0x000016F0,     line:     add r6, r6, 4               # sram_dst += 4
-0x16E0FF93,   //PC = 0x000016F4,     line:     beq r15, r15, index_copy_loop, true
-0x0000A300,   //PC = 0x000016F8,     line:     add r6, r4, 0
-0x00032200,   //PC = 0x000016FC,     line:     add r4, r4, r3
-0x17183215,   //PC = 0x00001700,     line:     blte r4, r6, vertex_copy_done, false
-0x00000AAC,   //PC = 0x00001704,     line:     lw_d r5, r1, 0
-0x0000329A,   //PC = 0x00001708,     line:     sw r5, r6, 0                # *(sram_dst) = ...
-0x00048880,   //PC = 0x0000170C,     line:     add r1, r1, 4               # dram_src += 4
-0x0004B300,   //PC = 0x00001710,     line:     add r6, r6, 4               # sram_dst += 4
-0x1700FF93,   //PC = 0x00001714,     line:     beq r15, r15, vertex_copy_loop, true
-0x1F8C809F,   //PC = 0x00001718,     line:     lw r1, RAY_QUEUE_HEAD
-0x00000F1A,   //PC = 0x0000171C,     line:     sw r14, r1, 0
-0x00040F1A,   //PC = 0x00001720,     line:     sw r14, r1, 4
-0x00080F1A,   //PC = 0x00001724,     line:     sw r14, r1, 8
-0x004B8880,   //PC = 0x00001728,     line:     add r1, r1, 75
-0x0010F100,   //PC = 0x0000172C,     line:     add r2, r14, 16
-0x1744F113,   //PC = 0x00001730,     line:     beq r2, r14, queue_loop_1_done, true
-0x00000F1A,   //PC = 0x00001734,     line:     sw r14, r1, 0
-0x00408880,   //PC = 0x00001738,     line:     add r1, r1, 64
-0xFFFF9100,   //PC = 0x0000173C,     line:     add r2, r2, -1
-0x1730FF93,   //PC = 0x00001740,     line:     beq r15, r15, queue_loop_1, true
-0x00010F18,   //PC = 0x00001744,     line:     sb r14, r1, 1
-0x00050F18,   //PC = 0x00001748,     line:     sb r14, r1, 5
-0x00090F18,   //PC = 0x0000174C,     line:     sb r14, r1, 9
-0x004C8880,   //PC = 0x00001750,     line:     add r1, r1, 76
-0x0010F100,   //PC = 0x00001754,     line:     add r2, r14, 16
-0x176CF113,   //PC = 0x00001758,     line:     beq r2, r14, queue_loop_2_done, true
-0x00000F1A,   //PC = 0x0000175C,     line:     sw r14, r1, 0
-0x00408880,   //PC = 0x00001760,     line:     add r1, r1, 64
-0xFFFF9100,   //PC = 0x00001764,     line:     add r2, r2, -1
-0x1758FF93,   //PC = 0x00001768,     line:     beq r15, r15, queue_loop_2, true
-0x31D4871A,   //PC = 0x0000176C,     line:     sw r14, LOCAL_QUEUE_FLUSHING
-0x2FAC809F,   //PC = 0x00001770,     line:     lw r1, TILE_DATA_COUNT
-0x00040F1A,   //PC = 0x00001774,     line:     sw r14, r1, 4
-0x00000F1A,   //PC = 0x00001778,     line:     sw r14, r1, 0
-0x31D0871A,   //PC = 0x0000177C,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x1A8C809F,   //PC = 0x00001780,     line:     lw r1, RAY_ARRAY
-0x0006F905,   //PC = 0x00001784,     line:     sll r2, r15, 6
-0x00020880,   //PC = 0x00001788,     line:     add r1, r1, r2
-0x003F0F18,   //PC = 0x0000178C,     line:     sb r14, r1, 63
-0x2F98871A,   //PC = 0x00001790,     line:     sw r14, PREVIOUSLY_IDLE
-0x2F9C871A,   //PC = 0x00001794,     line:     sw r14, RAYS_PROCESSED
-0x2FA0871A,   //PC = 0x00001798,     line:     sw r14, LAST_OBSERVED_CYCLE
-0x31D0871A,   //PC = 0x0000179C,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x31D4871A,   //PC = 0x000017A0,     line:     sw r14, LOCAL_QUEUE_FLUSHING
-0x00208026,   //PC = 0x000017A4,     line:     intena 32
-0x00228026,   //PC = 0x000017A8,     line:     intena 34
-0x00238026,   //PC = 0x000017AC,     line:     intena 35
-0x00248026,   //PC = 0x000017B0,     line:     intena 36
-0x00008025,   //PC = 0x000017B4,     line:     relinquish true
-0x0A74FF93,   //PC = 0x000017B8,     line:     beq r15, r15, ray_done, true
-0x1A6C819F,   //PC = 0x000017BC,     line:     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
-0x000039A7,   //PC = 0x000017C0,     line:     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
-0x1A70821F,   //PC = 0x000017C4,     line:     lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
-0x0008A200,   //PC = 0x000017C8,     line:     add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
-0x0001A2B0,   //PC = 0x000017CC,     line:     atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
-0xFFFCA200,   //PC = 0x000017D0,     line:     add r4, r4, -4                          # r4 = &idle_queue.tail_relative
-0x0004A2B0,   //PC = 0x000017D4,     line:     atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
-0x0010A200,   //PC = 0x000017D8,     line:     add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
-0x7FFFAA82,   //PC = 0x000017DC,     line:     and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
-0x00052200,   //PC = 0x000017E0,     line:     add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
-0x000222AB,   //PC = 0x000017E4,     line:     lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
-0x17E42F14,   //PC = 0x000017E8,     line:     bne r14, r5, IDLE_CORE_INSERT_SPINLOCK, false  # spin until is_valid == 0 (slot is free)
-0x0004FA86,   //PC = 0x000017EC,     line:     srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
-0x000022AE,   //PC = 0x000017F0,     line:     sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
-0x0001F280,   //PC = 0x000017F4,     line:     add r5, r14, 1                          # r5 = 1
-0x000222AE,   //PC = 0x000017F8,     line:     sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
-0x00020797,   //PC = 0x000017FC,     line:     jmp r15, r2                             # return
-0x0000F702,   //PC = 0x00001800,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
-0x1A6C829F,   //PC = 0x00001804,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
-0x2798F280,   //PC = 0x00001808,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
-0x00002AA7,   //PC = 0x0000180C,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
-0x1A70831F,   //PC = 0x00001810,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
-0xFFFFC403,   //PC = 0x00001814,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
-0xFFFFB4B0,   //PC = 0x00001818,     line:     atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
-0x0000B200,   //PC = 0x0000181C,     line:     add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
-0x18EC7496,   //PC = 0x00001820,     line:     bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
-0x0001B4B0,   //PC = 0x00001824,     line:     atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
-0x000C33AC,   //PC = 0x00001828,     line:     lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
-0x0010332C,   //PC = 0x0000182C,     line:     lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
-0x00003FA7,   //PC = 0x00001830,     line:     setmembits r7                       # set_address_bits(parent_node_high)
-0x001834AA,   //PC = 0x00001834,     line:     lh_d r9, r6, 24                     #r9 = is_left
-0x001A352A,   //PC = 0x00001838,     line:     lh_d r10, r6, 26                    #r10 = height
-0x000035AC,   //PC = 0x0000183C,     line:     lw_d r11, r6, 0                     #r11 = parent_high
-0x31D8859A,   //PC = 0x00001840,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
-0x0004362C,   //PC = 0x00001844,     line:     lw_d r12, r6, 4                     #r12 = parent_low
-0x31DC861A,   //PC = 0x00001848,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
-0xFFFFEE83,   //PC = 0x0000184C,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
-0x19246D93,   //PC = 0x00001850,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
-0x00005FA7,   //PC = 0x00001854,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x18684F13,   //PC = 0x00001858,     line:     beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
-0x0010632C,   //PC = 0x0000185C,     line:     lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
-0x001463AC,   //PC = 0x00001860,     line:     lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
-0x1870FF93,   //PC = 0x00001864,     line:     beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
-0x0008632C,   //PC = 0x00001868,     line:     lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
-0x000C63AC,   //PC = 0x0000186C,     line:     lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
-0x00002B1A,   //PC = 0x00001870,     line:     sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
-0x00042B9A,   //PC = 0x00001874,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
-0x00082D19,   //PC = 0x00001878,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
-0x000CAA80,   //PC = 0x0000187C,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
-0x2798F680,   //PC = 0x00001880,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
-0x19142E93,   //PC = 0x00001884,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
-0xFFF4AA80,   //PC = 0x00001888,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
-0x00002A1F,   //PC = 0x0000188C,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
-0x000027A7,   //PC = 0x00001890,     line:     setmembits r4                       # set_address_bits(dfs_node_high)
-0x00042A1F,   //PC = 0x00001894,     line:     lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
-0x00082E9E,   //PC = 0x00001898,     line:     lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
-0x18D8F693,   //PC = 0x0000189C,     line:     beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
-0xFFFFEE80,   //PC = 0x000018A0,     line:     add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
-0x001025AC,   //PC = 0x000018A4,     line:     lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
-0x0014262C,   //PC = 0x000018A8,     line:     lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
-0x00002D9A,   //PC = 0x000018AC,     line:     sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
-0x00042E1A,   //PC = 0x000018B0,     line:     sw r12, r5, 4                       # dfs_stack[top].low = right_low
-0x00082E99,   //PC = 0x000018B4,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
-0x000CAA80,   //PC = 0x000018B8,     line:     add r5, r5, 12                      # dfs_top++
-0x000825AC,   //PC = 0x000018BC,     line:     lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
-0x000C262C,   //PC = 0x000018C0,     line:     lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
-0x00002D9A,   //PC = 0x000018C4,     line:     sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
-0x00042E1A,   //PC = 0x000018C8,     line:     sw r12, r5, 4                       # dfs_stack[top].low = left_low
-0x00082E99,   //PC = 0x000018CC,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
-0x000CAA80,   //PC = 0x000018D0,     line:     add r5, r5, 12                      # dfs_top++
-0x1880FF93,   //PC = 0x000018D4,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
-0x0008A200,   //PC = 0x000018D8,     line:     add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
-0xFFFFA4B0,   //PC = 0x000018DC,     line:     atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
-0x18EC7496,   //PC = 0x000018E0,     line:     bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
-0x0001A4B0,   //PC = 0x000018E4,     line:     atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
-0x1880FF93,   //PC = 0x000018E8,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
-0xFFF8A200,   //PC = 0x000018EC,     line:     add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
-0x0004A4B0,   //PC = 0x000018F0,     line:     atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
-0x7FFFCC82,   //PC = 0x000018F4,     line:     and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
-0x00092200,   //PC = 0x000018F8,     line:     add r4, r4, r9                      # r4 = dfs_node + head_relative
-0x0014A200,   //PC = 0x000018FC,     line:     add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
-0x000224AB,   //PC = 0x00001900,     line:     lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
-0x19007493,   //PC = 0x00001904,     line:     beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
-0x0000242B,   //PC = 0x00001908,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
-0x0002272E,   //PC = 0x0000190C,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
-0x1924FF93,   //PC = 0x00001910,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
-0x31D8859F,   //PC = 0x00001914,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
-0x00005FA7,   //PC = 0x00001918,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x31DC831F,   //PC = 0x0000191C,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
-0x1834FF93,   //PC = 0x00001920,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
-0xFFFFCC83,   //PC = 0x00001924,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
-0x0A744493,   //PC = 0x00001928,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
-0x0022C7B1,   //PC = 0x0000192C,     line:     sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
-0x000FFC82,   //PC = 0x00001930,     line:     and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
-0x0010CC80,   //PC = 0x00001934,     line:     add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
-0x00004CA0,   //PC = 0x00001938,     line:     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
-0x0018CD86,   //PC = 0x0000193C,     line:     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
-0x000EF500,   //PC = 0x00001940,     line:     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
-0x0A745594,   //PC = 0x00001944,     line:     bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
-0x0001F500,   //PC = 0x00001948,     line:     add r10, r14, 1                     # r10 = 1
-0x0000C531,   //PC = 0x0000194C,     line:     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
-0x0001CD82,   //PC = 0x00001950,     line:     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
-0x0028861F,   //PC = 0x00001954,     line:     lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
-0x19786593,   //PC = 0x00001958,     line:     beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
-0x19CC861F,   //PC = 0x0000195C,     line:     lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
-0x19D0829F,   //PC = 0x00001960,     line:     lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
-0x00056280,   //PC = 0x00001964,     line:     add r5, r12, r5                     # r5 = end address of code region
-0x0000631F,   //PC = 0x00001968,     line:     lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
-0x0000C331,   //PC = 0x0000196C,     line:     sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
-0x0004E600,   //PC = 0x00001970,     line:     add r12, r12, 4                     # i += 4
-0x1968E294,   //PC = 0x00001974,     line:     bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
-0x19D4861F,   //PC = 0x00001978,     line:     lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
-0x19D8829F,   //PC = 0x0000197C,     line:     lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
-0x00056280,   //PC = 0x00001980,     line:     add r5, r12, r5                     # r5 = end address of geometry region
-0x0000631F,   //PC = 0x00001984,     line:     lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
-0x0000C331,   //PC = 0x00001988,     line:     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
-0x0004E600,   //PC = 0x0000198C,     line:     add r12, r12, 4                     # i += 4
-0x1984E294,   //PC = 0x00001990,     line:     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
-0x0A74FF93,   //PC = 0x00001994,     line:     beq r15, r15, ray_done, true       # unconditional goto RAY_DONE
-0x13148797,   //PC = 0x00001998,     line: jmp r15, EAT_RAY_INTERRUPT
-0x02A88797,   //PC = 0x0000199C,     line: jmp r15, SWITCH_ROLES_INTERRUPT
-0x000004D2,   //PC = 0x000019A0,     line: .data 1234
-0x0000001C,   //PC = 0x000019A4,     line: .data 28
-0xFFFFFFFF,   //PC = 0x000019A8,     line: .data -1
-0x00000000,   //PC = 0x000019AC,     line: .data 0
-0x03C25F30,   //PC = 0x000019B0,     line: .data 63070000
-0xFFFFFFFF,   //PC = 0x000019B4,     line: .data -1
-0x00000000,   //PC = 0x000019B8,     line: .data 0
+0x0C84BD95,   //PC = 0x00000C28,     line:     blte r11, r7, CHECK_DONE, true
+0x0008CC80,   //PC = 0x00000C2C,     line:     add r9, r9, 8
+0x0001CDB0,   //PC = 0x00000C30,     line:     atomadd_d r11, r9, 1       # r11 = old_cnt, increment count
+0x0000BB82,   //PC = 0x00000C34,     line:     and r7, r7, 0
+0x0C44BD96,   //PC = 0x00000C38,     line:     bgt r11, r7, EMERGANCY_QUEUE_CONTINUE, true
+0xFFFFCDB0,   //PC = 0x00000C3C,     line:     atomadd_d r11, r9, -1      # undo increment
+0x0C84FF93,   //PC = 0x00000C40,     line:     beq r15, r15, CHECK_DONE, true
+0xFFF8CC80,   //PC = 0x00000C44,     line:     add r9, r9, -8
+0x0004CD30,   //PC = 0x00000C48,     line:     atomadd_d r10, r9, 4 
+0x00FFD502,   //PC = 0x00000C4C,     line:     and r10, r10, 0xFF
+0x000A4C80,   //PC = 0x00000C50,     line:     add r9, r9, r10
+0x000CCC80,   //PC = 0x00000C54,     line:     add r9, r9, 12
+0x0002CD00,   //PC = 0x00000C58,     line:     add r10, r9, 2           # r10 = emergency_queue_low + 2
+0x00005529,   //PC = 0x00000C5C,     line:     lbu_d r10, r10, 0          # r10 = is_ready
+0x0000BB82,   //PC = 0x00000C60,     line:     and r7, r7, 0
+0x0001BB80,   //PC = 0x00000C64,     line:     add r7, r7, 1
+0x0C58BD13,   //PC = 0x00000C68,     line:     beq r10, r7, ENSURE_EMERGENCY_SLOT_READY_TWO, true
+0x00004DAC,   //PC = 0x00000C6C,     line:     lw_d r11, r9, 0           # r11 = new_node_id (uint32 loaded from slot)
+0x0002CD00,   //PC = 0x00000C70,     line:     add r10, r9, 2           # r10 = emergency_queue_low + 2
+0x0000BB82,   //PC = 0x00000C74,     line:     and r7, r7, 0
+0x000053AF,   //PC = 0x00000C78,     line:     sb_d r7, r10, 0          # mark slot as empty by writing 0 to is_ready
+0x0044FF93,   //PC = 0x00000C7C,     line:     beq r15, r15, SWITCH_DRAM_QUEUE, true
+0x00000422,   //PC = 0x00000C80,     line:     yield r8
+0x0EC88117,   //PC = 0x00000C84,     line:     jmp r2, is_idle_leaf# r2 is return address @ ALEX LOOK AT THIS
+0x00000422,   //PC = 0x00000C88,     line:     yield r8                             # yield()
+0x1A8C811F,   //PC = 0x00000C8C,     line:     lw r2, RAYS_COMPLETED_HIGH           # uint32_t finished_ray_high = self.ray_result_addr_high  -- differs: pseudocode uses ray_result_addr, asm uses RAYS_COMPLETED
+0x000017A7,   //PC = 0x00000C90,     line:     setmembits r2                        # set_address_bits(finished_ray_high)
+0x1A90811F,   //PC = 0x00000C94,     line:     lw r2, RAYS_COMPLETED_LOW            # uint32_t finished_ray_low = self.ray_result_addr_low
+0x0000112C,   //PC = 0x00000C98,     line:     lw_d r2, r2, 0                       # uint32_t rays_finished = load_dram_word(finished_ray_low)
+0x1A18819F,   //PC = 0x00000C9C,     line:     lw r3, MAX_RAYS                      # uint32_t max_rays = 1440 * 2560 * 4
+0x0A849914,   //PC = 0x00000CA0,     line:     bne r2, r3, ray_done, true           # if (rays_finished != max_rays) goto ray_done
+0x00000422,   //PC = 0x00000CA4,     line:     yield r8                             # yield()
+0x00000023,   //PC = 0x00000CA8,     line:     getowner                             # get_thread_ownership()
+0x000E8024,   //PC = 0x00000CAC,     line:     setctx 14                            # set_ctx(14)  -- differs: pseudocode uses 15
+0x00008025,   //PC = 0x00000CB0,     line:     relinquish true                         # relinquish_ownership(1)
+0x000007A2,   //PC = 0x00000CB4,     line:     yield r15                            # yield()
+0x1A44801F,   //PC = 0x00000CB8,     line:     lw r0, RAY_RESULT_HIGH           # uint32_t pixel_addr_high = self.ray_result_addr_high
+0x000007A7,   //PC = 0x00000CBC,     line:     setmembits r0                        # set_address_bits(pixel_addr_high)
+0x1A48801F,   //PC = 0x00000CC0,     line:     lw r0, RAY_RESULT_LOW            # uint32_t pixel_addr_low = self.ray_result_addr_low
+0x0004F886,   //PC = 0x00000CC4,     line:     srl r1, r15, 4                       # uint32_t pix_index = self.core_id >> 4
+0x000FF902,   //PC = 0x00000CC8,     line:     and r2, r15, 0xF                     # uint32_t thread_index = self.core_id & 0xF
+0x000F8888,   //PC = 0x00000CCC,     line:     mul r1, r1, 15                       # pix_index *= 15
+0x00088886,   //PC = 0x00000CD0,     line:     srl r1, r1, 8                        # pix_index >>= 8  -- r1 = pix_increment  -- differs: pseudocode adds 15 then shifts
+0x00010000,   //PC = 0x00000CD4,     line:     add r0, r0, r1                       # pixel_addr_low += pix_increment
+0x0000F702,   //PC = 0x00000CD8,     line:     and r14, r14, 0                      # r14 = 0
+0x00008882,   //PC = 0x00000CDC,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
+0x0002F100,   //PC = 0x00000CE0,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
+0x1A9CF200,   //PC = 0x00000CE4,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+0x000FFA82,   //PC = 0x00000CE8,     line:     and r5, r15, 0xF                     # r5 = thread_index
+0x0006AA85,   //PC = 0x00000CEC,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
+0x00052200,   //PC = 0x00000CF0,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
+0x0000271A,   //PC = 0x00000CF4,     line:     sw r14, r4, 0                        # carried_r = 0.0f
+0x0004271A,   //PC = 0x00000CF8,     line:     sw r14, r4, 4                        # carried_g = 0.0f
+0x0008271A,   //PC = 0x00000CFC,     line:     sw r14, r4, 8                        # carried_b = 0.0f
+0x00069285,   //PC = 0x00000D00,     line:     sll r5, r2, 6                        # uint32_t bounce_addr = bounce << 6 (64 bytes per bounce slot)
+0x00050280,   //PC = 0x00000D04,     line:     add r5, r0, r5                       # bounce_addr += pixel_addr_low
+0x00002B2C,   //PC = 0x00000D08,     line:     lw_d r6, r5, 0                       # float sr = load_dram_word(bounce_addr)
+0x00042BAC,   //PC = 0x00000D0C,     line:     lw_d r7, r5, 4                       # float sg = load_dram_word(bounce_addr + 4)
+0x00082C2C,   //PC = 0x00000D10,     line:     lw_d r8, r5, 8                       # float sb = load_dram_word(bounce_addr + 8)
+0x000C2CAC,   //PC = 0x00000D14,     line:     lw_d r9, r5, 12                      # float metallic = load_dram_word(bounce_addr + 12)
+0x000C231A,   //PC = 0x00000D18,     line:     sw r6, r4, 12                        # scratch->sr = sr
+0x0010239A,   //PC = 0x00000D1C,     line:     sw r7, r4, 16                        # scratch->sg = sg
+0x0014241A,   //PC = 0x00000D20,     line:     sw r8, r4, 20                        # scratch->sb = sb
+0x0018249A,   //PC = 0x00000D24,     line:     sw r9, r4, 24                        # scratch->metallic = metallic
+0x001C271A,   //PC = 0x00000D28,     line:     sw r14, r4, 28                       # acc_r = 0.0f
+0x0020271A,   //PC = 0x00000D2C,     line:     sw r14, r4, 32                       # acc_g = 0.0f
+0x0024271A,   //PC = 0x00000D30,     line:     sw r14, r4, 36                       # acc_b = 0.0f
+0x0010AA80,   //PC = 0x00000D34,     line:     add r5, r5, 16                       # shadow_addr = bounce_addr + 16 (skip sr/sg/sb/metallic)
+0x0000B302,   //PC = 0x00000D38,     line:     and r6, r6, 0                        # uint32_t light = 0
+0x000C2CAC,   //PC = 0x00000D3C,     line:     lw_d r9, r5, 12                      # uint32_t len_sq = load_dram_word(shadow_addr + 12)
+0xFFFFC403,   //PC = 0x00000D40,     line:     or r8, r8, 0xFFFF                # r8 = 0xFFFFFFFF (sentinel for blocked/no light)
+0x0D884493,   //PC = 0x00000D44,     line:     beq r9, r8, SHADOW_SKIP, false             # if (len_sq == 0xFFFFFFFF) goto shadow_skip  -- differs: pseudocode has inverted condition
+0x11AC8517,   //PC = 0x00000D48,     line:     jmp r10, RECIPROCAL                  # float atten = reciprocal(len_sq)  -- result in r9
+0x00002BAC,   //PC = 0x00000D4C,     line:     lw_d r7, r5, 0                       # float lr = load_dram_word(shadow_addr)
+0x00042C2C,   //PC = 0x00000D50,     line:     lw_d r8, r5, 4                       # float lg = load_dram_word(shadow_addr + 4)
+0x00082D2C,   //PC = 0x00000D54,     line:     lw_d r10, r5, 8                      # float lb = load_dram_word(shadow_addr + 8)
+0x00093B8B,   //PC = 0x00000D58,     line:     fpmul.32 r7, r7, r9                   # lr *= atten
+0x0009440B,   //PC = 0x00000D5C,     line:     fpmul.32 r8, r8, r9                   # lg *= atten
+0x0009550B,   //PC = 0x00000D60,     line:     fpmul.32 r10, r10, r9                 # lb *= atten
+0x001C259F,   //PC = 0x00000D64,     line:     lw r11, r4, 28                       # r11 = acc_r
+0x0020261F,   //PC = 0x00000D68,     line:     lw r12, r4, 32                       # r12 = acc_g
+0x0024269F,   //PC = 0x00000D6C,     line:     lw r13, r4, 36                       # r13 = acc_b
+0x00075D8A,   //PC = 0x00000D70,     line:     fpadd.32 r11, r11, r7                 # acc_r += lr 
+0x0008660A,   //PC = 0x00000D74,     line:     fpadd.32 r12, r12, r8                 # acc_g += lg
+0x000A6E8A,   //PC = 0x00000D78,     line:     fpadd.32 r13, r13, r10               # acc_b += lb
+0x001C259A,   //PC = 0x00000D7C,     line:     sw r11, r4, 28                       # store acc_r
+0x0020261A,   //PC = 0x00000D80,     line:     sw r12, r4, 32                       # store acc_g
+0x0024269A,   //PC = 0x00000D84,     line:     sw r13, r4, 36                       # store acc_b
+0x0010AA80,   //PC = 0x00000D88,     line:     add r5, r5, 16                       # shadow_addr += 16 (next light slot)
+0x0001B300,   //PC = 0x00000D8C,     line:     add r6, r6, 1                        # light += 1
+0x0003F380,   //PC = 0x00000D90,     line:     add r7, r14, 3                       # r7 = NUM_LIGHTS (3)
+0x0D3CB396,   //PC = 0x00000D94,     line:     bgt r7, r6, SHADOW_LOOP, true        # if (light < NUM_LIGHTS) goto shadow_loop
+0x001C231F,   //PC = 0x00000D98,     line:     lw r6, r4, 28                        # r6 = acc_r
+0x0020239F,   //PC = 0x00000D9C,     line:     lw r7, r4, 32                        # r7 = acc_g
+0x0024241F,   //PC = 0x00000DA0,     line:     lw r8, r4, 36                        # r8 = acc_b
+0x000C249F,   //PC = 0x00000DA4,     line:     lw r9, r4, 12                        # r9 = sr
+0x0010251F,   //PC = 0x00000DA8,     line:     lw r10, r4, 16                       # r10 = sg
+0x0014259F,   //PC = 0x00000DAC,     line:     lw r11, r4, 20                       # r11 = sb
+0x0018261F,   //PC = 0x00000DB0,     line:     lw r12, r4, 24                       # r12 = metallic
+0x1A14869F,   //PC = 0x00000DB4,     line:     lw r13, ONE                          # r13 = 1.0f
+0x000C6E8C,   //PC = 0x00000DB8,     line:     fpsub.32 r13, r13, r12                   # float inv_metallic = 1.0f - metallic
+0x0009330B,   //PC = 0x00000DBC,     line:     fpmul.32 r6, r6, r9                   # float diffuse_r = acc_r * sr
+0x000A3B8B,   //PC = 0x00000DC0,     line:     fpmul.32 r7, r7, r10                  # float diffuse_g = acc_g * sg
+0x000B440B,   //PC = 0x00000DC4,     line:     fpmul.32 r8, r8, r11                  # float diffuse_b = acc_b * sb
+0x000D330B,   //PC = 0x00000DC8,     line:     fpmul.32 r6, r6, r13                  # diffuse_r *= inv_metallic
+0x000D3B8B,   //PC = 0x00000DCC,     line:     fpmul.32 r7, r7, r13                  # diffuse_g *= inv_metallic
+0x000D440B,   //PC = 0x00000DD0,     line:     fpmul.32 r8, r8, r13                  # diffuse_b *= inv_metallic
+0x0000269F,   //PC = 0x00000DD4,     line:     lw r13, r4, 0                        # r13 = carried_r
+0x00096E8B,   //PC = 0x00000DD8,     line:     fpmul.32 r13, r13, r9                 # carried_r *= sr
+0x000C6E8B,   //PC = 0x00000DDC,     line:     fpmul.32 r13, r13, r12               # carried_r *= metallic
+0x000D330A,   //PC = 0x00000DE0,     line:     fpadd.32 r6, r6, r13                  # diffuse_r *= (carried_r * metallic)  -- differs: pseudocode does carried_r += diffuse_r at end
+0x0000231A,   //PC = 0x00000DE4,     line:     sw r6, r4, 0                         # store new carried_r
+0x0004269F,   //PC = 0x00000DE8,     line:     lw r13, r4, 4                        # r13 = carried_g
+0x000A6E8B,   //PC = 0x00000DEC,     line:     fpmul.32 r13, r13, r10               # carried_g *= sg
+0x000C6E8B,   //PC = 0x00000DF0,     line:     fpmul.32 r13, r13, r12               # carried_g *= metallic
+0x000D3B8A,   //PC = 0x00000DF4,     line:     fpadd.32 r7, r7, r13                  # diffuse_g *= (carried_g * metallic)
+0x0004239A,   //PC = 0x00000DF8,     line:     sw r7, r4, 4                         # store new carried_g
+0x0008269F,   //PC = 0x00000DFC,     line:     lw r13, r4, 8                        # r13 = carried_b
+0x000B6E8B,   //PC = 0x00000E00,     line:     fpmul.32 r13, r13, r11               # carried_b *= sb
+0x000C6E8B,   //PC = 0x00000E04,     line:     fpmul.32 r13, r13, r12               # carried_b *= metallic
+0x000D440A,   //PC = 0x00000E08,     line:     fpadd.32 r8, r8, r13                  # diffuse_b *= (carried_b * metallic)
+0x0008241A,   //PC = 0x00000E0C,     line:     sw r8, r4, 8                         # store new carried_b
+0xFFFF9100,   //PC = 0x00000E10,     line:     add r2, r2, -1                       # bounce -= 1
+0x0D009715,   //PC = 0x00000E14,     line:     blte r14, r2, BOUNCE_LOOP, true      # if (bounce >= 0) goto bounce_loop  -- differs: pseudocode checks bounce == 0 to exit
+0x1A14869F,   //PC = 0x00000E18,     line:     lw r13, ONE                          # r13 = 1.0f
+0x0000251F,   //PC = 0x00000E1C,     line:     lw r10, r4, 0                        # r10 = carried_r
+0x0004259F,   //PC = 0x00000E20,     line:     lw r11, r4, 4                        # r11 = carried_g
+0x0008261F,   //PC = 0x00000E24,     line:     lw r12, r4, 8                        # r12 = carried_b
+0x000D550A,   //PC = 0x00000E28,     line:     fpadd.32 r10, r10, r13               # carried_r += 1.0f
+0x000D5D8A,   //PC = 0x00000E2C,     line:     fpadd.32 r11, r11, r13               # carried_g += 1.0f
+0x000D660A,   //PC = 0x00000E30,     line:     fpadd.32 r12, r12, r13               # carried_b += 1.0f
+0x000ED506,   //PC = 0x00000E34,     line:     srl r10, r10, 14                     # carried_r >>= 14 (extract 9-bit mantissa index)
+0x000EDD86,   //PC = 0x00000E38,     line:     srl r11, r11, 14                     # carried_g >>= 14
+0x000EE606,   //PC = 0x00000E3C,     line:     srl r12, r12, 14                     # carried_b >>= 14
+0x01FFD502,   //PC = 0x00000E40,     line:     and r10, r10, 0x1FF                  # carried_r &= 0x1FF
+0x01FFDD82,   //PC = 0x00000E44,     line:     and r11, r11, 0x1FF                  # carried_g &= 0x1FF
+0x01FFE602,   //PC = 0x00000E48,     line:     and r12, r12, 0x1FF                  # carried_b &= 0x1FF
+0x2FE0551C,   //PC = 0x00000E4C,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
+0x2FE05D9C,   //PC = 0x00000E50,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
+0x2FE0661C,   //PC = 0x00000E54,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
+0x1A4C869F,   //PC = 0x00000E58,     line:     lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
+0x00006FA7,   //PC = 0x00000E5C,     line:     setmembits r13                       # set_address_bits(pixel_addr_high)
+0x1A50869F,   //PC = 0x00000E60,     line:     lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
+0x0004FF06,   //PC = 0x00000E64,     line:     srl r14, r15, 4                      # r14 = core_id >> 4
+0x000FF708,   //PC = 0x00000E68,     line:     mul r14, r14, 15                     # r14 *= 15
+0x000FF482,   //PC = 0x00000E6C,     line:     and r9, r14, 0xF                     # r9 = thread_index
+0x000E4F00,   //PC = 0x00000E70,     line:     add r14, r9, r14                     # r14 += thread_index
+0x0002F705,   //PC = 0x00000E74,     line:     sll r14, r14, 2                      # r14 <<= 2 (4 bytes per pixel)
+0x000E6E80,   //PC = 0x00000E78,     line:     add r13, r13, r14                    # pixel_addr_low += pixel offset for this core/thread
+0x20008C88,   //PC = 0x00000E7C,     line:     mul r9, r1, 8192                     # r9 = pixel_loop_counter * 8192
+0x003CCC88,   //PC = 0x00000E80,     line:     mul r9, r9, 60                       # r9 *= 60  -- stride between pixel blocks
+0x00096E80,   //PC = 0x00000E84,     line:     add r13, r13, r9                     # pixel_addr_low += r9
+0x00006D18,   //PC = 0x00000E88,     line:     sb r10, r13, 0                       # store_dram_byte(red_byte, pixel_addr_low)
+0x00016D98,   //PC = 0x00000E8C,     line:     sb r11, r13, 1                       # store_dram_byte(green_byte, pixel_addr_low + 1)
+0x00026E18,   //PC = 0x00000E90,     line:     sb r12, r13, 2                       # store_dram_byte(blue_byte, pixel_addr_low + 2)
+0x00018880,   //PC = 0x00000E94,     line:     add r1, r1, 1                        # pix_loop_counter += 1  (pix_increment++)
+0x20008E88,   //PC = 0x00000E98,     line:     mul r13, r1, 8192                    # r13 = pix_loop_counter * 8192
+0x0F00EE88,   //PC = 0x00000E9C,     line:     mul r13, r13, 3840                   # r13 *= 3840  -- full row stride
+0x000D0000,   //PC = 0x00000EA0,     line:     add r0, r0, r13                      # pixel_addr_low += stride (advance to next pixel in result buffer)
+0x0000F702,   //PC = 0x00000EA4,     line:     and r14, r14, 0                      # r14 = 0
+0x001EF700,   //PC = 0x00000EA8,     line:     add r14, r14, 30                     # r14 = 30 (max pixels per core per pass)
+0x1A94869F,   //PC = 0x00000EAC,     line:     lw r13, PIXEL_DONE_HIGH         # uint32_t finished_pixel_high = self.finished_pixel_high
+0x00006FA7,   //PC = 0x00000EB0,     line:     setmembits r13                       # set_address_bits(finished_pixel_high)
+0x1A98869F,   //PC = 0x00000EB4,     line:     lw r13, PIXEL_DONE_LOW          # uint32_t finished_pixel_low = self.finished_pixel_low
+0x0001EEB0,   //PC = 0x00000EB8,     line:     atomadd_d r13, r13, 1               # atomic_add_dram(finished_pixel_low, 1)
+0x0CE08F16,   //PC = 0x00000EBC,     line:     bgt r14, r1, LOOP_PIXEL, true        # if (pix_loop_counter < 30) goto loop_pixel
+0x00000422,   //PC = 0x00000EC0,     line:     yield r8                            # yield()
+0x0EC0FF93,   //PC = 0x00000EC4,     line:     beq r15, r15, INF_LOOP, true         # goto inf_loop
+0x000001B4,   //PC = 0x00000EC8,     line:     getclk r3                               # r3 = current_cycle = get_cycle_count()
+0x2FB0821F,   //PC = 0x00000ECC,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+0x00041981,   //PC = 0x00000ED0,     line:     sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
+0x0000F702,   //PC = 0x00000ED4,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x19F0829F,   //PC = 0x00000ED8,     line:     lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
+0x0EE42996,   //PC = 0x00000EDC,     line:     bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
+0x00020797,   //PC = 0x00000EE0,     line:     jmp r15, r2                             # return 0 (not enough time has passed)
+0x2FA8821F,   //PC = 0x00000EE4,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+0x0EF07213,   //PC = 0x00000EE8,     line:     beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
+0x00020797,   //PC = 0x00000EEC,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+0x000002B4,   //PC = 0x00000EF0,     line:     getclk r5                               # r5 = current_cycle (fresh timestamp)
+0x2FB0829A,   //PC = 0x00000EF4,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+0x2FAC829F,   //PC = 0x00000EF8,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+0x2FAC871A,   //PC = 0x00000EFC,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+0x0010AA85,   //PC = 0x00000F00,     line:     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
+0x00032A89,   //PC = 0x00000F04,     line:     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
+0x19EC821F,   //PC = 0x00000F08,     line:     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
+0x0F142A15,   //PC = 0x00000F0C,     line:     blte r4, r5, ONLY_ENQUEUE_ONCE_IDLE_QUEUE, false # if ratio >= threshold goto ONLY_ENQUEUE_ONCE_IDLE_QUEUE (busy enough)
+0x00020797,   //PC = 0x00000F10,     line:     jmp r15, r2                             # return 0 (not idle enough to enqueue)
+0x17CC819F,   //PC = 0x00000F14,     line:     lw r3, ADD_IDLE_CORE
+0x00030717,   //PC = 0x00000F18,     line:     jmp r14, r3
+0x00009982,   //PC = 0x00000F1C,     line:     and r3, r3, 0
+0x2FA89980,   //PC = 0x00000F20,     line:     add r3, r3, PREVIOUSLY_IDLE
+0x000199B3,   //PC = 0x00000F24,     line:     atomadd r3, r3, 1    
+0x0000F702,   //PC = 0x00000F28,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x0001F700,   //PC = 0x00000F2C,     line:     add r14, r14, 1
+0x00020797,   //PC = 0x00000F30,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
+0x31F4869F,   //PC = 0x00000F34,     line:     lw r13, INDEX_ARRAY_BASE                   # r13 = Vertex * vertices
+0x0000F702,   //PC = 0x00000F38,     line:     and r14, r14, 0
+0x2BA8F200,   //PC = 0x00000F3C,     line:     add r4, r14, RAY_TRIANGLE_REG_SPILL
+0x000FFA82,   //PC = 0x00000F40,     line:     and r5, r15, 0xF
+0x0006AA85,   //PC = 0x00000F44,     line:     sll r5, r5, 6
+0x00052200,   //PC = 0x00000F48,     line:     add r4, r4, r5
+0x000D1400,   //PC = 0x00000F4C,     line:     add r8, r2, r13
+0x0004429E,   //PC = 0x00000F50,     line:     lhu r5, r8, 4
+0x0006431E,   //PC = 0x00000F54,     line:     lhu r6, r8, 6
+0x0008439E,   //PC = 0x00000F58,     line:     lhu r7, r8, 8
+0x31F0841F,   //PC = 0x00000F5C,     line:     lw r8, VERTEX_ARRAY_BASE
+0x00082A80,   //PC = 0x00000F60,     line:     add r5, r5, r8 #v0
+0x00083300,   //PC = 0x00000F64,     line:     add r6, r6, r8 #V1
+0x00083B80,   //PC = 0x00000F68,     line:     add r7, r7, r8 #V2
+0x00002E1F,   //PC = 0x00000F6C,     line:     lw r12, r5, 0 #v0x
+0x0000349F,   //PC = 0x00000F70,     line:     lw r9, r6, 0
+0x000C4C0C,   //PC = 0x00000F74,     line:     fpsub.32 r8, r9, r12 #e1x
+0x0004349F,   //PC = 0x00000F78,     line:     lw r9, r6, 4
+0x00042E9F,   //PC = 0x00000F7C,     line:     lw r13, r5, 4 #v0y
+0x000D4C8C,   //PC = 0x00000F80,     line:     fpsub.32 r9, r9, r13 #e1y
+0x0008351F,   //PC = 0x00000F84,     line:     lw r10, r6, 8 
+0x00082F1F,   //PC = 0x00000F88,     line:     lw r14, r5, 8 #v0z
+0x000E550C,   //PC = 0x00000F8C,     line:     fpsub.32 r10, r10, r14 #e1z
+0x0000241A,   //PC = 0x00000F90,     line:     sw r8, r4, 0
+0x0004249A,   //PC = 0x00000F94,     line:     sw r9, r4, 4
+0x0008251A,   //PC = 0x00000F98,     line:     sw r10, r4, 8
+0x00003C1F,   //PC = 0x00000F9C,     line:     lw r8, r7, 0
+0x00043C9F,   //PC = 0x00000FA0,     line:     lw r9, r7, 4
+0x00083D1F,   //PC = 0x00000FA4,     line:     lw r10, r7, 8
+0x000C440C,   //PC = 0x00000FA8,     line:     fpsub.32 r8, r8, r12 #e2x
+0x000D4C8C,   //PC = 0x00000FAC,     line:     fpsub.32 r9, r9, r13 #e2y
+0x000E550C,   //PC = 0x00000FB0,     line:     fpsub.32 r10, r10, r14 #e2z i have 11-14 now i think
+0x000C241A,   //PC = 0x00000FB4,     line:     sw r8, r4, 12
+0x0010249A,   //PC = 0x00000FB8,     line:     sw r9, r4, 16
+0x0014251A,   //PC = 0x00000FBC,     line:     sw r10, r4, 20
+0x0010059F,   //PC = 0x00000FC0,     line:     lw r11, r0, 16 #dy
+0x000A5D8B,   //PC = 0x00000FC4,     line:     fpmul.32 r11, r11, r10 # ray->dy * e2z
+0x0014061F,   //PC = 0x00000FC8,     line:     lw r12, r0, 20 #dz
+0x000C4E8B,   //PC = 0x00000FCC,     line:     fpmul.32 r13, r9, r12 #ray->dz * e2y I now have  r14, r10 available
+0x000D5D8C,   //PC = 0x00000FD0,     line:     fpsub.32 r11, r11, r13 #px, now available registers are r13, r14, r10
+0x0008660B,   //PC = 0x00000FD4,     line:     fpmul.32 r12, r12, r8 # ray->dz * e2x 
+0x000C071F,   //PC = 0x00000FD8,     line:     lw r14, r0, 12 #dx
+0x000A768B,   //PC = 0x00000FDC,     line:     fpmul.32 r13, r14, r10 #ray->dx * e2z
+0x000D668C,   //PC = 0x00000FE0,     line:     fpsub.32 r13, r12, r13 #py i now have r12, r10
+0x0009770B,   //PC = 0x00000FE4,     line:     fpmul.32 r14, r14, r9  #ray->dx * e2y
+0x0010061F,   //PC = 0x00000FE8,     line:     lw r12, r0, 16 #dy
+0x0008660B,   //PC = 0x00000FEC,     line:     fpmul.32 r12, r12, r8 #ray->dy * e2x
+0x000C770C,   //PC = 0x00000FF0,     line:     fpsub.32 r14, r14, r12 #pz
+0x0000E602,   //PC = 0x00000FF4,     line:     and r12, r12, 0
+0x00006010,   //PC = 0x00000FF8,     line:     fpsetacc.32 r12
+0x0000241F,   //PC = 0x00000FFC,     line:     lw r8, r4, 0
+0x0004249F,   //PC = 0x00001000,     line:     lw r9, r4, 4
+0x0008251F,   //PC = 0x00001004,     line:     lw r10, r4, 8
+0x000B400D,   //PC = 0x00001008,     line:     fpmac.32 r8, r11
+0x000D480D,   //PC = 0x0000100C,     line:     fpmac.32 r9, r13
+0x000E500D,   //PC = 0x00001010,     line:     fpmac.32 r10, r14
+0x00000411,   //PC = 0x00001014,     line:     fpstoreacc.32 r8
+0x096C6413,   //PC = 0x00001018,     line:     beq r8, r12, TRIANGLE_INTERSECT_RETURN, false #I have 9, 10, and 12 available
+0x0000031F,   //PC = 0x0000101C,     line:     lw r6, r0, 0
+0x00002B9F,   //PC = 0x00001020,     line:     lw r7, r5, 0
+0x0007330C,   //PC = 0x00001024,     line:     fpsub.32 r6, r6, r7
+0x0004039F,   //PC = 0x00001028,     line:     lw r7, r0, 4
+0x00042C9F,   //PC = 0x0000102C,     line:     lw r9, r5, 4
+0x00093B8C,   //PC = 0x00001030,     line:     fpsub.32 r7, r7, r9
+0x0008049F,   //PC = 0x00001034,     line:     lw r9, r0, 8
+0x00082D1F,   //PC = 0x00001038,     line:     lw r10, r5, 8
+0x000A4C8C,   //PC = 0x0000103C,     line:     fpsub.32 r9, r9, r10
+0x0000D502,   //PC = 0x00001040,     line:     and r10, r10, 0
+0x00005010,   //PC = 0x00001044,     line:     fpsetacc.32 r10
+0x000B300D,   //PC = 0x00001048,     line:     fpmac.32 r6, r11 
+0x000D380D,   //PC = 0x0000104C,     line:     fpmac.32 r7, r13
+0x000E480D,   //PC = 0x00001050,     line:     fpmac.32 r9, r14
+0x00000611,   //PC = 0x00001054,     line:     fpstoreacc.32 r12
+0x0020231A,   //PC = 0x00001058,     line:     sw r6, r4, 32
+0x0024239A,   //PC = 0x0000105C,     line:     sw r7, r4, 36
+0x0028249A,   //PC = 0x00001060,     line:     sw r9, r4, 40
+0x0008530F,   //PC = 0x00001064,     line:     fplt r6, r10, r8
+0x10805314,   //PC = 0x00001068,     line:     bne r6, r10, TRIANGLE_INTERSECT_ELSE_BLOCK_1, false
+0x000A630F,   //PC = 0x0000106C,     line:     fplt r6, r12, r10
+0x000C438F,   //PC = 0x00001070,     line:     fplt r7, r8, r12
+0x00073303,   //PC = 0x00001074,     line:     or r6, r6, r7
+0x096CD314,   //PC = 0x00001078,     line:     bne r6, r10, TRIANGLE_INTERSECT_RETURN, true
+0x1090FF93,   //PC = 0x0000107C,     line:     beq r15, r15, TRIANGLE_INTERSECT_END_IF_BLOCK_1, true
+0x000C530F,   //PC = 0x00001080,     line:     fplt r6, r10, r12
+0x0008638F,   //PC = 0x00001084,     line:     fplt r7, r12, r8
+0x00073303,   //PC = 0x00001088,     line:     or r6, r6, r7
+0x096CD314,   //PC = 0x0000108C,     line:     bne r6, r10, TRIANGLE_INTERSECT_RETURN, true
+0x002C259A,   //PC = 0x00001090,     line:     sw r11, r4, 44
+0x0030269A,   //PC = 0x00001094,     line:     sw r13, r4, 48
+0x0034271A,   //PC = 0x00001098,     line:     sw r14, r4, 52
+0x0028231F,   //PC = 0x0000109C,     line:     lw r6, r4, 40
+0x0000239F,   //PC = 0x000010A0,     line:     lw r7, r4, 0
+0x0004249F,   //PC = 0x000010A4,     line:     lw r9, r4, 4 #e1y
+0x0007350B,   //PC = 0x000010A8,     line:     fpmul.32 r10, r6, r7 #tz * e1x
+0x0009330B,   //PC = 0x000010AC,     line:     fpmul.32 r6, r6, r9  #tz * e1y
+0x0024259F,   //PC = 0x000010B0,     line:     lw r11, r4, 36 #ty
+0x00075E8B,   //PC = 0x000010B4,     line:     fpmul.32 r13, r11, r7 #ty * e1x
+0x0008239F,   //PC = 0x000010B8,     line:     lw r7, r4, 8 #e1z
+0x000B3F0B,   //PC = 0x000010BC,     line:     fpmul.32 r14, r7, r11 #ty * e1z
+0x0006770C,   //PC = 0x000010C0,     line:     fpsub.32 r14, r14, r6 #qx
+0x0020231F,   //PC = 0x000010C4,     line:     lw r6, r4, 32 #tx
+0x0007338B,   //PC = 0x000010C8,     line:     fpmul.32 r7, r6, r7 #tx * e1z
+0x0007550C,   //PC = 0x000010CC,     line:     fpsub.32 r10, r10, r7 #qy
+0x00064C8B,   //PC = 0x000010D0,     line:     fpmul.32 r9, r9, r6 #tx * e1y
+0x000D4C8C,   //PC = 0x000010D4,     line:     fpsub.32 r9, r9, r13 #qz
+0x0000DD82,   //PC = 0x000010D8,     line:     and r11, r11, 0
+0x00005810,   //PC = 0x000010DC,     line:     fpsetacc.32 r11
+0x000C031F,   //PC = 0x000010E0,     line:     lw r6, r0, 12
+0x000E300D,   //PC = 0x000010E4,     line:     fpmac.32 r6, r14
+0x0010031F,   //PC = 0x000010E8,     line:     lw r6, r0, 16
+0x000A300D,   //PC = 0x000010EC,     line:     fpmac.32 r6, r10
+0x0014031F,   //PC = 0x000010F0,     line:     lw r6, r0, 20
+0x0009300D,   //PC = 0x000010F4,     line:     fpmac.32 r6, r9
+0x00000391,   //PC = 0x000010F8,     line:     fpstoreacc.32 r7 #r7 = v_unscaled
+0x000C3E0A,   //PC = 0x000010FC,     line:     fpadd.32 r12, r7, r12 #r12 = uv_sum
+0x00085E8F,   //PC = 0x00001100,     line:     fplt.32 r13, r11, r8 #r8 = det
+0x111C5E93,   //PC = 0x00001104,     line:     beq r13, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_2, false
+0x000B3A8F,   //PC = 0x00001108,     line:     fplt.32 r5, r7, r11
+0x000C430F,   //PC = 0x0000110C,     line:     fplt.32 r6, r8, r12
+0x00062A83,   //PC = 0x00001110,     line:     or r5, r5, r6
+0x1130DA94,   //PC = 0x00001114,     line:     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
+0x096CFF93,   //PC = 0x00001118,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
+0x00075A8F,   //PC = 0x0000111C,     line:     fplt.32 r5, r11, r7
+0x0008630F,   //PC = 0x00001120,     line:     fplt.32 r6, r12, r8
+0x00062A83,   //PC = 0x00001124,     line:     or r5, r5, r6
+0x1130DA94,   //PC = 0x00001128,     line:     bne r5, r11, TRIANGLE_INTERSECT_END_IF_BLOCK_2, true
+0x096CFF93,   //PC = 0x0000112C,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
+0x00005810,   //PC = 0x00001130,     line:     fpsetacc.32 r11
+0x000C229F,   //PC = 0x00001134,     line:     lw r5, r4, 12
+0x000E280D,   //PC = 0x00001138,     line:     fpmac.32 r5, r14
+0x0010229F,   //PC = 0x0000113C,     line:     lw r5, r4, 16
+0x000A280D,   //PC = 0x00001140,     line:     fpmac.32 r5, r10
+0x0014229F,   //PC = 0x00001144,     line:     lw r5, r4, 20
+0x0009280D,   //PC = 0x00001148,     line:     fpmac.32 r5, r9
+0x00000291,   //PC = 0x0000114C,     line:     fpstoreacc.32 r5 #t_unscaled
+0x1A1C831F,   //PC = 0x00001150,     line:     lw r6, EPSILON
+0x0008330B,   //PC = 0x00001154,     line:     fpmul.32 r6, r6, r8 #tmin_scaled
+0x0024039F,   //PC = 0x00001158,     line:     lw r7, r0, 36
+0x00083B8B,   //PC = 0x0000115C,     line:     fpmul.32 r7, r7, r8 #tmax_scaled
+0x00085C8F,   //PC = 0x00001160,     line:     fplt.32 r9, r11, r8
+0x117C5C93,   //PC = 0x00001164,     line:     beq r9, r11, TRIANGLE_INTERSECT_ELSE_BLOCK_3, false
+0x00062B0F,   //PC = 0x00001168,     line:     fplt.32 r6, r5, r6
+0x00053B8F,   //PC = 0x0000116C,     line:     fplt.32 r7, r7, r5
+0x00073303,   //PC = 0x00001170,     line:     or r6, r6, r7
+0x11903593,   //PC = 0x00001174,     line:     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
+0x096CFF93,   //PC = 0x00001178,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
+0x0005330F,   //PC = 0x0000117C,     line:     fplt.32 r6, r6, r5
+0x00072B8F,   //PC = 0x00001180,     line:     fplt.32 r7, r5, r7
+0x00073303,   //PC = 0x00001184,     line:     or r6, r6, r7
+0x11903593,   //PC = 0x00001188,     line:     beq r11, r6, TRIANGLE_INTERSECT_END_IF_BLOCK_3, false
+0x096CFF93,   //PC = 0x0000118C,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
+0x0000C480,   //PC = 0x00001190,     line:     add r9, r8, 0
+0x11AC8517,   //PC = 0x00001194,     line:     jmp r10, RECIPROCAL
+0x00092A8B,   //PC = 0x00001198,     line:     fpmul.32 r5, r5, r9
+0x0024029A,   //PC = 0x0000119C,     line:     sw r5, r0, 36
+0x0000131F,   //PC = 0x000011A0,     line:     lw r6, r2, 0
+0x0038031A,   //PC = 0x000011A4,     line:     sw r6, r0, 56
+0x096CFF93,   //PC = 0x000011A8,     line:     beq r15, r15, TRIANGLE_INTERSECT_RETURN, true
+0x1A00859F,   //PC = 0x000011AC,     line:     lw r11, NEG_MAX                     # r11 = 0x80000000
+0x00095E02,   //PC = 0x000011B0,     line:     and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
+0xFFFFDD84,   //PC = 0x000011B4,     line:     xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
+0x00095D82,   //PC = 0x000011B8,     line:     and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
+0x0017CE86,   //PC = 0x000011BC,     line:     srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
+0x00FEEE81,   //PC = 0x000011C0,     line:     sub r13, r13, 254                   # r13 = new_exp = 254 - exp
+0x000CCC86,   //PC = 0x000011C4,     line:     srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
+0x1FFCCC82,   //PC = 0x000011C8,     line:     and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
+0x1A6C871F,   //PC = 0x000011CC,     line:     lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
+0x00007727,   //PC = 0x000011D0,     line:     setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
+0x1A70871F,   //PC = 0x000011D4,     line:     lw r14, DIV_TABLE_LOW               # r14 = div_table_low
+0x00097700,   //PC = 0x000011D8,     line:     add r14, r14, r9                    # r14 = &div_table[index]
+0x000074AC,   //PC = 0x000011DC,     line:     lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+0x0017EF05,   //PC = 0x000011E0,     line:     sll r14, r13, 23                    # r14 = new_exp << 23
+0x00097483,   //PC = 0x000011E4,     line:     or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
+0x00FEEE81,   //PC = 0x000011E8,     line:     sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
+0x00095E8B,   //PC = 0x000011EC,     line:     fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
+0x19FC859F,   //PC = 0x000011F0,     line:     lw r11, TWO                         # r11 = 2.0f
+0x000D5E8C,   //PC = 0x000011F4,     line:     fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
+0x000D4C8B,   //PC = 0x000011F8,     line:     fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
+0x000C4C83,   //PC = 0x000011FC,     line:     or r9, r9, r12                      # r9 |= sign (restore sign bit)
+0x00007727,   //PC = 0x00001200,     line:     setmembits r14, r14                 # restore membits
+0x000A0797,   //PC = 0x00001204,     line:     jmp r15, r10                        # return (result in r9)
+0x000BC506,   //PC = 0x00001208,     line:     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
+0x1A74859F,   //PC = 0x0000120C,     line:     lw r11, INV_SQRT_TABLE_HIGH         # r11 = inv_sqrt_table_high
+0x00005DA7,   //PC = 0x00001210,     line:     setmembits r11, r11                 # swap membits (r11 = old membits, membits = INV_SQRT_TABLE_HIGH)
+0x1A78861F,   //PC = 0x00001214,     line:     lw r12, INV_SQRT_TABLE_LOW          # r12 = inv_sqrt_table_low
+0x0017C686,   //PC = 0x00001218,     line:     srl r13, r8, 23
+0x017DEE81,   //PC = 0x0000121C,     line:     sub r13, r13, 381
+0x0001EE86,   //PC = 0x00001220,     line:     srl r13, r13, 1
+0x0017EE85,   //PC = 0x00001224,     line:     sll r13, r13, 23
+0x1FFFD502,   //PC = 0x00001228,     line:     and r10, r10, 0x1FFF
+0x0002D505,   //PC = 0x0000122C,     line:     sll r10, r10, 2                     # r10 = index << 2 (* 4 bytes per entry)
+0x000A6600,   //PC = 0x00001230,     line:     add r12, r12, r10                   # r12 = &inv_sqrt_table[index]
+0x0000662C,   //PC = 0x00001234,     line:     lw_d r12, r12, 0                    # r12 = est = load_dram_word(table_addr)
+0x000D6603,   //PC = 0x00001238,     line:     or r12, r12, r13
+0x19F8869F,   //PC = 0x0000123C,     line:     lw r13, HALF                        # r13 = 0.5f
+0x00086E8B,   //PC = 0x00001240,     line:     fpmul.32 r13, r13, r8              # r13 = 0.5 * len_sq
+0x1A04871F,   //PC = 0x00001244,     line:     lw r14, ONE_POINT_FIVE              # r14 = 1.5f
+0x000C6E8B,   //PC = 0x00001248,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est
+0x000C6E8B,   //PC = 0x0000124C,     line:     fpmul.32 r13, r13, r12             # r13 = 0.5 * len_sq * est * est
+0x000D740C,   //PC = 0x00001250,     line:     fpsub.32 r8, r14, r13              # r8 = 1.5 - 0.5*len_sq*est*est
+0x000C440B,   //PC = 0x00001254,     line:     fpmul.32 r8, r8, r12               # r8 = est * (1.5 - 0.5*len_sq*est*est) = refined inv_sqrt
+0x00005FA7,   //PC = 0x00001258,     line:     setmembits r11                      # restore old membits (r11 holds saved value)
+0x00090797,   //PC = 0x0000125C,     line:     jmp r15, r9                              # return (result in r8)    
+0x0000091F,   //PC = 0x00001260,     line:     lw r2, r1, 0                        
+0x0000019F,   //PC = 0x00001264,     line:     lw r3, r0, 0
+0x0003110C,   //PC = 0x00001268,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+0x0018029F,   //PC = 0x0000126C,     line:     lw r5, r0, 24
+0x0005110B,   //PC = 0x00001270,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+0x00040B1F,   //PC = 0x00001274,     line:     lw r6, r1, 4
+0x0003318C,   //PC = 0x00001278,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+0x0005198B,   //PC = 0x0000127C,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+0x00031612,   //PC = 0x00001280,     line:     fpminmax.32 r12, r2, r3, false         # float tmin = min(t1, t2)
+0x00039192,   //PC = 0x00001284,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+0x0024011F,   //PC = 0x00001288,     line:     lw r2, r0, 36
+0x00031692,   //PC = 0x0000128C,     line:     fpminmax.32 r13, r2, r3, false          # tmax = min(tmax, ray->t_max)
+0x000D630F,   //PC = 0x00001290,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+0x1A1C851F,   //PC = 0x00001294,     line:     lw r10, EPSILON                 # float epsilon = self.epsilon
+0x000D540F,   //PC = 0x00001298,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+0x00083582,   //PC = 0x0000129C,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+0x04FC5B95,   //PC = 0x000012A0,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+0x0008091F,   //PC = 0x000012A4,     line:     lw r2, r1, 8
+0x0004019F,   //PC = 0x000012A8,     line:     lw r3, r0, 4
+0x0003110C,   //PC = 0x000012AC,     line:     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
+0x001C029F,   //PC = 0x000012B0,     line:     lw r5, r0, 28
+0x0005110B,   //PC = 0x000012B4,     line:     fpmul.32 r2, r2, r5                   # t1 *= ray->inv_dx
+0x000C0B1F,   //PC = 0x000012B8,     line:     lw r6, r1, 12
+0x0003318C,   //PC = 0x000012BC,     line:     fpsub.32 r3, r6, r3                   # float t2 = (node->max_x - ray->ox) * ray->inv_dx
+0x0005198B,   //PC = 0x000012C0,     line:     fpmul.32 r3, r3, r5                   # t2 *= ray->inv_dx
+0x00031292,   //PC = 0x000012C4,     line:     fpminmax.32 r5, r2, r3, false         # float tmin = min(t1, t2)
+0x00039192,   //PC = 0x000012C8,     line:     fpminmax.32 r3, r2, r3, true          # float tmax = max(t1, t2)
+0x00036E92,   //PC = 0x000012CC,     line:     fpminmax.32 r13, r13, r3, false          # tmax = min(tmax, ray->t_max)
+0x0005E612,   //PC = 0x000012D0,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, t1)
+0x000D630F,   //PC = 0x000012D4,     line:     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
+0x000D540F,   //PC = 0x000012D8,     line:     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
+0x00083582,   //PC = 0x000012DC,     line:     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
+0x04FC5B95,   //PC = 0x000012E0,     line:     blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+0x0010091F,   //PC = 0x000012E4,     line:     lw r2, r1, 16                           # r2 = node->z_min
+0x0008019F,   //PC = 0x000012E8,     line:     lw r3, r0, 8                            # r3 = ray->oz
+0x0003110C,   //PC = 0x000012EC,     line:     fpsub.32 r2, r2, r3                     # r2 = node->z_min - ray->oz
+0x0020029F,   //PC = 0x000012F0,     line:     lw r5, r0, 32                           # r5 = ray->inv_dz
+0x0005110B,   //PC = 0x000012F4,     line:     fpmul.32 r2, r2, r5                     # tz1 = (node->z_min - ray->oz) * ray->inv_dz
+0x00140B1F,   //PC = 0x000012F8,     line:     lw r6, r1, 20                           # r6 = node->z_max
+0x0003318C,   //PC = 0x000012FC,     line:     fpsub.32 r3, r6, r3                     # r3 = node->z_max - ray->oz
+0x0005198B,   //PC = 0x00001300,     line:     fpmul.32 r3, r3, r5                     # tz2 = (node->z_max - ray->oz) * ray->inv_dz
+0x00031292,   //PC = 0x00001304,     line:     fpminmax.32 r5, r2, r3, false           # r5 = min(tz1, tz2)
+0x00039192,   //PC = 0x00001308,     line:     fpminmax.32 r3, r2, r3, true            # r3 = max(tz1, tz2)
+0x00036E92,   //PC = 0x0000130C,     line:     fpminmax.32 r13, r13, r3, false         # tmax = min(tmax, max(tz1, tz2))
+0x0005E612,   //PC = 0x00001310,     line:     fpminmax.32 r12, r12, r5, true          # tmin = max(tmin, min(tz1, tz2))
+0x000D630F,   //PC = 0x00001314,     line:     fplt.32 r6, r12, r13                    # r6 = tmin < tmax
+0x000D540F,   //PC = 0x00001318,     line:     fplt.32 r8, r10, r13                     # r8 = epsilon < tmax
+0x00083582,   //PC = 0x0000131C,     line:     and r11, r6, r8                         # r11 = (tmin <= tmax) && (0.0 < tmax)
+0x04FCFF93,   //PC = 0x00001320,     line:     beq r15, r15, AABB_INTERSECT_RETURN, true # return r11
+0x0000C200,   //PC = 0x00001324,     line:     add r4, r8, 0                           # r4 = return address (saved from r8 by caller convention)
+0x00208037,   //PC = 0x00001328,     line:     intdis 32                               # disable_interrupts(channel)
+0x002083A1,   //PC = 0x0000132C,     line:     nonblock r7, 32                             # r7 = nb_recv(channel) (0 if no message waiting)
+0x0000F702,   //PC = 0x00001330,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
+0x1340BF14,   //PC = 0x00001334,     line:     bne r14, r7, CONTINUE_WITH_EAT_RAY_INTERRUPT, true  # if message waiting goto CONTINUE_WITH_EAT_RAY_INTERRUPT
+0x00208026,   //PC = 0x00001338,     line:     intena 32                               # enable_interrupts(channel) (nothing to do)
+0x00040797,   //PC = 0x0000133C,     line:     jmp r15, r4                             # return
+0x002083A0,   //PC = 0x00001340,     line:     block r7, 32                                # r7 = blocking_recv(channel) (full flit value)
+0x19F4841F,   //PC = 0x00001344,     line:     lw r8, EAT_RAY_MASK                     # r8 = EAT_RAY_MASK (isolates core_id field)
+0x00083C02,   //PC = 0x00001348,     line:     and r8, r7, r8                          # r8 = core_id = flit & EAT_RAY_MASK
+0x0011BE86,   //PC = 0x0000134C,     line:     srl r13, r7, 17                         # r13 = node_id = flit >> 17
+0x003C849F,   //PC = 0x00001350,     line:     lw r9, ROOT_NODE_ID              # r9 = self.node_id (sender side)
+0x1388CE93,   //PC = 0x00001354,     line:     beq r13, r9, NODE_IDS_MATCH, true      # if node_id == sender_node_id goto NODE_IDS_MATCH
+0x0008F500,   //PC = 0x00001358,     line:     add r10, r14, 8                         # r10 = wrong_core = 8 (reject code)
+0x0018D505,   //PC = 0x0000135C,     line:     sll r10, r10, 24                        # r10 = wrong_core << 24
+0x000FBD82,   //PC = 0x00001360,     line:     and r11, r7, 0xF                       # r11 = self.thread_id (low 4 bits)
+0xFFF0BE02,   //PC = 0x00001364,     line:     and r12, r7, 0xFFF0                      # r12 = core_id high nibble
+0x000FE605,   //PC = 0x00001368,     line:     sll r12, r12, 15
+0x000FE606,   //PC = 0x0000136C,     line:     srl r12, r12, 15
+0x0002E605,   //PC = 0x00001370,     line:     sll r12, r12, 2                         # r12 = core_id high nibble shifted to channel position
+0x0010DD80,   //PC = 0x00001374,     line:     add r11, r11, 16                        # r11 = self.thread_id + 16 (send channel)
+0x000B6583,   //PC = 0x00001378,     line:     or r11, r12, r11                        # r11 = destination flit (channel | thread_id)
+0x00005D31,   //PC = 0x0000137C,     line:     sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
+0x00208026,   //PC = 0x00001380,     line:     intena 32                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x00001384,     line:     jmp r15, r4                             # return
+0x31E4839F,   //PC = 0x00001388,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
+0x13583F14,   //PC = 0x0000138C,     line:     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
+0x003F039C,   //PC = 0x00001390,     line:     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
+0x00008480,   //PC = 0x00001394,     line:     add r9, r0, 0                           # r9 = local_queue = ray base address
+0x13EC3F14,   //PC = 0x00001398,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+0x1FA4849F,   //PC = 0x0000139C,     line:     lw r9, RAY_QUEUE_CNT                # r9 = sender ray queue base address
+0x0001CBB3,   //PC = 0x000013A0,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
+0x0020F600,   //PC = 0x000013A4,     line:     add r12, r14, 32                        # r12 = 16 (max queue entries)
+0x13D8BE16,   //PC = 0x000013A8,     line:     bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
+0xFFFFCBB3,   //PC = 0x000013AC,     line:     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
+0x0007F380,   //PC = 0x000013B0,     line:     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
+0x0018BB85,   //PC = 0x000013B4,     line:     sll r7, r7, 24                          # r7 = reject_ray << 24
+0x00F0C482,   //PC = 0x000013B8,     line:     and r9, r8, 0xF0                        # r9 = core_id high nibble
+0x0002CC85,   //PC = 0x000013BC,     line:     sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+0x000FC402,   //PC = 0x000013C0,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+0x0010C400,   //PC = 0x000013C4,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+0x00084C83,   //PC = 0x000013C8,     line:     or r9, r9, r8                           # r9 = destination flit
+0x00004BB1,   //PC = 0x000013CC,     line:     sendflit r7, r9                         # send_flit(reject_ray << 24, dest) (queue full)
+0x00208026,   //PC = 0x000013D0,     line:     intena 32                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x000013D4,     line:     jmp r15, r4                             # return
+0xFFFCCC80,   //PC = 0x000013D8,     line:     add r9, r9, -4                          # r9 = &queue.tail_relative (back up to tail field)
+0x0040CBB3,   //PC = 0x000013DC,     line:     atomadd r7, r9, 64                      # r7 = old_tail = atomic_add(&queue.tail_relative, 64)
+0x03FFBB82,   //PC = 0x000013E0,     line:     and r7, r7, 0x3FF                       # r7 = tail_relative & 0x3FF (wrap within queue)
+0x00074B80,   //PC = 0x000013E4,     line:     add r7, r9, r7                          # r7 = queue_base + tail_relative
+0x0008BB80,   //PC = 0x000013E8,     line:     add r7, r7, 8                           # r7 = slot_addr (skip head+tail fields to reach slots)
+0x0005F480,   //PC = 0x000013EC,     line:     add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
+0x0018CC85,   //PC = 0x000013F0,     line:     sll r9, r9, 24                          # r9 = ray_ack << 24
+0x000F4C83,   //PC = 0x000013F4,     line:     or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
+0x00F0C502,   //PC = 0x000013F8,     line:     and r10, r8, 0xF0                       # r10 = core_id high nibble
+0x0002D505,   //PC = 0x000013FC,     line:     sll r10, r10, 2                         # r10 = high nibble shifted to channel position
+0x000FC402,   //PC = 0x00001400,     line:     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
+0x0010C400,   //PC = 0x00001404,     line:     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
+0x00085503,   //PC = 0x00001408,     line:     or r10, r10, r8                         # r10 = destination flit
+0x000054B1,   //PC = 0x0000140C,     line:     sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
+0x000FFC02,   //PC = 0x00001410,     line:     and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
+0x0010C400,   //PC = 0x00001414,     line:     add r8, r8, 16                          # r8 = self.thread_id + 16 (receive channel)
+0x000044A0,   //PC = 0x00001418,     line:     block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
+0x00004520,   //PC = 0x0000141C,     line:     block r10, r8                           # r10 = ray_data[1]
+0x000045A0,   //PC = 0x00001420,     line:     block r11, r8                           # r11 = ray_data[2]
+0x00004620,   //PC = 0x00001424,     line:     block r12, r8                           # r12 = ray_data[3]
+0x00003C9A,   //PC = 0x00001428,     line:     sw r9, r7, 0                            # slot[0]  = ray_data[0]
+0x00043D1A,   //PC = 0x0000142C,     line:     sw r10, r7, 4                           # slot[4]  = ray_data[1]
+0x00083D9A,   //PC = 0x00001430,     line:     sw r11, r7, 8                           # slot[8]  = ray_data[2]
+0x000C3E1A,   //PC = 0x00001434,     line:     sw r12, r7, 12                          # slot[12] = ray_data[3]
+0x000044A0,   //PC = 0x00001438,     line:     block r9, r8                            # r9  = ray_data[4]
+0x00004520,   //PC = 0x0000143C,     line:     block r10, r8                           # r10 = ray_data[5]
+0x000045A0,   //PC = 0x00001440,     line:     block r11, r8                           # r11 = ray_data[6]
+0x00004620,   //PC = 0x00001444,     line:     block r12, r8                           # r12 = ray_data[7]
+0x00103C9A,   //PC = 0x00001448,     line:     sw r9, r7, 16                           # slot[16] = ray_data[4]
+0x00143D1A,   //PC = 0x0000144C,     line:     sw r10, r7, 20                          # slot[20] = ray_data[5]
+0x00183D9A,   //PC = 0x00001450,     line:     sw r11, r7, 24                          # slot[24] = ray_data[6]
+0x001C3E1A,   //PC = 0x00001454,     line:     sw r12, r7, 28                          # slot[28] = ray_data[7]
+0x000044A0,   //PC = 0x00001458,     line:     block r9, r8                            # r9  = ray_data[8]
+0x00004520,   //PC = 0x0000145C,     line:     block r10, r8                           # r10 = ray_data[9]
+0x000045A0,   //PC = 0x00001460,     line:     block r11, r8                           # r11 = ray_data[10]
+0x00004620,   //PC = 0x00001464,     line:     block r12, r8                           # r12 = ray_data[11]
+0x00203C9A,   //PC = 0x00001468,     line:     sw r9, r7, 32                           # slot[32] = ray_data[8]
+0x00243D1A,   //PC = 0x0000146C,     line:     sw r10, r7, 36                          # slot[36] = ray_data[9]
+0x00283D9A,   //PC = 0x00001470,     line:     sw r11, r7, 40                          # slot[40] = ray_data[10]
+0x002C3E1A,   //PC = 0x00001474,     line:     sw r12, r7, 44                          # slot[44] = ray_data[11]
+0x000044A0,   //PC = 0x00001478,     line:     block r9, r8                            # r9  = ray_data[12]
+0x00004520,   //PC = 0x0000147C,     line:     block r10, r8                           # r10 = ray_data[13]
+0x000045A0,   //PC = 0x00001480,     line:     block r11, r8                           # r11 = ray_data[14]
+0x00004620,   //PC = 0x00001484,     line:     block r12, r8                           # r12 = ray_data[15]
+0x00303C9A,   //PC = 0x00001488,     line:     sw r9, r7, 48                           # slot[48] = ray_data[12]
+0x00343D1A,   //PC = 0x0000148C,     line:     sw r10, r7, 52                          # slot[52] = ray_data[13]
+0x00383D9A,   //PC = 0x00001490,     line:     sw r11, r7, 56                          # slot[56] = ray_data[14]
+0x003C3E1A,   //PC = 0x00001494,     line:     sw r12, r7, 60                          # slot[60] = ray_data[15]
+0x31F8809F,   //PC = 0x00001498,     line:     lw r1, ROOT_NODE_ADDRESS
+0x00208026,   //PC = 0x0000149C,     line:     intena 32                               # enable_interrupts(channel)
+0x00040797,   //PC = 0x000014A0,     line:     jmp r15, r4                             # return
+0x0000F702,   //PC = 0x000014A4,     line:     and r14, r14, 0                          # r14 = 0
+0x19D8859F,   //PC = 0x000014A8,     line:     lw r11, NODE_ARRAY_TOP
+0x19D0859A,   //PC = 0x000014AC,     line:     sw r11, SRAM_ALLOC_COUNT
+0x1A54861F,   //PC = 0x000014B0,     line:     lw r12, NODE_ARRAY_HIGH
+0x000065A7,   //PC = 0x000014B4,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
+0x27A8F100,   //PC = 0x000014B8,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
+0x0040849F,   //PC = 0x000014BC,     line:     lw r9, NODE_INDEX_OF_ROOT
+0xFFFFDD83,   //PC = 0x000014C0,     line:     or r11, r11, 0xFFFF
+0x0030CC88,   //PC = 0x000014C4,     line:     mul r9, r9, 48
+0x000C4C80,   //PC = 0x000014C8,     line:     add r9, r9, r12
+0x00244D2C,   //PC = 0x000014CC,     line:     lw_d r10, r9, 36
+0x14DC5593,   //PC = 0x000014D0,     line:     beq r11, r10, FOUND_BRANCH_CORE_NODE, false
+0x001C4CAC,   //PC = 0x000014D4,     line:     lw_d r9, r9, 28                        # parent index
+0x14C4FF93,   //PC = 0x000014D8,     line:     beq r15, r15, FIND_BRANCH_NODE, true
+0x0000151A,   //PC = 0x000014DC,     line:     sw r10, r2, 0                            # dram_idx = 0
+0xFFFFF583,   //PC = 0x000014E0,     line:     or r11, r14, 0xFFFF
+0x00041599,   //PC = 0x000014E4,     line:     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
+0x00061719,   //PC = 0x000014E8,     line:     sh r14, r2, 6                            # patch_left = 0
+0x00081719,   //PC = 0x000014EC,     line:     sh r14, r2, 8                            # patch_right = 0
+0x000A1719,   //PC = 0x000014F0,     line:     sh r14, r2, 10                           # is_right = 0
+0x000C171A,   //PC = 0x000014F4,     line:     sw r14, r2, 12                           # depth = 0
+0x00109100,   //PC = 0x000014F8,     line:     add r2, r2, 16                           # stack_top++
+0x27A8F580,   //PC = 0x000014FC,     line:     add r11, r14, DFS_STACK
+0x16A4D913,   //PC = 0x00001500,     line:     beq r2, r11, dfs_done, true
+0xFFF09100,   //PC = 0x00001504,     line:     add r2, r2, -16
+0x0000121F,   //PC = 0x00001508,     line:     lw r4, r2, 0                             # dram_idx
+0x0004129E,   //PC = 0x0000150C,     line:     lhu r5, r2, 4                            # parent_ptr
+0x0006131E,   //PC = 0x00001510,     line:     lhu r6, r2, 6                            # patch_left
+0x0008139E,   //PC = 0x00001514,     line:     lhu r7, r2, 8                            # patch_right
+0x000A141E,   //PC = 0x00001518,     line:     lhu r8, r2, 10                           # is_right
+0x000C149F,   //PC = 0x0000151C,     line:     lw r9, r2, 12                            # depth
+0x19D4F500,   //PC = 0x00001520,     line:     add r10, r14, SRAM_NODE_ALLOC_PTR              # address of alloc pointer / next free slot
+0x0030D6B3,   //PC = 0x00001524,     line:     atomadd r13, r10, 48                     # r13 = node = atomic_add(sram_slot_address, 48)
+0x1A58861F,   //PC = 0x00001528,     line:     lw r12, NODE_ARRAY_LOW                   # r12 = bottom_node_bits base
+0x0004A585,   //PC = 0x0000152C,     line:     sll r11, r4, 4                           # r11 = dram_idx * 16
+0x0005A505,   //PC = 0x00001530,     line:     sll r10, r4, 5                           # r10 = dram_idx * 32
+0x000B6600,   //PC = 0x00001534,     line:     add r12, r12, r11
+0x000A6600,   //PC = 0x00001538,     line:     add r12, r12, r10                        # r12 = bottom_node_bits + dram_idx * 48
+0x0000652C,   //PC = 0x0000153C,     line:     lw_d r10, r12, 0
+0x00006D1A,   //PC = 0x00001540,     line:     sw r10, r13, 0
+0x0004652C,   //PC = 0x00001544,     line:     lw_d r10, r12, 4
+0x00046D1A,   //PC = 0x00001548,     line:     sw r10, r13, 4
+0x0008652C,   //PC = 0x0000154C,     line:     lw_d r10, r12, 8
+0x00086D1A,   //PC = 0x00001550,     line:     sw r10, r13, 8
+0x000C652C,   //PC = 0x00001554,     line:     lw_d r10, r12, 12
+0x000C6D1A,   //PC = 0x00001558,     line:     sw r10, r13, 12
+0x0010652C,   //PC = 0x0000155C,     line:     lw_d r10, r12, 16
+0x00106D1A,   //PC = 0x00001560,     line:     sw r10, r13, 16
+0x0014652C,   //PC = 0x00001564,     line:     lw_d r10, r12, 20
+0x00146D1A,   //PC = 0x00001568,     line:     sw r10, r13, 20
+0xFFFFF503,   //PC = 0x0000156C,     line:     or r10, r14, 0xFFFF
+0x001E6D19,   //PC = 0x00001570,     line:     sh r10, r13, 30                          # core_owner
+0x002A652B,   //PC = 0x00001574,     line:     lhu_d r10, r12, 42
+0x15A0D713,   //PC = 0x00001578,     line:     beq r14, r10, NOT_BRANCH_IMPORT, true
+0x0028652B,   //PC = 0x0000157C,     line:     lhu_d r10, r12, 40
+0x00286D19,   //PC = 0x00001580,     line:     sh r10, r13, 40                          # queue_high_bit_addr
+0x0024652C,   //PC = 0x00001584,     line:     lw_d r10, r12, 36
+0x5FC0D500,   //PC = 0x00001588,     line:     add r10, r10, 24512
+0x00246D1A,   //PC = 0x0000158C,     line:     sw r10, r13, 36                          # queue_low_bit_addr
+0x002C652C,   //PC = 0x00001590,     line:     lw_d r10, r12, 44
+0x2000D500,   //PC = 0x00001594,     line:     add r10, r10, 8192
+0x002C6D1A,   //PC = 0x00001598,     line:     sw r10, r13, 44                          # node_id
+0x15B8FF93,   //PC = 0x0000159C,     line:     beq r15, r15, SKIP_NON_BRANCH_IMPORT, true
+0x0028652B,   //PC = 0x000015A0,     line:     lhu_d r10, r12, 40
+0x00286D19,   //PC = 0x000015A4,     line:     sh r10, r13, 40                          # queue_high_bit_addr
+0x0024652C,   //PC = 0x000015A8,     line:     lw_d r10, r12, 36
+0x00246D1A,   //PC = 0x000015AC,     line:     sw r10, r13, 36                          # queue_low_bit_addr
+0x002C652C,   //PC = 0x000015B0,     line:     lw_d r10, r12, 44
+0x002C6D1A,   //PC = 0x000015B4,     line:     sw r10, r13, 44                          # node_id
+0xFFFFF580,   //PC = 0x000015B8,     line:     add r11, r14, 0xFFFF
+0x002A6D99,   //PC = 0x000015BC,     line:     sh r11, r13, 42                          # prev_index = 0xFFFF
+0x00206C18,   //PC = 0x000015C0,     line:     sb r8, r13, 32                           # is_right = is_right (byte field)
+0x001C6A99,   //PC = 0x000015C4,     line:     sh r5, r13, 28                           # node->parent = parent_ptr
+0x00186D99,   //PC = 0x000015C8,     line:     sh r11, r13, 24                          # left_child = 0xFFFF
+0x001A6D99,   //PC = 0x000015CC,     line:     sh r11, r13, 26                          # right_child = 0xFFFF
+0x0034859F,   //PC = 0x000015D0,     line:     lw r11, RAY_QUEUE_LOW
+0x0000F702,   //PC = 0x000015D4,     line:     and r14, r14, 0
+0xFFFFF600,   //PC = 0x000015D8,     line:     add r12, r14, 0xFFFF
+0x15F4E293,   //PC = 0x000015DC,     line:     beq r5, r12, SKIP_PATCH, true
+0x0001F600,   //PC = 0x000015E0,     line:     add r12, r14, 1
+0x15F0E413,   //PC = 0x000015E4,     line:     beq r8, r12, PATCH_RIGHT_CHILD, true
+0x00003699,   //PC = 0x000015E8,     line:     sh r13, r6, 0                            # *patch_left = node
+0x15F4FF93,   //PC = 0x000015EC,     line:     beq r15, r15, SKIP_PATCH, true
+0x00003E99,   //PC = 0x000015F0,     line:     sh r13, r7, 0                            # *patch_right = node
+0x00246D1F,   //PC = 0x000015F4,     line:     lw r10, r13, 36                         # owner = dram_node->core_owner
+0x1600DD14,   //PC = 0x000015F8,     line:     bne r10, r11, CHECK_RECURSE, true
+0x003C869A,   //PC = 0x000015FC,     line:     sw r13, ROOT_NODE_ID
+0xFFFFF703,   //PC = 0x00001600,     line:     or r14, r14, 0xFFFF
+0x1644F513,   //PC = 0x00001604,     line:     beq r10, r14, DO_RECURSE, true
+0x0000F702,   //PC = 0x00001608,     line:     and r14, r14, 0
+0x1628DD13,   //PC = 0x0000160C,     line:     beq r10, r11, SET_NODE_ID, true
+0x19CC851F,   //PC = 0x00001610,     line:     lw r10, FOUND_LEAF_CORE_INDEX_FOR_BRANCH
+0x0000F702,   //PC = 0x00001614,     line:     and r14, r14, 0
+0x14FC5714,   //PC = 0x00001618,     line:     bne r14, r10, dfs_loop, false
+0x19C8F500,   //PC = 0x0000161C,     line:     add r10, r14, LEAF_CORE_INDEX_FOR_BRANCH
+0x0001D7B3,   //PC = 0x00001620,     line:     atomadd r15, r10, 1
+0x14FCFF93,   //PC = 0x00001624,     line:     beq r15, r15, dfs_loop, true             # foreign owner: stop here
+0x0001F500,   //PC = 0x00001628,     line:     add r10, r14, 1
+0x19CC851A,   //PC = 0x0000162C,     line:     sw r10, FOUND_LEAF_CORE_INDEX_FOR_BRANCH
+0x002C651F,   //PC = 0x00001630,     line:     lw r10, r12, 44                        # node_id
+0x003C851A,   //PC = 0x00001634,     line:     sw r10, ROOT_NODE_ID
+0x19D4851F,   //PC = 0x00001638,     line:     lw r10, SRAM_NODE_ALLOC_PTR
+0xFFD0D500,   //PC = 0x0000163C,     line:     add r10, r10, -48
+0x31F8851A,   //PC = 0x00001640,     line:     sw r10, ROOT_NODE_ADDRESS
+0x0000F702,   //PC = 0x00001644,     line:     and r14, r14, 0
+0x001865AC,   //PC = 0x00001648,     line:     lw_d r11, r12, 24                        # left index
+0x0001DD00,   //PC = 0x0000164C,     line:     add r10, r11, 1                          #right index
+0x0001CE00,   //PC = 0x00001650,     line:     add r12, r9, 1                           # child_depth = depth + 1
+0x0000151A,   //PC = 0x00001654,     line:     sw r10, r2, 0                            # right_idx
+0x00041699,   //PC = 0x00001658,     line:     sh r13, r2, 4                            # parent = node
+0x0018ED00,   //PC = 0x0000165C,     line:     add r10, r13, 24
+0x00061519,   //PC = 0x00001660,     line:     sh r10, r2, 6                            # patch_left = &node->left_child
+0x001AED00,   //PC = 0x00001664,     line:     add r10, r13, 26
+0x00081519,   //PC = 0x00001668,     line:     sh r10, r2, 8                            # patch_right = &node->right_child
+0x0001F500,   //PC = 0x0000166C,     line:     add r10, r14, 1
+0x000A1519,   //PC = 0x00001670,     line:     sh r10, r2, 10                           # is_right = 1
+0x000C161A,   //PC = 0x00001674,     line:     sw r12, r2, 12                           # depth + 1
+0x00109100,   //PC = 0x00001678,     line:     add r2, r2, 16
+0x0000159A,   //PC = 0x0000167C,     line:     sw r11, r2, 0                            # left_idx
+0x00041699,   //PC = 0x00001680,     line:     sh r13, r2, 4
+0x0018ED00,   //PC = 0x00001684,     line:     add r10, r13, 24
+0x00061519,   //PC = 0x00001688,     line:     sh r10, r2, 6
+0x001AED00,   //PC = 0x0000168C,     line:     add r10, r13, 26
+0x00081519,   //PC = 0x00001690,     line:     sh r10, r2, 8
+0x000A1719,   //PC = 0x00001694,     line:     sh r14, r2, 10                           # is_right = 0
+0x000C161A,   //PC = 0x00001698,     line:     sw r12, r2, 12
+0x00109100,   //PC = 0x0000169C,     line:     add r2, r2, 16
+0x14FCFF93,   //PC = 0x000016A0,     line:     beq r15, r15, dfs_loop, true
+0x0000F702,   //PC = 0x000016A4,     line:     and r14, r14, 0
+0x19A8851F,   //PC = 0x000016A8,     line:     lw r10, JUMP_TO_RAY_EAT_INTERRUPT
+0xBF80851A,   //PC = 0x000016AC,     line:     sw r10, 49024
+0xBF84851A,   //PC = 0x000016B0,     line:     sw r10, 49028
+0x19AC851F,   //PC = 0x000016B4,     line:     lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
+0xBF88851A,   //PC = 0x000016B8,     line:     sw r10, 49032
+0x1A54861F,   //PC = 0x000016BC,     line:     lw r12, NODE_ARRAY_HIGH
+0x000066A7,   //PC = 0x000016C0,     line:     setmembits r13, r12
+0x00008882,   //PC = 0x000016C4,     line:     and r1, r1, 0
+0x7F648880,   //PC = 0x000016C8,     line:     add r1, r1, 32612
+0x0034811F,   //PC = 0x000016CC,     line:     lw r2, RAY_QUEUE_LOW
+0x00020880,   //PC = 0x000016D0,     line:     add r1, r1, r2
+0x0000092C,   //PC = 0x000016D4,     line:     lw_d r2, r1, 0
+0x000409AC,   //PC = 0x000016D8,     line:     lw_d r3, r1, 4
+0x00088880,   //PC = 0x000016DC,     line:     add r1, r1, 8
+0x19D4831F,   //PC = 0x000016E0,     line:     lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
+0x00061200,   //PC = 0x000016E4,     line:     add r4, r2, r6              # i = 0
+0x31F4831A,   //PC = 0x000016E8,     line:     sw r6, INDEX_ARRAY_BASE     
+0x31F0821A,   //PC = 0x000016EC,     line:     sw r4, VERTEX_ARRAY_BASE    
+0x17083215,   //PC = 0x000016F0,     line:     blte r4, r6, index_copy_done, false
+0x00000AAC,   //PC = 0x000016F4,     line:     lw_d r5, r1, 0
+0x0000329A,   //PC = 0x000016F8,     line:     sw r5, r6, 0                # *(sram_dst) = ...
+0x00048880,   //PC = 0x000016FC,     line:     add r1, r1, 4               # dram_src += 4
+0x0004B300,   //PC = 0x00001700,     line:     add r6, r6, 4               # sram_dst += 4
+0x16F0FF93,   //PC = 0x00001704,     line:     beq r15, r15, index_copy_loop, true
+0x0000A300,   //PC = 0x00001708,     line:     add r6, r4, 0
+0x00032200,   //PC = 0x0000170C,     line:     add r4, r4, r3
+0x17283215,   //PC = 0x00001710,     line:     blte r4, r6, vertex_copy_done, false
+0x00000AAC,   //PC = 0x00001714,     line:     lw_d r5, r1, 0
+0x0000329A,   //PC = 0x00001718,     line:     sw r5, r6, 0                # *(sram_dst) = ...
+0x00048880,   //PC = 0x0000171C,     line:     add r1, r1, 4               # dram_src += 4
+0x0004B300,   //PC = 0x00001720,     line:     add r6, r6, 4               # sram_dst += 4
+0x1710FF93,   //PC = 0x00001724,     line:     beq r15, r15, vertex_copy_loop, true
+0x1F9C809F,   //PC = 0x00001728,     line:     lw r1, RAY_QUEUE_HEAD
+0x00000F1A,   //PC = 0x0000172C,     line:     sw r14, r1, 0
+0x00040F1A,   //PC = 0x00001730,     line:     sw r14, r1, 4
+0x00080F1A,   //PC = 0x00001734,     line:     sw r14, r1, 8
+0x004B8880,   //PC = 0x00001738,     line:     add r1, r1, 75
+0x0010F100,   //PC = 0x0000173C,     line:     add r2, r14, 16
+0x1754F113,   //PC = 0x00001740,     line:     beq r2, r14, queue_loop_1_done, true
+0x00000F1A,   //PC = 0x00001744,     line:     sw r14, r1, 0
+0x00408880,   //PC = 0x00001748,     line:     add r1, r1, 64
+0xFFFF9100,   //PC = 0x0000174C,     line:     add r2, r2, -1
+0x1740FF93,   //PC = 0x00001750,     line:     beq r15, r15, queue_loop_1, true
+0x00010F18,   //PC = 0x00001754,     line:     sb r14, r1, 1
+0x00050F18,   //PC = 0x00001758,     line:     sb r14, r1, 5
+0x00090F18,   //PC = 0x0000175C,     line:     sb r14, r1, 9
+0x004C8880,   //PC = 0x00001760,     line:     add r1, r1, 76
+0x0010F100,   //PC = 0x00001764,     line:     add r2, r14, 16
+0x177CF113,   //PC = 0x00001768,     line:     beq r2, r14, queue_loop_2_done, true
+0x00000F1A,   //PC = 0x0000176C,     line:     sw r14, r1, 0
+0x00408880,   //PC = 0x00001770,     line:     add r1, r1, 64
+0xFFFF9100,   //PC = 0x00001774,     line:     add r2, r2, -1
+0x1768FF93,   //PC = 0x00001778,     line:     beq r15, r15, queue_loop_2, true
+0x31E4871A,   //PC = 0x0000177C,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x2FBC809F,   //PC = 0x00001780,     line:     lw r1, TILE_DATA_COUNT
+0x00040F1A,   //PC = 0x00001784,     line:     sw r14, r1, 4
+0x00000F1A,   //PC = 0x00001788,     line:     sw r14, r1, 0
+0x31E0871A,   //PC = 0x0000178C,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x1A9C809F,   //PC = 0x00001790,     line:     lw r1, RAY_ARRAY
+0x0006F905,   //PC = 0x00001794,     line:     sll r2, r15, 6
+0x00020880,   //PC = 0x00001798,     line:     add r1, r1, r2
+0x003F0F18,   //PC = 0x0000179C,     line:     sb r14, r1, 63
+0x2FA8871A,   //PC = 0x000017A0,     line:     sw r14, PREVIOUSLY_IDLE
+0x2FAC871A,   //PC = 0x000017A4,     line:     sw r14, RAYS_PROCESSED
+0x2FB0871A,   //PC = 0x000017A8,     line:     sw r14, LAST_OBSERVED_CYCLE
+0x31E0871A,   //PC = 0x000017AC,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x31E4871A,   //PC = 0x000017B0,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x00208026,   //PC = 0x000017B4,     line:     intena 32
+0x00228026,   //PC = 0x000017B8,     line:     intena 34
+0x00238026,   //PC = 0x000017BC,     line:     intena 35
+0x00248026,   //PC = 0x000017C0,     line:     intena 36
+0x00008025,   //PC = 0x000017C4,     line:     relinquish true
+0x0A84FF93,   //PC = 0x000017C8,     line:     beq r15, r15, ray_done, true
+0x1A7C819F,   //PC = 0x000017CC,     line:     lw r3, IDLE_QUEUE_HIGH                  # r3 = self.idle_queue_address_high
+0x000039A7,   //PC = 0x000017D0,     line:     setmembits r3, r7                       # set_address_bits(idle_queue_high), r7 = old membits (saved)
+0x1A80821F,   //PC = 0x000017D4,     line:     lw r4, IDLE_QUEUE_LOW                   # r4 = idle_queue_address_low (base of idle_core_queue_dram)
+0x0008A200,   //PC = 0x000017D8,     line:     add r4, r4, 8                           # r4 = &idle_queue.count (skip head_relative + tail_relative)
+0x0001A2B0,   //PC = 0x000017DC,     line:     atomadd_d r5, r4, 1                     # r5 = old_count = atomic_add_dram(&count, 1)
+0xFFFCA200,   //PC = 0x000017E0,     line:     add r4, r4, -4                          # r4 = &idle_queue.tail_relative
+0x0004A2B0,   //PC = 0x000017E4,     line:     atomadd_d r5, r4, 4                     # r5 = old_tail = atomic_add_dram(&tail_relative, 4)
+0x0010A200,   //PC = 0x000017E8,     line:     add r4, r4, 16                           # r4 = &idle_queue.slots (skip tail_relative + count)
+0x7FFFAA82,   //PC = 0x000017EC,     line:     and r5, r5, 0x7FFF                      # r5 = slot_offset = old_tail & 0x7FFF (wrap within slots)
+0x00052200,   //PC = 0x000017F0,     line:     add r4, r4, r5                          # r4 = slot_addr = &slots + slot_offset
+0x000222AB,   //PC = 0x000017F4,     line:     lhu_d r5, r4, 2                         # r5 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+0x17F42F14,   //PC = 0x000017F8,     line:     bne r14, r5, IDLE_CORE_INSERT_SPINLOCK, false  # spin until is_valid == 0 (slot is free)
+0x0004FA86,   //PC = 0x000017FC,     line:     srl r5, r15, 4                          # r5 = self.core_id = r15 >> 4 (strip thread_id bits)
+0x000022AE,   //PC = 0x00001800,     line:     sh_d r5, r4, 0                          # store_dram_half(core_id, slot_addr + offsetof(core_id))
+0x0001F280,   //PC = 0x00001804,     line:     add r5, r14, 1                          # r5 = 1
+0x000222AE,   //PC = 0x00001808,     line:     sh_d r5, r4, 2                          # store_dram_half(1, slot_addr + offsetof(is_valid)) (mark ready)
+0x00020797,   //PC = 0x0000180C,     line:     jmp r15, r2                             # return
+0x0000F702,   //PC = 0x00001810,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
+0x1A7C829F,   //PC = 0x00001814,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
+0x27A8F280,   //PC = 0x00001818,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+0x00002AA7,   //PC = 0x0000181C,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
+0x1A80831F,   //PC = 0x00001820,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
+0xFFFFC403,   //PC = 0x00001824,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
+0xFFFFB4B0,   //PC = 0x00001828,     line:     atomadd_d r9, r6, -1                # r9 = old_count = atomic_add_dram(current.count, -1)
+0x0000B200,   //PC = 0x0000182C,     line:     add r4, r6, 0                       # r4 = current (base addr of leaf idle_core_queue_dram)
+0x18FC7496,   //PC = 0x00001830,     line:     bgt r9, r14, CLAIM_SLOT, false      # if old_count > 0 goto CLAIM_SLOT (fast path: slot available)
+0x0001B4B0,   //PC = 0x00001834,     line:     atomadd_d r9, r6, 1                 # revert: atomic_add_dram(current.count, 1)
+0x000C33AC,   //PC = 0x00001838,     line:     lw_d r7, r6, 12                     # r7 = current.parent_node_high (idle_core_queue_dram.parent_node_high)
+0x0010332C,   //PC = 0x0000183C,     line:     lw_d r6, r6, 16                     # r6 = current.parent_node_low (idle_core_queue_dram.parent_node_low)
+0x00003FA7,   //PC = 0x00001840,     line:     setmembits r7                       # set_address_bits(parent_node_high)
+0x001834AA,   //PC = 0x00001844,     line:     lh_d r9, r6, 24                     #r9 = is_left
+0x001A352A,   //PC = 0x00001848,     line:     lh_d r10, r6, 26                    #r10 = height
+0x000035AC,   //PC = 0x0000184C,     line:     lw_d r11, r6, 0                     #r11 = parent_high
+0x31E8859A,   //PC = 0x00001850,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+0x0004362C,   //PC = 0x00001854,     line:     lw_d r12, r6, 4                     #r12 = parent_low
+0x31EC861A,   //PC = 0x00001858,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+0xFFFFEE83,   //PC = 0x0000185C,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
+0x19346D93,   //PC = 0x00001860,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
+0x00005FA7,   //PC = 0x00001864,     line:     setmembits r11                      # set_address_bits(parent_high)
+0x18784F13,   //PC = 0x00001868,     line:     beq r14, r9, RIGHT_NODE, false      # if is_left == 0 goto RIGHT_NODE (we are right child, sibling is left)
+0x0010632C,   //PC = 0x0000186C,     line:     lw_d r6, r12, 16                    # r6 = sibling_high = parent->right_high (we are left child)
+0x001463AC,   //PC = 0x00001870,     line:     lw_d r7, r12, 20                    # r7 = sibling_low = parent->right_low
+0x1880FF93,   //PC = 0x00001874,     line:     beq r15, r15, SKIP_RIGHT_NODE, true # unconditional goto SKIP_RIGHT_NODE
+0x0008632C,   //PC = 0x00001878,     line:     lw_d r6, r12, 8                     # r6 = sibling_high = parent->left_high (we are right child)
+0x000C63AC,   //PC = 0x0000187C,     line:     lw_d r7, r12, 12                    # r7 = sibling_low = parent->left_low
+0x00002B1A,   //PC = 0x00001880,     line:     sw r6, r5, 0                        # dfs_stack[top].high = sibling_high
+0x00042B9A,   //PC = 0x00001884,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
+0x00082D19,   //PC = 0x00001888,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
+0x000CAA80,   //PC = 0x0000188C,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
+0x27A8F680,   //PC = 0x00001890,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+0x19242E93,   //PC = 0x00001894,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
+0xFFF4AA80,   //PC = 0x00001898,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
+0x00002A1F,   //PC = 0x0000189C,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
+0x000027A7,   //PC = 0x000018A0,     line:     setmembits r4                       # set_address_bits(dfs_node_high)
+0x00042A1F,   //PC = 0x000018A4,     line:     lw r4, r5, 4                        # r4 = dfs_node = dfs_stack[top].low
+0x00082E9E,   //PC = 0x000018A8,     line:     lhu r13, r5, 8                      # r13 = dfs_node_height = dfs_stack[top].height
+0x18E8F693,   //PC = 0x000018AC,     line:     beq r13, r14, TRY_DEQUEUE, true    # if dfs_node_height == 0 goto TRY_DEQUEUE (leaf node)
+0xFFFFEE80,   //PC = 0x000018B0,     line:     add r13, r13, -1                    # r13 = child_height = dfs_node_height - 1
+0x001025AC,   //PC = 0x000018B4,     line:     lw_d r11, r4, 16                    # r11 = right_high = dfs_node->right_high
+0x0014262C,   //PC = 0x000018B8,     line:     lw_d r12, r4, 20                    # r12 = right_low = dfs_node->right_low
+0x00002D9A,   //PC = 0x000018BC,     line:     sw r11, r5, 0                       # dfs_stack[top].high = right_high (push right child)
+0x00042E1A,   //PC = 0x000018C0,     line:     sw r12, r5, 4                       # dfs_stack[top].low = right_low
+0x00082E99,   //PC = 0x000018C4,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
+0x000CAA80,   //PC = 0x000018C8,     line:     add r5, r5, 12                      # dfs_top++
+0x000825AC,   //PC = 0x000018CC,     line:     lw_d r11, r4, 8                     # r11 = left_high = dfs_node->left_high
+0x000C262C,   //PC = 0x000018D0,     line:     lw_d r12, r4, 12                    # r12 = left_low = dfs_node->left_low
+0x00002D9A,   //PC = 0x000018D4,     line:     sw r11, r5, 0                       # dfs_stack[top].high = left_high (push left child, visited first)
+0x00042E1A,   //PC = 0x000018D8,     line:     sw r12, r5, 4                       # dfs_stack[top].low = left_low
+0x00082E99,   //PC = 0x000018DC,     line:     sh r13, r5, 8                       # dfs_stack[top].height = child_height
+0x000CAA80,   //PC = 0x000018E0,     line:     add r5, r5, 12                      # dfs_top++
+0x1890FF93,   //PC = 0x000018E4,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP
+0x0008A200,   //PC = 0x000018E8,     line:     add r4, r4, 8                       # r4 = count_addr = dfs_node + offsetof(idle_core_queue_dram, count)
+0xFFFFA4B0,   //PC = 0x000018EC,     line:     atomadd_d r9, r4, -1               # r9 = old_count = atomic_add_dram(count_addr, -1)
+0x18FC7496,   //PC = 0x000018F0,     line:     bgt r9, r14, CLAIM_SLOT, false     # if old_count > 0 goto CLAIM_SLOT (successfully claimed a slot)
+0x0001A4B0,   //PC = 0x000018F4,     line:     atomadd_d r9, r4, 1                # revert: atomic_add_dram(count_addr, 1)
+0x1890FF93,   //PC = 0x000018F8,     line:     beq r15, r15, DFS_LOOP_CORE_SEARCH, true       # unconditional goto DFS_LOOP (try next node)
+0xFFF8A200,   //PC = 0x000018FC,     line:     add r4, r4, -8                      # r4 = dfs_node base (head_relative is at offset 0)
+0x0004A4B0,   //PC = 0x00001900,     line:     atomadd_d r9, r4, 4                # r9 = old_head = atomic_add_dram(head_relative, 4)
+0x7FFFCC82,   //PC = 0x00001904,     line:     and r9, r9, 0x7FFF                 # r9 = head_relative & 0x7FFF (wrap within 8192 slots * 4 bytes)
+0x00092200,   //PC = 0x00001908,     line:     add r4, r4, r9                      # r4 = dfs_node + head_relative
+0x0014A200,   //PC = 0x0000190C,     line:     add r4, r4, 20                      # r4 = slot_addr = dfs_node + offsetof(slots) + head_relative
+0x000224AB,   //PC = 0x00001910,     line:     lhu_d r9, r4, 2                     # r9 = is_valid = load_dram_half(slot_addr + offsetof(is_valid))
+0x19107493,   //PC = 0x00001914,     line:     beq r9, r14, SPINLOCK_VALID, false # spin until is_valid != 0 (enqueuer hasn't written yet)
+0x0000242B,   //PC = 0x00001918,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
+0x0002272E,   //PC = 0x0000191C,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
+0x1934FF93,   //PC = 0x00001920,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
+0x31E8859F,   //PC = 0x00001924,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+0x00005FA7,   //PC = 0x00001928,     line:     setmembits r11                      # set_address_bits(parent_high)
+0x31EC831F,   //PC = 0x0000192C,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+0x1844FF93,   //PC = 0x00001930,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
+0xFFFFCC83,   //PC = 0x00001934,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
+0x0A844493,   //PC = 0x00001938,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
+0x0022C7B1,   //PC = 0x0000193C,     line:     sendflit r15, r8, 34               # send_flit(self.thread_id, found_core_id, 34) (probe message)
+0x000FFC82,   //PC = 0x00001940,     line:     and r9, r15, 0xF                   # r9 = self.thread_id = r15 & 0xF
+0x0010CC80,   //PC = 0x00001944,     line:     add r9, r9, 16                     # r9 = 16 + self.thread_id (receive channel)
+0x00004CA0,   //PC = 0x00001948,     line:     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
+0x0018CD86,   //PC = 0x0000194C,     line:     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
+0x000EF500,   //PC = 0x00001950,     line:     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
+0x0A845594,   //PC = 0x00001954,     line:     bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
+0x0001F500,   //PC = 0x00001958,     line:     add r10, r14, 1                     # r10 = 1
+0x0000C531,   //PC = 0x0000195C,     line:     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
+0x0001CD82,   //PC = 0x00001960,     line:     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
+0x0038861F,   //PC = 0x00001964,     line:     lw r12, IS_BRANCH_CORE             # r12 = self.is_branch_core
+0x19886593,   //PC = 0x00001968,     line:     beq r11, r12, TRANSFER_GEO, false  # if target type == self type, skip code transfer
+0x19DC861F,   //PC = 0x0000196C,     line:     lw r12, BRANCH_START_OF_CODE       # r12 = branch_start_of_code
+0x19E0829F,   //PC = 0x00001970,     line:     lw r5, BRANCH_NUM_INSTRUCTION_BYTES # r5 = num instruction bytes
+0x00056280,   //PC = 0x00001974,     line:     add r5, r12, r5                     # r5 = end address of code region
+0x0000631F,   //PC = 0x00001978,     line:     lw r6, r12, 0                       # r6 = instruction_to_send = *(branch_start_of_code + i)
+0x0000C331,   //PC = 0x0000197C,     line:     sendflit r6, r8, 0                  # send_flit(instruction_to_send, found_core_id, 0)
+0x0004E600,   //PC = 0x00001980,     line:     add r12, r12, 4                     # i += 4
+0x1978E294,   //PC = 0x00001984,     line:     bne r5, r12, TRANSFER_BRANCH_CODE_LOOP, true # loop until end of code region
+0x19E4861F,   //PC = 0x00001988,     line:     lw r12, BRANCH_START_OF_GEO        # r12 = branch_start_of_geometry
+0x19E8829F,   //PC = 0x0000198C,     line:     lw r5, BRANCH_SIZE_OF_GEO          # r5 = size_of_geo in bytes
+0x00056280,   //PC = 0x00001990,     line:     add r5, r12, r5                     # r5 = end address of geometry region
+0x0000631F,   //PC = 0x00001994,     line:     lw r6, r12, 0                       # r6 = word_to_transfer = *(branch_start_of_geometry + i)
+0x0000C331,   //PC = 0x00001998,     line:     sendflit r6, r8, 0                  # send_flit(word_to_transfer, found_core_id, 0)
+0x0004E600,   //PC = 0x0000199C,     line:     add r12, r12, 4                     # i += 4
+0x1994E294,   //PC = 0x000019A0,     line:     bne r5, r12, TRANSFER_BRANCH_GEO_LOOP, true # loop until end of geometry region
+0x0A84FF93,   //PC = 0x000019A4,     line:     beq r15, r15, ray_done, true       # unconditional goto RAY_DONE
+0x13248797,   //PC = 0x000019A8,     line: jmp r15, EAT_RAY_INTERRUPT
+0x02B88797,   //PC = 0x000019AC,     line: jmp r15, SWITCH_ROLES_INTERRUPT
+0x000004D2,   //PC = 0x000019B0,     line: .data 1234
+0x0000001C,   //PC = 0x000019B4,     line: .data 28
+0xFFFFFFFF,   //PC = 0x000019B8,     line: .data -1
 0x00000000,   //PC = 0x000019BC,     line: .data 0
-0x00000000,   //PC = 0x000019C0,     line: .data 0
-0x00000000,   //PC = 0x000019C4,     line: .data 0
+0x03C25F30,   //PC = 0x000019C0,     line: .data 63070000
+0xFFFFFFFF,   //PC = 0x000019C4,     line: .data -1
 0x00000000,   //PC = 0x000019C8,     line: .data 0
-0x00000020,   //PC = 0x000019CC,     line: .data 32
-0x00002328,   //PC = 0x000019D0,     line: .data 9000
-0x00003F00,   //PC = 0x000019D4,     line: .data 16128
-0x00008000,   //PC = 0x000019D8,     line: .data 32768
-0x000F4240,   //PC = 0x000019DC,     line: .data 1000000
-0x000186A0,   //PC = 0x000019E0,     line: .data 100000
-0x0001FFFF,   //PC = 0x000019E4,     line: .data 0x0001FFFF
-0x3F000000,   //PC = 0x000019E8,     line: .data 0x3F000000
-0x40000000,   //PC = 0x000019EC,     line: .data 0x40000000
-0x80000000,   //PC = 0x000019F0,     line: .data 0x80000000
-0x3FC00000,   //PC = 0x000019F4,     line: .data 0x3FC00000
-0x3FFFFFFF,   //PC = 0x000019F8,     line: .data 0x3FFFFFFF
-0x0003FFF0,   //PC = 0x000019FC,     line: .data 0x0003FFF0
-0x0003F7A0,   //PC = 0x00001A00,     line: .data 260000
-0x3F800000,   //PC = 0x00001A04,     line: .data 0x3F800000
-0x03840000,   //PC = 0x00001A08,     line: .data 58982400
-0x38D1B717,   //PC = 0x00001A0C,     line: .data 0x38D1B717
-0xBF800000,   //PC = 0x00001A10,     line: .data 0xBF800000
-0x7F800000,   //PC = 0x00001A14,     line: .data 0x7F800000
-0x007FFFFF,   //PC = 0x00001A18,     line: .data 0x007FFFFF
-0x00000000,   //PC = 0x00001A1C,     line: .data 0
-0x03B20B80,   //PC = 0x00001A20,     line: .data 62000000
-0x00000000,   //PC = 0x00001A24,     line: .data 0
-0x861C4680,   //PC = 0x00001A28,     line: .data 2250000000
+0x00000000,   //PC = 0x000019CC,     line: .data 0
+0x00000000,   //PC = 0x000019D0,     line: .data 0
+0x00000000,   //PC = 0x000019D4,     line: .data 0
+0x00000000,   //PC = 0x000019D8,     line: .data 0
+0x00000020,   //PC = 0x000019DC,     line: .data 32
+0x00002328,   //PC = 0x000019E0,     line: .data 9000
+0x00003F00,   //PC = 0x000019E4,     line: .data 16128
+0x00008000,   //PC = 0x000019E8,     line: .data 32768
+0x000F4240,   //PC = 0x000019EC,     line: .data 1000000
+0x000186A0,   //PC = 0x000019F0,     line: .data 100000
+0x0001FFFF,   //PC = 0x000019F4,     line: .data 0x0001FFFF
+0x3F000000,   //PC = 0x000019F8,     line: .data 0x3F000000
+0x40000000,   //PC = 0x000019FC,     line: .data 0x40000000
+0x80000000,   //PC = 0x00001A00,     line: .data 0x80000000
+0x3FC00000,   //PC = 0x00001A04,     line: .data 0x3FC00000
+0x3FFFFFFF,   //PC = 0x00001A08,     line: .data 0x3FFFFFFF
+0x0003FFF0,   //PC = 0x00001A0C,     line: .data 0x0003FFF0
+0x0003F7A0,   //PC = 0x00001A10,     line: .data 260000
+0x3F800000,   //PC = 0x00001A14,     line: .data 0x3F800000
+0x03840000,   //PC = 0x00001A18,     line: .data 58982400
+0x38D1B717,   //PC = 0x00001A1C,     line: .data 0x38D1B717
+0xBF800000,   //PC = 0x00001A20,     line: .data 0xBF800000
+0x7F800000,   //PC = 0x00001A24,     line: .data 0x7F800000
+0x007FFFFF,   //PC = 0x00001A28,     line: .data 0x007FFFFF
 0x00000000,   //PC = 0x00001A2C,     line: .data 0
 0x03B20B80,   //PC = 0x00001A30,     line: .data 62000000
 0x00000000,   //PC = 0x00001A34,     line: .data 0
-0x0A21FE80,   //PC = 0x00001A38,     line: .data 170000000
+0x861C4680,   //PC = 0x00001A38,     line: .data 2250000000
 0x00000000,   //PC = 0x00001A3C,     line: .data 0
-0x00030D40,   //PC = 0x00001A40,     line: .data 200000
+0x03B20B80,   //PC = 0x00001A40,     line: .data 62000000
 0x00000000,   //PC = 0x00001A44,     line: .data 0
-0x80000000,   //PC = 0x00001A48,     line: .data 2147483648
+0x0A21FE80,   //PC = 0x00001A48,     line: .data 170000000
 0x00000000,   //PC = 0x00001A4C,     line: .data 0
-0x05F5E100,   //PC = 0x00001A50,     line: .data 100000000
+0x00030D40,   //PC = 0x00001A50,     line: .data 200000
 0x00000000,   //PC = 0x00001A54,     line: .data 0
-0x000249F0,   //PC = 0x00001A58,     line: .data 150000
+0x80000000,   //PC = 0x00001A58,     line: .data 2147483648
 0x00000000,   //PC = 0x00001A5C,     line: .data 0
-0x03A2C940,   //PC = 0x00001A60,     line: .data 61000000
+0x05F5E100,   //PC = 0x00001A60,     line: .data 100000000
 0x00000000,   //PC = 0x00001A64,     line: .data 0
-0x000186A0,   //PC = 0x00001A68,     line: .data 100000
+0x000249F0,   //PC = 0x00001A68,     line: .data 150000
 0x00000000,   //PC = 0x00001A6C,     line: .data 0
-0x9502F900,   //PC = 0x00001A70,     line: .data 2500000000
+0x03A2C940,   //PC = 0x00001A70,     line: .data 61000000
 0x00000000,   //PC = 0x00001A74,     line: .data 0
-0x03938704,   //PC = 0x00001A78,     line: .data 0x3938704
+0x000186A0,   //PC = 0x00001A78,     line: .data 100000
 0x00000000,   //PC = 0x00001A7C,     line: .data 0
-0x0A037A00,   //PC = 0x00001A80,     line: .data 168000000
+0x9502F900,   //PC = 0x00001A80,     line: .data 2500000000
 0x00000000,   //PC = 0x00001A84,     line: .data 0
-0x0A037A04,   //PC = 0x00001A88,     line: .data 168000004             # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+0x03938704,   //PC = 0x00001A88,     line: .data 0x3938704
+0x00000000,   //PC = 0x00001A8C,     line: .data 0
+0x0A037A00,   //PC = 0x00001A90,     line: .data 168000000
+0x00000000,   //PC = 0x00001A94,     line: .data 0
+0x0A037A04,   //PC = 0x00001A98,     line: .data 168000004             # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
     ];
 
     leaf_core_code.to_vec()

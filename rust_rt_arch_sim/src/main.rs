@@ -22,7 +22,7 @@ use ndarray_npy::write_npy;
 use std::fs::create_dir_all;
 
 const CORES_IN_X_STACK: u16 = 4;
-const CORES_IN_Y_STACK: u16 = 4;
+const CORES_IN_Y_STACK: u16 = 2;
 const PRINT_STATS: bool = true;
 
 
