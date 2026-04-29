@@ -1,0 +1,59 @@
+Origin = 0x0028
+Bytes = 220
+
+============ HEX ============
+0x00000028,   //PC = 0x00000028,     line: .data 40        # TODO Double check
+0x0044FF93,   //PC = 0x0000002C,     line:     beq r15, r15, INITIALIZE_CORE, true
+0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000034,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000038,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x0000003C,     line:     .data -1
+0xFFFFFFFF,   //PC = 0x00000040,     line:     .data -1
+0x00DC801F,   //PC = 0x00000044,     line:     lw r0, dram_queue_array_high    
+0x000007A7,   //PC = 0x00000048,     line:     setmembits r0   
+0x0004FF06,   //PC = 0x0000004C,     line:     srl r14, r15, 4
+0x0003F705,   //PC = 0x00000050,     line:     sll r14, r14, 3
+0x00D8809F,   //PC = 0x00000054,     line:     lw r1, dram_queue_array_low      # r1 = upper_addr
+0x000E0880,   //PC = 0x00000058,     line:     add r1, r1, r14
+0x0000092C,   //PC = 0x0000005C,     line:     lw_d r2, r1, 0                       # r2 = node_id
+0x000409AC,   //PC = 0x00000060,     line:     lw_d r3, r1, 4 #r3 = is_branch_core
+0x001F9A06,   //PC = 0x00000064,     line:     srl r4, r3, 31
+0x003C811A,   //PC = 0x00000068,     line:     sw r2, ROOT_NODE_ID
+0x0038821A,   //PC = 0x0000006C,     line:     sw r4, IS_BRANCH_CORE
+0x0100821F,   //PC = 0x00000070,     line:     lw r4, AND_MASK
+0x00032202,   //PC = 0x00000074,     line:     and r4, r4, r3
+0x0040821A,   //PC = 0x00000078,     line:     sw r4, NODE_INDEX_OF_ROOT
+0x00E0801F,   //PC = 0x0000007C,     line:     lw r0, dram_queue_addresses_high    
+0x000007A7,   //PC = 0x00000080,     line:     setmembits r0   
+0x00039705,   //PC = 0x00000084,     line:     sll r14, r2, 3
+0x00E4809F,   //PC = 0x00000088,     line:     lw r1, dram_queue_addresses_low      # r1 = upper_addr
+0x000E0880,   //PC = 0x0000008C,     line:     add r1, r1, r14
+0x0000092C,   //PC = 0x00000090,     line:     lw_d r2, r1, 0                       # r2 = RAY_QUEUE_HIGH
+0x000409AC,   //PC = 0x00000094,     line:     lw_d r3, r1, 4                       # r3 = RAY_QUEUE_LOW
+0x0030811A,   //PC = 0x00000098,     line:     sw r2, RAY_QUEUE_HIGH
+0x0034819A,   //PC = 0x0000009C,     line:     sw r3, RAY_QUEUE_LOW
+0x0038821F,   //PC = 0x000000A0,     line:     lw r4, IS_BRANCH_CORE
+0x00008002,   //PC = 0x000000A4,     line:     and r0, r0, 0
+0x00C08213,   //PC = 0x000000A8,     line:     beq r4, r0, download_leaf_core_code, true
+0x00E8809F,   //PC = 0x000000AC,     line:     lw r1, num_instructions_branch
+0x00EC811F,   //PC = 0x000000B0,     line:     lw r2, branch_addr_high      # r2 = branch_addr_high
+0x000017A7,   //PC = 0x000000B4,     line:     setmembits r2
+0x00F0811F,   //PC = 0x000000B8,     line:     lw r2, branch_addr_low
+0x00D0FF93,   //PC = 0x000000BC,     line:     beq r15, r15, bootloader_reuse, true
+0x00F4809F,   //PC = 0x000000C0,     line:     lw r1, num_instructions_leaf     # r1 = num_instructions_leaf
+0x00F8811F,   //PC = 0x000000C4,     line:     lw r2, leaf_addr_high
+0x000017A7,   //PC = 0x000000C8,     line:     setmembits r2
+0x00FC811F,   //PC = 0x000000CC,     line:     lw r2, leaf_addr_low             # r2 = leaf_addr_low
+0x00008002,   //PC = 0x000000D0,     line:     and r0, r0, 0
+0x0010FF93,   //PC = 0x000000D4,     line:     beq r15, r15, 16, true   # unconditional jump to bootloader
+0x00004E20,   //PC = 0x000000D8,     line:     .data 20000   
+0x00000000,   //PC = 0x000000DC,     line:     .data 0  
+0x00000000,   //PC = 0x000000E0,     line:     .data 0  
+0x03C25F30,   //PC = 0x000000E4,     line:     .data 63070000  
+0x00000ABE,   //PC = 0x000000E8,     line:     .data 2750   
+0x00000000,   //PC = 0x000000EC,     line:     .data 0   
+0x00000190,   //PC = 0x000000F0,     line:     .data 400 
+0x00000661,   //PC = 0x000000F4,     line:     .data 1633   
+0x00000000,   //PC = 0x000000F8,     line:     .data 0   
+0x03A2F050,   //PC = 0x000000FC,     line:     .data 61010000   
+0x7FFFFFFF,   //PC = 0x00000100,     line:     .data 0x7FFFFFFF

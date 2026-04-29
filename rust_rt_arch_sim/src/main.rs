@@ -2,11 +2,13 @@ use crate::core::{
     BidirectionalNoc, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE,
     Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue,
 };
-use crate::matrices::{MAT_A, MAT_B, MAT_C, get_init_vector};
+use crate::matrices::{MAT_A, MAT_B, MAT_C};
+use crate::auto_gen_code::{get_init_vector};
 use crate::parse_bvh::assemble_tree;
 pub mod core;
 pub mod matrices;
 pub mod parse_bvh;
+pub mod auto_gen_code;
 use half::f16;
 use hashbrown::HashMap;
 use rand::rngs::StdRng;
@@ -1157,12 +1159,12 @@ fn main() {
     }
     println!("Finished tile queues");
     let leaf_core_code_base = 61_010_000 / 4;
-    for i in matrices::get_leaf_core_code().iter().enumerate() {
+    for i in auto_gen_code::get_leaf_core_code().iter().enumerate() {
         stacks[0].dram_stack[leaf_core_code_base + i.0] = *i.1;
     }
 
     let branch_core_code_base = 400 / 4;
-    for i in matrices::get_branch_core_code().iter().enumerate() {
+    for i in auto_gen_code::get_branch_core_code().iter().enumerate() {
         stacks[0].dram_stack[branch_core_code_base + i.0] = *i.1;
     }
     println!("Finished copying code");
