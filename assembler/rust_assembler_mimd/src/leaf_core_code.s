@@ -1013,16 +1013,15 @@ SHADOW_RAY_OCCLUDED:
 ray_done:
     # ; if (ray->active_ray == 1) { goto start_ray_traversal; }
     and r7, r7, 0
-    add r7, r7, 1
     lb r8, r0, 63
-    beq r8, r7, START_RAY_TRAVERSAL, true
+    bne r8, r7, START_RAY_TRAVERSAL, true
 
     # yield();
     yield r8
 
     # Check local SRAM ray queue
     # uint32_t local_queue_addr = self.local_ray_queue;
-    lw r8, RAY_QUEUE_HEAD # r8 = local_queue_addr
+    add r8, r7, RAY_QUEUE_HEAD # r8 = local_queue_addr
 
     # uint32_t local_ray_count = *(local_queue_addr + 8);
     add r8, r8, 8           # r8 = local_queue_addr + 8
@@ -2098,10 +2097,10 @@ queue_loop_1_done:
     sll r2, r2, 6
 
     # ray = ray_base + index
-    add r1, r1, r2
-
+    add r0, r1, r2
+    lw r1, ROOT_NODE_ADDRESS
     # *(ray + 63) = 0;
-    sb r14, r1, 63
+    sb r14, r0, 63
 
     # *(self.core_handled->previously_idle) = 0;
     sw r14, PREVIOUSLY_IDLE
@@ -2121,6 +2120,7 @@ queue_loop_1_done:
     intena 34
     intena 35
     intena 36
+    setctx 16
     relinquish true
 
     beq r15, r15, ray_done, true

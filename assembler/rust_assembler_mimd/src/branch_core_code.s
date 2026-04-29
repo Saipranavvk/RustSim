@@ -2737,6 +2737,7 @@ queue_loop_2_done:
     intena 34
     intena 35
     intena 36
+    setctx 16
     relinquish true
     beq r15, r15, GRAB_FROM_TILE, true
 

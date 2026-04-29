@@ -2395,6 +2395,45 @@ impl Core {
                     | Operation::LoadHalfSigned
                     | Operation::LoadHalfUnsigned
                     | Operation::LoadWord => {
+                        if DEBUG && self.core_id == 97 && instruction_to_execute.operation == Operation::LoadHalfUnsigned && self.cycle > 21400 {
+                            println!("Ray values:");
+                            let base = self.register_file[self.context_in_progress * 16];
+                            let w = |offset: u32| -> u32 {
+                                self.read_sram_word(&((base + offset) as u16))
+                            };
+                            let f = |offset: u32| -> f32 {
+                                f32::from_bits(w(offset))
+                            };
+                            let w16 = |offset: u32, high: bool| -> u16 {
+                                let word = w(offset & !3);
+                                if high { (word >> 16) as u16 } else { word as u16 }
+                            };
+                            let w8 = |offset: u32| -> u8 {
+                                let word = w(offset & !3);
+                                (word >> ((offset & 3) * 8)) as u8
+                            };
+
+                            println!(
+                                "  origin:      ({}, {}, {})\n\
+                                direction:   ({}, {}, {})\n\
+                                inv_dir:     ({}, {}, {})\n\
+                                t_max:       {}\n\
+                                leaf_start:  {:#010x}\n\
+                                check_left:  {:#010x}\n\
+                                check_right: {:#010x}\n\
+                                pix:         ({}, {})\n\
+                                tri_index:   {:#010x}\n\
+                                bounce:      {}  light_id: {}  ray_depth: {}  active: {}",
+                                f(0),  f(4),  f(8),
+                                f(12), f(16), f(20),
+                                f(24), f(28), f(32),
+                                f(36),
+                                w(40), w(44), w(48),
+                                w16(52, false), w16(54, false),
+                                w(56),
+                                w8(60), w8(61), w8(62), w8(63),
+                            );
+                        }
                         let address = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16
                         } else {
