@@ -1908,7 +1908,7 @@ dfs_loop:
     lhu_d r10, r12, 40
     sh r10, r13, 40                          # queue_high_bit_addr
     lw_d r10, r12, 36
-    add r10, r10 24512
+    add r10, r10, 24512
     sw r10, r13, 36                          # queue_low_bit_addr
     lw_d r10, r12, 44
     add r10, r10, 8192
@@ -2307,15 +2307,15 @@ SRAM_NODE_ALLOC_PTR:
 NODE_ARRAY_TOP:         
 .data 0
 BRANCH_START_OF_CODE:    
-.data -1
+.data 32
 BRANCH_NUM_INSTRUCTION_BYTES: 
-.data -1
+.data 9000
 BRANCH_START_OF_GEO:     
-.data -1
+.data 16128
 BRANCH_SIZE_OF_GEO:      
-.data -1
+.data 32768
 BRANCH_IDLE_THRESHOLD:    # TODO chenge this value
-.data -1
+.data 1000000
 IDLE_WINDOW:             
 .data 100000
 EAT_RAY_MASK:            
@@ -2402,7 +2402,11 @@ PIXEL_DONE_HIGH:
 .data 0
 PIXEL_DONE_LOW:
 .data 168000004
-//DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+# DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+
+# beq r3, r3, RANDOM_TABLE_HIGH, true
+
+
 RAY_ARRAY: 
 .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: 

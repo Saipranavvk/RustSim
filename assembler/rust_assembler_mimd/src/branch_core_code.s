@@ -1476,11 +1476,11 @@ SPAWN_FROM_TILE:
     sw r6, r0, 8                         # ray->oy = cam_y
 
 # --- Camera-space direction ---
-    lw r5, HALF_RES_X
-    lw r6, HALF_RES_Y
+    lw r5, CAM_CX
+    lw r6, CAM_CY
     lw r7, CAM_INV_FOCAL
-    fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - half_res_x
-    fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - half_res_y
+    fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - CAM_CX
+    fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - CAM_CY
     fpmul.32 r2, r8, r7                  # r2 = dx_cam *= inv_focal
     fpmul.32 r3, r9, r7                  # r3 = dy_cam *= inv_focal
     lw r4, NEG_ONE                       # r4 = dz_cam = -1.0
@@ -2760,15 +2760,15 @@ leaf_start_of_code:
 SRAM_NODE_ALLOC_PTR:     
 .data 16384
 BRANCH_START_OF_CODE:    
-.data -1
+.data 32
 BRANCH_NUM_INSTRUCTION_BYTES: 
-.data -1
+.data 9000
 BRANCH_START_OF_GEO:     
-.data -1
+.data 16128
 BRANCH_SIZE_OF_GEO:      
-.data -1
+.data 32768
 BRANCH_IDLE_THRESHOLD:    
-.data 5
+.data 1000000
 IDLE_WINDOW:             
 .data 100000
 EAT_RAY_MASK:            
@@ -2949,14 +2949,29 @@ SRAM_ALLOC_COUNT:
 .data 16384
 ROOT_NODE_ADDRESS: 
 .data 16384 # 0x000022C4
+CAM_DX:
+.data 0x3F211D9C
+CAM_DY:
+.data 0xBF11B30F
+CAM_DZ:
+.data 0x3F0780C3
 CAM_RIGHT_X:
+.data 0x3F24CB85
 CAM_RIGHT_Y:
+.data 0x00000000
 CAM_RIGHT_Z:
+.data 0xBF43E1FB
 CAM_UP_X:
+.data 0x3EDF0BC5
 CAM_UP_Y:
+.data 0x3F527375
 CAM_UP_Z:
+.data 0x3EBB9B7C
 # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM 
+
 # beq r3, r3, JUMP_TO_RAY_EAT_INTERRUPT, true
+
+
 RAY_ARRAY: 
 .data(256) 0
 LEAF_CORE_LOOKUP_TABLE: 

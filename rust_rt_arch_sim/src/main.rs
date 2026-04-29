@@ -7,6 +7,7 @@ use crate::parse_bvh::assemble_tree;
 pub mod core;
 pub mod matrices;
 pub mod parse_bvh;
+pub mod data_acquisition;
 use half::f16;
 use hashbrown::HashMap;
 use rand::rngs::StdRng;
@@ -927,6 +928,9 @@ fn parse_triangles(path: &str) -> Vec<TriangleVertices> {
 fn main() {
     // assemble_tree("bvh_data".to_string());
     // return;
+    data_acquisition::run_data_acquisition();
+    return;
+
 
     let mut stacks: Vec<Stack> = assemble_stacks();
     let init_vector = get_init_vector();
@@ -1138,6 +1142,16 @@ fn main() {
             // each tile_slot is 4 bytes = 1 word, packed into dram_stack word
             stacks[0].dram_stack[slots_base + slot_index] = slot_word;
         }
+    }
+
+    let leaf_core_code_base = 61_010_000 / 4;
+    for i in matrices::get_leaf_core_code().iter().enumerate() {
+        stacks[0].dram_stack[leaf_core_code_base + i.0] = *i.1;
+    }
+
+    let branch_core_code_base = 400 / 4;
+    for i in matrices::get_branch_core_code().iter().enumerate() {
+        stacks[0].dram_stack[branch_core_code_base + i.0] = *i.1;
     }
 
     let barrier = Arc::new(Barrier::new((CORES_IN_X_STACK * CORES_IN_Y_STACK) as usize));

@@ -625,21 +625,21 @@ fn main() -> io::Result<()> {
     println!();
 
     // ---- Output binary to stdout ----
-    println!("===================== BINARY =====================");
+    // println!("===================== BINARY =====================");
     let mut pc = origin;
     let mut i = 0;
-    for w in &words {
-        println!(
-            "{:032b}  #PC = 0x{:08X},     line: {}",
-            w,
-            pc,
-            lines[i]
-        );
-        pc = pc.wrapping_add(4);
-        i+=1;
-    }
+    // for w in &words {
+    //     println!(
+    //         "{:032b}  #PC = 0x{:08X},     line: {}",
+    //         w,
+    //         pc,
+    //         lines[i]
+    //     );
+    //     pc = pc.wrapping_add(4);
+    //     i+=1;
+    // }
 
-    println!();
+    // println!();
 
     // ---- Output hex to stdout ----
     println!("============ HEX ============");
