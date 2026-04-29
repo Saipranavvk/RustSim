@@ -1,4 +1,7 @@
+Origin = 0x0028
+Bytes = 12752
 
+============ HEX ============
 0x14A0FF93,   //PC = 0x00000028,     line:     beq r15, r15, download_bvh_tree, true
 0xFFFFFFFF,   //PC = 0x0000002C,     line:     .data -1
 0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
@@ -17,10 +20,10 @@
 0x002C849A,   //PC = 0x00000064,     line:     sw r9, RAY_QUEUE_HIGH
 0x0030851A,   //PC = 0x00000068,     line:     sw r10, RAY_QUEUE_LOW
 0x0000F702,   //PC = 0x0000006C,     line:     and r14, r14, 0
-0x31E4F480,   //PC = 0x00000070,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x31E0F480,   //PC = 0x00000070,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
 0x0001CFB3,   //PC = 0x00000074,     line:     atomadd r15, r9, 1
 0x0010F500,   //PC = 0x00000078,     line:     add r10, r14, 16 
-0x31E4849F,   //PC = 0x0000007C,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x31E0849F,   //PC = 0x0000007C,     line:     lw r9, LOCAL_QUEUE_FLUSHING
 0x00000038,   //PC = 0x00000080,     line:     switchctx
 0x007CCD13,   //PC = 0x00000084,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY_SWITCH_DRAM_QUEUE, true
 0x000017A7,   //PC = 0x00000088,     line:     setmembits r2
@@ -170,7 +173,7 @@
 0x00228026,   //PC = 0x000002C8,     line:     intena 34                               # enable_interrupts(channel) (nothing to do)
 0x00040797,   //PC = 0x000002CC,     line:     jmp r15, r4                             # return
 0x002283A0,   //PC = 0x000002D0,     line:     block r7, 34                                # switch_core_request = r7 = blocking_recv(channel) (full flit value)
-0x2FA8849F,   //PC = 0x000002D4,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
+0x2FA4849F,   //PC = 0x000002D4,     line:     lw r9, PREVIOUSLY_IDLE                  # r9 = self.previously_idle
 0x030C7494,   //PC = 0x000002D8,     line:     bne r9, r14, UNHANDLED_CORE, false # if previously_idle == 0 goto SWITCH_ROLES_INTERRUPT_DONE
 0x0000BD00,   //PC = 0x000002DC,     line:     add r10, r7, 0                      # r10 = switch_core_request
 0x000EF580,   //PC = 0x000002E0,     line:     add r11, r14, 14                    # r11 = REJECT_CHANGE = 14
@@ -198,10 +201,10 @@
 0x00044CAC,   //PC = 0x00000338,     line:     lw_d r9, r9, 4
 0x0001F500,   //PC = 0x0000033C,     line:     add r10, r14, 1
 0x02DC5493,   //PC = 0x00000340,     line:     beq r9, r10, REJECT_CHANGE, false
-0x31E4F480,   //PC = 0x00000344,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
+0x31E0F480,   //PC = 0x00000344,     line:     add r9, r14, LOCAL_QUEUE_FLUSHING
 0x0001CFB3,   //PC = 0x00000348,     line:     atomadd r15, r9, 1
 0x0010F500,   //PC = 0x0000034C,     line:     add r10, r14, 16 
-0x31E4849F,   //PC = 0x00000350,     line:     lw r9, LOCAL_QUEUE_FLUSHING
+0x31E0849F,   //PC = 0x00000350,     line:     lw r9, LOCAL_QUEUE_FLUSHING
 0x00000038,   //PC = 0x00000354,     line:     switchctx
 0x0350CD13,   //PC = 0x00000358,     line:     beq r10, r9, WAIT_FOR_FLUSH_READY, true
 0x0000BD00,   //PC = 0x0000035C,     line:     add r10, r7, 0                      # r10 = switch_core_request
@@ -316,7 +319,7 @@
 0x002C0B1F,   //PC = 0x00000510,     line:     lw r6, r1, 44                  # r6 = node->node_id 
 0xFFFFCC83,   //PC = 0x00000514,     line:     or r9, r9, 0xFFFF
 0x0924CB13,   //PC = 0x00000518,     line:     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
-0x31E0BC00,   //PC = 0x0000051C,     line:     add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
+0x31DCBC00,   //PC = 0x0000051C,     line:     add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
 0x0001C7B3,   //PC = 0x00000520,     line:     atomadd r15, r8, 1               # r9 = clobber
 0xFFFFA203,   //PC = 0x00000524,     line:     or r4, r4, 0xFFFF
 0x00009982,   //PC = 0x00000528,     line:     and r3, r3, 0                   # r3 = sent = 0
@@ -529,7 +532,7 @@
 0x003C259A,   //PC = 0x00000864,     line:     sw r11, r4, 60
 0x0001BD80,   //PC = 0x00000868,     line:     add r11, r7, 1
 0x003F2598,   //PC = 0x0000086C,     line:     sb r11, r4, 63
-0x31F8809F,   //PC = 0x00000870,     line:     lw r1, ROOT_NODE_ADDRESS
+0x31F4809F,   //PC = 0x00000870,     line:     lw r1, ROOT_NODE_ADDRESS
 0x002085A1,   //PC = 0x00000874,     line:     nonblock r11, 32
 0x0908BD93,   //PC = 0x00000878,     line:     beq r11, r7, SKIP_INTERRUPT_MAILBOX, true
 0x002085A0,   //PC = 0x0000087C,     line:     block r11, 32
@@ -548,7 +551,7 @@
 0x08BCBD14,   //PC = 0x000008B0,     line:     bne r10, r7, NO_ROOM_IN_RAY_SLOT, true
 0x00008200,   //PC = 0x000008B4,     line:     add r4, r0, 0
 0x08E8FF93,   //PC = 0x000008B8,     line:     beq r15, r15, SEND_ACK_PACKET, true
-0x1FA4BD00,   //PC = 0x000008BC,     line:     add r10, r7, RAY_QUEUE_CNT
+0x1FA0BD00,   //PC = 0x000008BC,     line:     add r10, r7, RAY_QUEUE_CNT
 0x0001D2B3,   //PC = 0x000008C0,     line:     atomadd r5, r10, 1
 0x001FBB00,   //PC = 0x000008C4,     line:     add r6, r7, 31
 0x08D4AB15,   //PC = 0x000008C8,     line:     blte r6, r5, SPACE_IN_QUEUE_RAY_SEND, true
@@ -571,7 +574,7 @@
 0x055C2614,   //PC = 0x0000090C,     line:     bne r12, r4, send_ray_loop, false
 0x055C3993,   //PC = 0x00000910,     line:     beq r3, r7, send_ray_loop, false
 0x00208026,   //PC = 0x00000914,     line:     intena 32
-0x2FB4B980,   //PC = 0x00000918,     line:     add r3, r7, RAY_SEND_PENDING 
+0x2FB0B980,   //PC = 0x00000918,     line:     add r3, r7, RAY_SEND_PENDING 
 0xFFFF9FB3,   //PC = 0x0000091C,     line:     atomadd r15, r3, -1
 0x0A80FF93,   //PC = 0x00000920,     line:     beq r15, r15, ray_done, true
 0x0018089E,   //PC = 0x00000924,     line:     lhu r1, r1, 24                  # r1 = node->left_child
@@ -666,7 +669,7 @@
 0x003F041B,   //PC = 0x00000A88,     line:     lb r8, r0, 63
 0x042CBC13,   //PC = 0x00000A8C,     line:     beq r8, r7, START_RAY_TRAVERSAL, true
 0x00000422,   //PC = 0x00000A90,     line:     yield r8
-0x1F9C841F,   //PC = 0x00000A94,     line:     lw r8, RAY_QUEUE_HEAD # r8 = local_queue_addr
+0x1F98841F,   //PC = 0x00000A94,     line:     lw r8, RAY_QUEUE_HEAD # r8 = local_queue_addr
 0x0008C400,   //PC = 0x00000A98,     line:     add r8, r8, 8           # r8 = local_queue_addr + 8
 0x0000449F,   //PC = 0x00000A9C,     line:     lw r9, r8, 0           # r9 = local_ray_count
 0x0000BB82,   //PC = 0x00000AA0,     line:     and r7, r7, 0
@@ -677,7 +680,7 @@
 0x0B2CFF93,   //PC = 0x00000AB4,     line:     beq r15, r15, CHECK_DRAM_QUEUE, true
 0x0000BB82,   //PC = 0x00000AB8,     line:     and r7, r7, 0
 0x0040BB80,   //PC = 0x00000ABC,     line:     add r7, r7, 64
-0x1F9C841F,   //PC = 0x00000AC0,     line:     lw r8, RAY_QUEUE_HEAD
+0x1F98841F,   //PC = 0x00000AC0,     line:     lw r8, RAY_QUEUE_HEAD
 0x00074533,   //PC = 0x00000AC4,     line:     atomadd r10, r8, r7          # r10 = head, advance head by 64 bytes
 0x0000BB82,   //PC = 0x00000AC8,     line:     and r7, r7, 0
 0x07FFD502,   //PC = 0x00000ACC,     line:     and r10, r10, 0x7FF          # r10 = head & 0x7FF (ring buffer mask)
@@ -698,9 +701,9 @@
 0x19B4841F,   //PC = 0x00000B08,     line:     lw r8, BRANCH_LOCAL_LEAF_INDEX # TODO Alex what
 0x0001BB80,   //PC = 0x00000B0C,     line:     add r7, r7, 1
 0x003F0398,   //PC = 0x00000B10,     line:     sb r7, r0, 63           # ray->active_ray = 1 (r7=0)
-0x31F8809F,   //PC = 0x00000B14,     line:     lw r1, ROOT_NODE_ADDRESS
+0x31F4809F,   //PC = 0x00000B14,     line:     lw r1, ROOT_NODE_ADDRESS
 0x042CFF93,   //PC = 0x00000B18,     line:     beq r15, r15, START_RAY_TRAVERSAL, true
-0x31E4841F,   //PC = 0x00000B1C,     line:     lw r8, LOCAL_QUEUE_FLUSHING # r8 = &local_queue_flushing
+0x31E0841F,   //PC = 0x00000B1C,     line:     lw r8, LOCAL_QUEUE_FLUSHING # r8 = &local_queue_flushing
 0x0000441C,   //PC = 0x00000B20,     line:     lbu r8, r8, 0
 0x0000BB82,   //PC = 0x00000B24,     line:     and r7, r7, 0
 0x0EBCBC14,   //PC = 0x00000B28,     line:     bne r8, r7, INF_LOOP, true
@@ -716,14 +719,14 @@
 0x0100BB80,   //PC = 0x00000B50,     line:     add r7, r7, 256
 0x0B74BD95,   //PC = 0x00000B54,     line:     blte r11, r7, DONT_ASK_FOR_HELP, true
 0x0000CC82,   //PC = 0x00000B58,     line:     and r9, r9, 0
-0x2FB8CC80,   //PC = 0x00000B5C,     line:     add r9, r9, PULLED_FROM_FULL_QUEUE_CNT
+0x2FB4CC80,   //PC = 0x00000B5C,     line:     add r9, r9, PULLED_FROM_FULL_QUEUE_CNT
 0x0001CCB3,   //PC = 0x00000B60,     line:     atomadd r9, r9, 1           # r9 = old count, increment
 0x0000BB82,   //PC = 0x00000B64,     line:     and r7, r7, 0
 0x00C8BB80,   //PC = 0x00000B68,     line:     add r7, r7, 200
 0x0B7CBC95,   //PC = 0x00000B6C,     line:     blte r9, r7, CHECK_CUR_RAY_COUNT, true
 0x180C8797,   //PC = 0x00000B70,     line:     jmp r15, SEARCH_FOR_IDLE_CORES 
 0x0000BB82,   //PC = 0x00000B74,     line:     and r7, r7, 0
-0x2FB8839A,   //PC = 0x00000B78,     line:     sw r7, PULLED_FROM_FULL_QUEUE_CNT
+0x2FB4839A,   //PC = 0x00000B78,     line:     sw r7, PULLED_FROM_FULL_QUEUE_CNT
 0x0030849F,   //PC = 0x00000B7C,     line:     lw r9, RAY_QUEUE_LOW # TODO Alex what is this
 0x0008CC80,   //PC = 0x00000B80,     line:     add r9, r9, 8           # r9 = queue_address_low + 8
 0xFFFFCDB0,   //PC = 0x00000B84,     line:     atomadd_d r11, r9, -1       # r11 = cur_ray_count_check, decrement    
@@ -752,7 +755,7 @@
 0x0004DD80,   //PC = 0x00000BE0,     line:     add r11, r11, 4         # ray_index = ray_index + 4
 0x0001BB80,   //PC = 0x00000BE4,     line:     add r7, r7, 1
 0x0BD0FF93,   //PC = 0x00000BE8,     line:     beq r15, r15, WRITE_TO_RAY_IDX_LOOP, true
-0x31F8809F,   //PC = 0x00000BEC,     line:     lw r1, ROOT_NODE_ADDRESS
+0x31F4809F,   //PC = 0x00000BEC,     line:     lw r1, ROOT_NODE_ADDRESS
 0xFFFFCC80,   //PC = 0x00000BF0,     line:     add r9, r9, -1          # r9 = queue_address_low - 1
 0x00004BAF,   //PC = 0x00000BF4,     line:     sb_d r7, r9, 0           # write 0 to ready byte to mark consumed
 0x0001CC80,   //PC = 0x00000BF8,     line:     add r9, r9, 1           # restore r9 to point to start of ray slot
@@ -813,7 +816,7 @@
 0x0000F702,   //PC = 0x00000CD4,     line:     and r14, r14, 0                      # r14 = 0
 0x00008882,   //PC = 0x00000CD8,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
 0x0002F100,   //PC = 0x00000CDC,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
-0x1A9CF200,   //PC = 0x00000CE0,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+0x1A98F200,   //PC = 0x00000CE0,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
 0x000FFA82,   //PC = 0x00000CE4,     line:     and r5, r15, 0xF                     # r5 = thread_index
 0x0006AA85,   //PC = 0x00000CE8,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
 0x00052200,   //PC = 0x00000CEC,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
@@ -903,9 +906,9 @@
 0x01FFD502,   //PC = 0x00000E3C,     line:     and r10, r10, 0x1FF                  # carried_r &= 0x1FF
 0x01FFDD82,   //PC = 0x00000E40,     line:     and r11, r11, 0x1FF                  # carried_g &= 0x1FF
 0x01FFE602,   //PC = 0x00000E44,     line:     and r12, r12, 0x1FF                  # carried_b &= 0x1FF
-0x2FE0551C,   //PC = 0x00000E48,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
-0x2FE05D9C,   //PC = 0x00000E4C,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
-0x2FE0661C,   //PC = 0x00000E50,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
+0x2FDC551C,   //PC = 0x00000E48,     line:     lbu r10, r10, FLOAT_TO_BYTE_RGB_TABLE  # red_byte = *(self.table_mappings + carried_r)
+0x2FDC5D9C,   //PC = 0x00000E4C,     line:     lbu r11, r11, FLOAT_TO_BYTE_RGB_TABLE  # green_byte = *(self.table_mappings + carried_g)
+0x2FDC661C,   //PC = 0x00000E50,     line:     lbu r12, r12, FLOAT_TO_BYTE_RGB_TABLE  # blue_byte = *(self.table_mappings + carried_b)
 0x1A48869F,   //PC = 0x00000E54,     line:     lw r13, FRAME_BUF_HIGH               # uint32_t pixel_addr_high = self.frame_buffer_high
 0x00006FA7,   //PC = 0x00000E58,     line:     setmembits r13                       # set_address_bits(pixel_addr_high)
 0x1A4C869F,   //PC = 0x00000E5C,     line:     lw r13, FRAME_BUF_LOW                # uint32_t pixel_addr_low = self.frame_buffer_low
@@ -935,19 +938,19 @@
 0x00000422,   //PC = 0x00000EBC,     line:     yield r8                            # yield()
 0x0EBCFF93,   //PC = 0x00000EC0,     line:     beq r15, r15, INF_LOOP, true         # goto inf_loop
 0x000001B4,   //PC = 0x00000EC4,     line:     getclk r3                               # r3 = current_cycle = get_cycle_count()
-0x2FB0821F,   //PC = 0x00000EC8,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
+0x2FAC821F,   //PC = 0x00000EC8,     line:     lw r4, LAST_OBSERVED_CYCLE              # r4 = self.last_observed_cycle
 0x00041981,   //PC = 0x00000ECC,     line:     sub r3, r3, r4                          # r3 = time_diff = current_cycle - last_observed_cycle
 0x0000F702,   //PC = 0x00000ED0,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
 0x19EC829F,   //PC = 0x00000ED4,     line:     lw r5, IDLE_WINDOW                      # r5 = IDLE_WINDOW (minimum time between idle checks)
 0x0EE02996,   //PC = 0x00000ED8,     line:     bgt r3, r5, PASSED_BRANCH_WINDOW, false # if time_diff <= IDLE_WINDOW goto return (too soon)
 0x00020797,   //PC = 0x00000EDC,     line:     jmp r15, r2                             # return 0 (not enough time has passed)
-0x2FA8821F,   //PC = 0x00000EE0,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
+0x2FA4821F,   //PC = 0x00000EE0,     line:     lw r4, PREVIOUSLY_IDLE                  # r4 = self.previously_idle
 0x0EEC7213,   //PC = 0x00000EE4,     line:     beq r4, r14, NOT_PREVIOUSLY_IDLE, false # if previously_idle == 0 goto NOT_PREVIOUSLY_IDLE
 0x00020797,   //PC = 0x00000EE8,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
 0x000002B4,   //PC = 0x00000EEC,     line:     getclk r5                               # r5 = current_cycle (fresh timestamp)
-0x2FB0829A,   //PC = 0x00000EF0,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
-0x2FAC829F,   //PC = 0x00000EF4,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
-0x2FAC871A,   //PC = 0x00000EF8,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
+0x2FAC829A,   //PC = 0x00000EF0,     line:     sw r5, LAST_OBSERVED_CYCLE              # self.last_observed_cycle = current_cycle
+0x2FA8829F,   //PC = 0x00000EF4,     line:     lw r5, RAYS_PROCESSED                   # r5 = self.rays_processed
+0x2FA8871A,   //PC = 0x00000EF8,     line:     sw r14, RAYS_PROCESSED                  # self.rays_processed = 0 (reset counter)
 0x0010AA85,   //PC = 0x00000EFC,     line:     sll r5, r5, 16                          # r5 = rays_processed << 16 (fixed-point scale for division)
 0x00032A89,   //PC = 0x00000F00,     line:     div r5, r5, r3                          # r5 = ratio = (rays_processed << 16) / time_diff
 0x19E8821F,   //PC = 0x00000F04,     line:     lw r4, BRANCH_IDLE_THRESHOLD            # r4 = BRANCH_IDLE_THRESHOLD
@@ -956,14 +959,14 @@
 0x17C8819F,   //PC = 0x00000F10,     line:     lw r3, ADD_IDLE_CORE
 0x00030717,   //PC = 0x00000F14,     line:     jmp r14, r3
 0x00009982,   //PC = 0x00000F18,     line:     and r3, r3, 0
-0x2FA89980,   //PC = 0x00000F1C,     line:     add r3, r3, PREVIOUSLY_IDLE
+0x2FA49980,   //PC = 0x00000F1C,     line:     add r3, r3, PREVIOUSLY_IDLE
 0x000199B3,   //PC = 0x00000F20,     line:     atomadd r3, r3, 1    
 0x0000F702,   //PC = 0x00000F24,     line:     and r14, r14, 0                         # r14 = 0 (zero register)
 0x0001F700,   //PC = 0x00000F28,     line:     add r14, r14, 1
 0x00020797,   //PC = 0x00000F2C,     line:     jmp r15, r2                             # return 0 (already marked idle, nothing to do)
-0x31F4869F,   //PC = 0x00000F30,     line:     lw r13, INDEX_ARRAY_BASE                   # r13 = Vertex * vertices
+0x31F0869F,   //PC = 0x00000F30,     line:     lw r13, INDEX_ARRAY_BASE                   # r13 = Vertex * vertices
 0x0000F702,   //PC = 0x00000F34,     line:     and r14, r14, 0
-0x2BA8F200,   //PC = 0x00000F38,     line:     add r4, r14, RAY_TRIANGLE_REG_SPILL
+0x2BA4F200,   //PC = 0x00000F38,     line:     add r4, r14, RAY_TRIANGLE_REG_SPILL
 0x000FFA82,   //PC = 0x00000F3C,     line:     and r5, r15, 0xF
 0x0006AA85,   //PC = 0x00000F40,     line:     sll r5, r5, 6
 0x00052200,   //PC = 0x00000F44,     line:     add r4, r4, r5
@@ -971,7 +974,7 @@
 0x0004429E,   //PC = 0x00000F4C,     line:     lhu r5, r8, 4
 0x0006431E,   //PC = 0x00000F50,     line:     lhu r6, r8, 6
 0x0008439E,   //PC = 0x00000F54,     line:     lhu r7, r8, 8
-0x31F0841F,   //PC = 0x00000F58,     line:     lw r8, VERTEX_ARRAY_BASE
+0x31EC841F,   //PC = 0x00000F58,     line:     lw r8, VERTEX_ARRAY_BASE
 0x00082A80,   //PC = 0x00000F5C,     line:     add r5, r5, r8 #v0
 0x00083300,   //PC = 0x00000F60,     line:     add r6, r6, r8 #V1
 0x00083B80,   //PC = 0x00000F64,     line:     add r7, r7, r8 #V2
@@ -1238,12 +1241,12 @@
 0x00005D31,   //PC = 0x00001378,     line:     sendflit r10, r11                       # send_flit(wrong_core << 24, dest) (reject: wrong node)
 0x00208026,   //PC = 0x0000137C,     line:     intena 32                               # enable_interrupts(channel)
 0x00040797,   //PC = 0x00001380,     line:     jmp r15, r4                             # return
-0x31E4839F,   //PC = 0x00001384,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
+0x31E0839F,   //PC = 0x00001384,     line:     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
 0x13543F14,   //PC = 0x00001388,     line:     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
 0x003F039C,   //PC = 0x0000138C,     line:     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
 0x00008480,   //PC = 0x00001390,     line:     add r9, r0, 0                           # r9 = local_queue = ray base address
 0x13E83F14,   //PC = 0x00001394,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
-0x1FA4849F,   //PC = 0x00001398,     line:     lw r9, RAY_QUEUE_CNT                # r9 = sender ray queue base address
+0x1FA0849F,   //PC = 0x00001398,     line:     lw r9, RAY_QUEUE_CNT                # r9 = sender ray queue base address
 0x0001CBB3,   //PC = 0x0000139C,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
 0x0020F600,   //PC = 0x000013A0,     line:     add r12, r14, 32                        # r12 = 16 (max queue entries)
 0x13D4BE16,   //PC = 0x000013A4,     line:     bgt r12, r7, SPACE_IN_QUEUE, true     # if old_count < 16 goto SPACE_IN_QUEUE
@@ -1306,7 +1309,7 @@
 0x00343D1A,   //PC = 0x00001488,     line:     sw r10, r7, 52                          # slot[52] = ray_data[13]
 0x00383D9A,   //PC = 0x0000148C,     line:     sw r11, r7, 56                          # slot[56] = ray_data[14]
 0x003C3E1A,   //PC = 0x00001490,     line:     sw r12, r7, 60                          # slot[60] = ray_data[15]
-0x31F8809F,   //PC = 0x00001494,     line:     lw r1, ROOT_NODE_ADDRESS
+0x31F4809F,   //PC = 0x00001494,     line:     lw r1, ROOT_NODE_ADDRESS
 0x00208026,   //PC = 0x00001498,     line:     intena 32                               # enable_interrupts(channel)
 0x00040797,   //PC = 0x0000149C,     line:     jmp r15, r4                             # return
 0x0000F702,   //PC = 0x000014A0,     line:     and r14, r14, 0                          # r14 = 0
@@ -1314,7 +1317,7 @@
 0x19CC859A,   //PC = 0x000014A8,     line:     sw r11, SRAM_ALLOC_COUNT
 0x1A50861F,   //PC = 0x000014AC,     line:     lw r12, NODE_ARRAY_HIGH
 0x000065A7,   //PC = 0x000014B0,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
-0x27A8F100,   //PC = 0x000014B4,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
+0x27A4F100,   //PC = 0x000014B4,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
 0x003C849F,   //PC = 0x000014B8,     line:     lw r9, NODE_INDEX_OF_ROOT
 0xFFFFDD83,   //PC = 0x000014BC,     line:     or r11, r11, 0xFFFF
 0x0030CC88,   //PC = 0x000014C0,     line:     mul r9, r9, 48
@@ -1331,7 +1334,7 @@
 0x000A1719,   //PC = 0x000014EC,     line:     sh r14, r2, 10                           # is_right = 0
 0x000C171A,   //PC = 0x000014F0,     line:     sw r14, r2, 12                           # depth = 0
 0x00109100,   //PC = 0x000014F4,     line:     add r2, r2, 16                           # stack_top++
-0x27A8F580,   //PC = 0x000014F8,     line:     add r11, r14, DFS_STACK
+0x27A4F580,   //PC = 0x000014F8,     line:     add r11, r14, DFS_STACK
 0x16A0D913,   //PC = 0x000014FC,     line:     beq r2, r11, dfs_done, true
 0xFFF09100,   //PC = 0x00001500,     line:     add r2, r2, -16
 0x0000121F,   //PC = 0x00001504,     line:     lw r4, r2, 0                             # dram_idx
@@ -1412,7 +1415,7 @@
 0x0038851A,   //PC = 0x00001630,     line:     sw r10, ROOT_NODE_ID
 0x19D0851F,   //PC = 0x00001634,     line:     lw r10, SRAM_NODE_ALLOC_PTR
 0xFFD0D500,   //PC = 0x00001638,     line:     add r10, r10, -48
-0x31F8851A,   //PC = 0x0000163C,     line:     sw r10, ROOT_NODE_ADDRESS
+0x31F4851A,   //PC = 0x0000163C,     line:     sw r10, ROOT_NODE_ADDRESS
 0x0000F702,   //PC = 0x00001640,     line:     and r14, r14, 0
 0x001865AC,   //PC = 0x00001644,     line:     lw_d r11, r12, 24                        # left index
 0x0001DD00,   //PC = 0x00001648,     line:     add r10, r11, 1                          #right index
@@ -1454,8 +1457,8 @@
 0x00088880,   //PC = 0x000016D8,     line:     add r1, r1, 8
 0x19D0831F,   //PC = 0x000016DC,     line:     lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
 0x00061200,   //PC = 0x000016E0,     line:     add r4, r2, r6              # i = 0
-0x31F4831A,   //PC = 0x000016E4,     line:     sw r6, INDEX_ARRAY_BASE     
-0x31F0821A,   //PC = 0x000016E8,     line:     sw r4, VERTEX_ARRAY_BASE    
+0x31F0831A,   //PC = 0x000016E4,     line:     sw r6, INDEX_ARRAY_BASE     
+0x31EC821A,   //PC = 0x000016E8,     line:     sw r4, VERTEX_ARRAY_BASE    
 0x17043215,   //PC = 0x000016EC,     line:     blte r4, r6, index_copy_done, false
 0x00000AAC,   //PC = 0x000016F0,     line:     lw_d r5, r1, 0
 0x0000329A,   //PC = 0x000016F4,     line:     sw r5, r6, 0                # *(sram_dst) = ...
@@ -1470,7 +1473,7 @@
 0x00048880,   //PC = 0x00001718,     line:     add r1, r1, 4               # dram_src += 4
 0x0004B300,   //PC = 0x0000171C,     line:     add r6, r6, 4               # sram_dst += 4
 0x170CFF93,   //PC = 0x00001720,     line:     beq r15, r15, vertex_copy_loop, true
-0x1F9C809F,   //PC = 0x00001724,     line:     lw r1, RAY_QUEUE_HEAD
+0x1F98809F,   //PC = 0x00001724,     line:     lw r1, RAY_QUEUE_HEAD
 0x00000F1A,   //PC = 0x00001728,     line:     sw r14, r1, 0
 0x00040F1A,   //PC = 0x0000172C,     line:     sw r14, r1, 4
 0x00080F1A,   //PC = 0x00001730,     line:     sw r14, r1, 8
@@ -1491,20 +1494,20 @@
 0x00408880,   //PC = 0x0000176C,     line:     add r1, r1, 64
 0xFFFF9100,   //PC = 0x00001770,     line:     add r2, r2, -1
 0x1764FF93,   //PC = 0x00001774,     line:     beq r15, r15, queue_loop_2, true
-0x31E4871A,   //PC = 0x00001778,     line:     sw r14, LOCAL_QUEUE_FLUSHING
-0x2FBC809F,   //PC = 0x0000177C,     line:     lw r1, TILE_DATA_COUNT
+0x31E0871A,   //PC = 0x00001778,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x2FB8809F,   //PC = 0x0000177C,     line:     lw r1, TILE_DATA_COUNT
 0x00040F1A,   //PC = 0x00001780,     line:     sw r14, r1, 4
 0x00000F1A,   //PC = 0x00001784,     line:     sw r14, r1, 0
-0x31E0871A,   //PC = 0x00001788,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x1A9C809F,   //PC = 0x0000178C,     line:     lw r1, RAY_ARRAY
+0x31DC871A,   //PC = 0x00001788,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x1A98809F,   //PC = 0x0000178C,     line:     lw r1, RAY_ARRAY
 0x0006F905,   //PC = 0x00001790,     line:     sll r2, r15, 6
 0x00020880,   //PC = 0x00001794,     line:     add r1, r1, r2
 0x003F0F18,   //PC = 0x00001798,     line:     sb r14, r1, 63
-0x2FA8871A,   //PC = 0x0000179C,     line:     sw r14, PREVIOUSLY_IDLE
-0x2FAC871A,   //PC = 0x000017A0,     line:     sw r14, RAYS_PROCESSED
-0x2FB0871A,   //PC = 0x000017A4,     line:     sw r14, LAST_OBSERVED_CYCLE
-0x31E0871A,   //PC = 0x000017A8,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x31E4871A,   //PC = 0x000017AC,     line:     sw r14, LOCAL_QUEUE_FLUSHING
+0x2FA4871A,   //PC = 0x0000179C,     line:     sw r14, PREVIOUSLY_IDLE
+0x2FA8871A,   //PC = 0x000017A0,     line:     sw r14, RAYS_PROCESSED
+0x2FAC871A,   //PC = 0x000017A4,     line:     sw r14, LAST_OBSERVED_CYCLE
+0x31DC871A,   //PC = 0x000017A8,     line:     sw r14, RAY_SEND_PENDING_ADDR
+0x31E0871A,   //PC = 0x000017AC,     line:     sw r14, LOCAL_QUEUE_FLUSHING
 0x00208026,   //PC = 0x000017B0,     line:     intena 32
 0x00228026,   //PC = 0x000017B4,     line:     intena 34
 0x00238026,   //PC = 0x000017B8,     line:     intena 35
@@ -1530,7 +1533,7 @@
 0x00020797,   //PC = 0x00001808,     line:     jmp r15, r2                             # return
 0x0000F702,   //PC = 0x0000180C,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
 0x1A78829F,   //PC = 0x00001810,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
-0x27A8F280,   //PC = 0x00001814,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+0x27A4F280,   //PC = 0x00001814,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
 0x00002AA7,   //PC = 0x00001818,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
 0x1A7C831F,   //PC = 0x0000181C,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
 0xFFFFC403,   //PC = 0x00001820,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
@@ -1544,9 +1547,9 @@
 0x001834AA,   //PC = 0x00001840,     line:     lh_d r9, r6, 24                     #r9 = is_left
 0x001A352A,   //PC = 0x00001844,     line:     lh_d r10, r6, 26                    #r10 = height
 0x000035AC,   //PC = 0x00001848,     line:     lw_d r11, r6, 0                     #r11 = parent_high
-0x31E8859A,   //PC = 0x0000184C,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+0x31E4859A,   //PC = 0x0000184C,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
 0x0004362C,   //PC = 0x00001850,     line:     lw_d r12, r6, 4                     #r12 = parent_low
-0x31EC861A,   //PC = 0x00001854,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+0x31E8861A,   //PC = 0x00001854,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
 0xFFFFEE83,   //PC = 0x00001858,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
 0x19306D93,   //PC = 0x0000185C,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
 0x00005FA7,   //PC = 0x00001860,     line:     setmembits r11                      # set_address_bits(parent_high)
@@ -1560,7 +1563,7 @@
 0x00042B9A,   //PC = 0x00001880,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
 0x00082D19,   //PC = 0x00001884,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
 0x000CAA80,   //PC = 0x00001888,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
-0x27A8F680,   //PC = 0x0000188C,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+0x27A4F680,   //PC = 0x0000188C,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
 0x19202E93,   //PC = 0x00001890,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
 0xFFF4AA80,   //PC = 0x00001894,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
 0x00002A1F,   //PC = 0x00001898,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
@@ -1597,9 +1600,9 @@
 0x0000242B,   //PC = 0x00001914,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
 0x0002272E,   //PC = 0x00001918,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
 0x1930FF93,   //PC = 0x0000191C,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
-0x31E8859F,   //PC = 0x00001920,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+0x31E4859F,   //PC = 0x00001920,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
 0x00005FA7,   //PC = 0x00001924,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x31EC831F,   //PC = 0x00001928,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+0x31E8831F,   //PC = 0x00001928,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
 0x1840FF93,   //PC = 0x0000192C,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
 0xFFFFCC83,   //PC = 0x00001930,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
 0x0A804493,   //PC = 0x00001934,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
@@ -1633,7 +1636,7 @@
 0x13208797,   //PC = 0x000019A4,     line: jmp r15, EAT_RAY_INTERRUPT
 0x02B48797,   //PC = 0x000019A8,     line: jmp r15, SWITCH_ROLES_INTERRUPT
 0x000004D2,   //PC = 0x000019AC,     line: .data 1234
-0x000010E1,   //PC = 0x000019B0,     line: .data 4321
+0x00000020,   //PC = 0x000019B0,     line: .data 32
 0xFFFFFFFF,   //PC = 0x000019B4,     line: .data -1
 0x00000000,   //PC = 0x000019B8,     line: .data 0
 0x03C25F30,   //PC = 0x000019BC,     line: .data 63070000
@@ -1643,11 +1646,11 @@
 0x00000000,   //PC = 0x000019CC,     line: .data 0
 0x00000000,   //PC = 0x000019D0,     line: .data 0
 0x00000000,   //PC = 0x000019D4,     line: .data 0
-0xFFFFFFFF,   //PC = 0x000019D8,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000019DC,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000019E0,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000019E4,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000019E8,     line: .data -1
+0x00000020,   //PC = 0x000019D8,     line: .data 32
+0x00002328,   //PC = 0x000019DC,     line: .data 9000
+0x00003F00,   //PC = 0x000019E0,     line: .data 16128
+0x00008000,   //PC = 0x000019E4,     line: .data 32768
+0x000F4240,   //PC = 0x000019E8,     line: .data 1000000
 0x000186A0,   //PC = 0x000019EC,     line: .data 100000
 0x0001FFFF,   //PC = 0x000019F0,     line: .data 0x0001FFFF
 0x3F000000,   //PC = 0x000019F4,     line: .data 0x3F000000
@@ -1690,13 +1693,8 @@
 0x00000000,   //PC = 0x00001A88,     line: .data 0
 0x0A037A00,   //PC = 0x00001A8C,     line: .data 168000000
 0x00000000,   //PC = 0x00001A90,     line: .data 0
-0x0A037A04,   //PC = 0x00001A94,     line: .data 168000004
-
-
-0x1A809993,   //PC = 0x00001A98,     line: beq r3, r3, RANDOM_TABLE_HIGH, true
-
-
-
+0x0A037A04,   //PC = 0x00001A94,     line: .data 168000004             # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM
+0x00000000,   //PC = 0x00001A98,     line: .data(256) 0
 0x00000000,   //PC = 0x00001A9C,     line: .data(256) 0
 0x00000000,   //PC = 0x00001AA0,     line: .data(256) 0
 0x00000000,   //PC = 0x00001AA4,     line: .data(256) 0
@@ -1952,7 +1950,7 @@
 0x00000000,   //PC = 0x00001E8C,     line: .data(256) 0
 0x00000000,   //PC = 0x00001E90,     line: .data(256) 0
 0x00000000,   //PC = 0x00001E94,     line: .data(256) 0
-0x00000000,   //PC = 0x00001E98,     line: .data(256) 0
+0x00000000,   //PC = 0x00001E98,     line: .data(64) 0
 0x00000000,   //PC = 0x00001E9C,     line: .data(64) 0
 0x00000000,   //PC = 0x00001EA0,     line: .data(64) 0
 0x00000000,   //PC = 0x00001EA4,     line: .data(64) 0
@@ -2016,10 +2014,10 @@
 0x00000000,   //PC = 0x00001F8C,     line: .data(64) 0
 0x00000000,   //PC = 0x00001F90,     line: .data(64) 0
 0x00000000,   //PC = 0x00001F94,     line: .data(64) 0
-0x00000000,   //PC = 0x00001F98,     line: .data(64) 0
+0x00000000,   //PC = 0x00001F98,     line: .data 0
 0x00000000,   //PC = 0x00001F9C,     line: .data 0
 0x00000000,   //PC = 0x00001FA0,     line: .data 0
-0x00000000,   //PC = 0x00001FA4,     line: .data 0
+0x00000000,   //PC = 0x00001FA4,     line: .data(512) 0
 0x00000000,   //PC = 0x00001FA8,     line: .data(512) 0
 0x00000000,   //PC = 0x00001FAC,     line: .data(512) 0
 0x00000000,   //PC = 0x00001FB0,     line: .data(512) 0
@@ -2531,7 +2529,7 @@
 0x00000000,   //PC = 0x00002798,     line: .data(512) 0
 0x00000000,   //PC = 0x0000279C,     line: .data(512) 0
 0x00000000,   //PC = 0x000027A0,     line: .data(512) 0
-0x00000000,   //PC = 0x000027A4,     line: .data(512) 0
+0x00000000,   //PC = 0x000027A4,     line: .data(256) 0
 0x00000000,   //PC = 0x000027A8,     line: .data(256) 0
 0x00000000,   //PC = 0x000027AC,     line: .data(256) 0
 0x00000000,   //PC = 0x000027B0,     line: .data(256) 0
@@ -3043,21 +3041,21 @@
 0x00000000,   //PC = 0x00002F98,     line: .data(256) 0
 0x00000000,   //PC = 0x00002F9C,     line: .data(256) 0
 0x00000000,   //PC = 0x00002FA0,     line: .data(256) 0
-0x00000000,   //PC = 0x00002FA4,     line: .data(256) 0
+0x00000000,   //PC = 0x00002FA4,     line: .data 0
 0x00000000,   //PC = 0x00002FA8,     line: .data 0
 0x00000000,   //PC = 0x00002FAC,     line: .data 0
 0x00000000,   //PC = 0x00002FB0,     line: .data 0
 0x00000000,   //PC = 0x00002FB4,     line: .data 0
-0x00000000,   //PC = 0x00002FB8,     line: .data 0
-0x00000000,   //PC = 0x00002FBC,     line: .data 0 #count
-0x00000000,   //PC = 0x00002FC0,     line: .data 0 
-0x00000000,   //PC = 0x00002FC4,     line: .data 0 #tile_x_index/tile_y_index
-0x00000000,   //PC = 0x00002FC8,     line: .data 0 #cur_ray_spawned_from_tile[16] in bytes
+0x00000000,   //PC = 0x00002FB8,     line: .data 0 #count
+0x00000000,   //PC = 0x00002FBC,     line: .data 0 
+0x00000000,   //PC = 0x00002FC0,     line: .data 0 #tile_x_index/tile_y_index
+0x00000000,   //PC = 0x00002FC4,     line: .data 0 #cur_ray_spawned_from_tile[16] in bytes
+0x00000000,   //PC = 0x00002FC8,     line: .data 0 
 0x00000000,   //PC = 0x00002FCC,     line: .data 0 
-0x00000000,   //PC = 0x00002FD0,     line: .data 0 
-0x00000000,   //PC = 0x00002FD4,     line: .data 0
-0x00000000,   //PC = 0x00002FD8,     line: .data 0 #rays_spawned_from_tile
-0x00000000,   //PC = 0x00002FDC,     line: .data 0 #rays_forwarded_out_from_tile
+0x00000000,   //PC = 0x00002FD0,     line: .data 0
+0x00000000,   //PC = 0x00002FD4,     line: .data 0 #rays_spawned_from_tile
+0x00000000,   //PC = 0x00002FD8,     line: .data 0 #rays_forwarded_out_from_tile
+0x00000000,   //PC = 0x00002FDC,     line: .data(128) 0
 0x00000000,   //PC = 0x00002FE0,     line: .data(128) 0
 0x00000000,   //PC = 0x00002FE4,     line: .data(128) 0
 0x00000000,   //PC = 0x00002FE8,     line: .data(128) 0
@@ -3185,11 +3183,10 @@
 0x00000000,   //PC = 0x000031D0,     line: .data(128) 0
 0x00000000,   //PC = 0x000031D4,     line: .data(128) 0
 0x00000000,   //PC = 0x000031D8,     line: .data(128) 0
-0x00000000,   //PC = 0x000031DC,     line: .data(128) 0
+0x00000000,   //PC = 0x000031DC,     line: .data 0
 0x00000000,   //PC = 0x000031E0,     line: .data 0
-0x00000000,   //PC = 0x000031E4,     line: .data 0
+0xFFFFFFFF,   //PC = 0x000031E4,     line: .data -1
 0xFFFFFFFF,   //PC = 0x000031E8,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000031EC,     line: .data -1
-0x00000000,   //PC = 0x000031F0,     line: .data 0
+0x00000000,   //PC = 0x000031EC,     line: .data 0
+0xFFFFFFFF,   //PC = 0x000031F0,     line: .data -1
 0xFFFFFFFF,   //PC = 0x000031F4,     line: .data -1
-0xFFFFFFFF,   //PC = 0x000031F8,     line: .data -1

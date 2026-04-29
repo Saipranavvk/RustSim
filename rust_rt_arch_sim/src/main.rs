@@ -945,9 +945,9 @@ fn main() {
         "Num program init bytes per core: {}",
         (init_vector[0] + 1) * 4
     );
-    // for (i, &value) in init_vector.iter().enumerate() {
-    //     stacks[0].dram_stack[i] = value;
-    // }
+    for (i, &value) in init_vector.iter().enumerate() {
+        stacks[0].dram_stack[i] = value;
+    }
     // for i in 0..MAT_A.len()/2{
     //     stacks[0].dram_stack[i + 250] = MAT_A[2 * i] as u32 | ((MAT_A[2 * i + 1] as u32) << 16);
     // }
@@ -1227,7 +1227,7 @@ fn main() {
                 //     std::process::exit(1);
                 // }
                 if stack_num == 0 {
-                    if dram_read_word(&stack.dram_stack, 168_000_004/4) == 2560 * 1440 * 16 {
+                    if dram_read_word(&stack.dram_stack, 168_000_004) == 2560 * 1440 * 16 {
                         println!("WE RENDERED THE SCENE!!!");
                         println!(
                             "Local Read: {}, Local write: {}, foreign read: {}, foreign write: {}",

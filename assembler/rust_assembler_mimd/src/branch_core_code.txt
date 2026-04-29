@@ -1,5 +1,5 @@
 Origin = 0x0028
-Bytes = 15512
+Bytes = 15508
 
 ============ HEX ============
 0x1D1CFF93,   //PC = 0x00000028,     line:     beq r15, r15, download_bvh_tree, true
@@ -471,7 +471,7 @@ Bytes = 15512
 0x0758F596,   //PC = 0x00000770,     line:     bgt r11, r14, DATA_RECV_LOOP, true   # loop while i < 16
 0x0028049F,   //PC = 0x00000774,     line:     lw r9, r0, 40                   # r9 = ray->leaf_node_starting_point
 0x0001CC85,   //PC = 0x00000778,     line:     sll r9, r9, 1                   # r9 = leaf_node_index * 2 (uint16 array)
-0x2754859F,   //PC = 0x0000077C,     line:     lw r11, LEAF_CORE_LOOKUP_TABLE  # r11 = base address of lookup table in SRAM
+0x2750859F,   //PC = 0x0000077C,     line:     lw r11, LEAF_CORE_LOOKUP_TABLE  # r11 = base address of lookup table in SRAM
 0x00095D80,   //PC = 0x00000780,     line:     add r11, r11, r9                # r11 = &leaf_core_ptrs[leaf_node_index]
 0x00005C9E,   //PC = 0x00000784,     line:     lhu r9, r11, 0                  # r9 = leaf_core_data_addr
 0xFFF06C9A,   //PC = 0x00000788,     line:     sw r9, r13, -16                 # *(slot - 16) = leaf_core_data_addr
@@ -486,7 +486,7 @@ Bytes = 15512
 0x0011E406,   //PC = 0x000007AC,     line:     srl r8, r12, 17                 # r8 = supposed_node_id (message >> 17)
 0x0038849F,   //PC = 0x000007B0,     line:     lw r9, ROOT_NODE_ID             # r9 = self.root_node_id
 0x0864CC14,   //PC = 0x000007B4,     line:     bne r8, r9, WRONG_CORE_SEND, true   # node mismatch -> wrong core
-0x2854F400,   //PC = 0x000007B8,     line:     add r8, r14, LOCAL_RAY_QUEUE              # r8 = self.local_queue
+0x2850F400,   //PC = 0x000007B8,     line:     add r8, r14, LOCAL_RAY_QUEUE              # r8 = self.local_queue
 0x0008C400,   //PC = 0x000007BC,     line:     add r8, r8, 8                   # r8 = skip head and tail
 0x0001D482,   //PC = 0x000007C0,     line:     and r9, r10, 1                  # r9 = thread_id & 1
 0x0000DD82,   //PC = 0x000007C4,     line:     and r11, r11, 0
@@ -607,7 +607,7 @@ Bytes = 15512
 0x0000E602,   //PC = 0x00000990,     line:     and r12, r12, 0
 0x040CE600,   //PC = 0x00000994,     line:     add r12, r12, 1036
 0x000C5D88,   //PC = 0x00000998,     line:     mul r11, r11, r12               # offset = odd_thread * 1036
-0x2854BE00,   //PC = 0x0000099C,     line:     add r12, r7, LOCAL_RAY_QUEUE
+0x2850BE00,   //PC = 0x0000099C,     line:     add r12, r7, LOCAL_RAY_QUEUE
 0x000C5D80,   //PC = 0x000009A0,     line:     add r11, r11, r12               # offset += self.local_ray_queue
 0x0008E600,   //PC = 0x000009A4,     line:     add r12, r12, 8
 0xFFFFE733,   //PC = 0x000009A8,     line:     atomadd r14, r12, -1            # decrement count
@@ -730,7 +730,7 @@ Bytes = 15512
 0x003F0318,   //PC = 0x00000B7C,     line:     sb r6, r0, 63                        # ray->active_ray = 1
 0x0028009F,   //PC = 0x00000B80,     line:     lw r1, r0, 40                        # node = ray->leaf_node_starting_point
 0x00018885,   //PC = 0x00000B84,     line:     sll r1, r1, 1                        # r1 <<= 1 (index into lookup table, 2 bytes per entry)
-0x2754089E,   //PC = 0x00000B88,     line:     lhu r1, r1, LEAF_CORE_LOOKUP_TABLE   # r1 = LEAF_CORE_LOOKUP_TABLE[node] -- get target leaf core
+0x2750089E,   //PC = 0x00000B88,     line:     lhu r1, r1, LEAF_CORE_LOOKUP_TABLE   # r1 = LEAF_CORE_LOOKUP_TABLE[node] -- get target leaf core
 0x042CFF93,   //PC = 0x00000B8C,     line:     beq r15, r15, start_ray_traversal, true  # goto start_ray_traversal
 0x00000422,   //PC = 0x00000B90,     line:     yield r8                             # yield()
 0x002C819F,   //PC = 0x00000B94,     line:     lw r3, RAY_QUEUE_HIGH                # (reload) queue_address_high
@@ -1048,7 +1048,7 @@ Bytes = 15512
 0x0000F702,   //PC = 0x00001074,     line:     and r14, r14, 0                      # r14 = 0
 0x00008882,   //PC = 0x00001078,     line:     and r1, r1, 0                        # r1 = 0 (reset pixel loop counter)
 0x0002F100,   //PC = 0x0000107C,     line:     add r2, r14, 2                       # uint32_t bounce = NUM_BOUNCES - 1  (NUM_BOUNCES=3, so bounce=2)
-0x2354F200,   //PC = 0x00001080,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
+0x2350F200,   //PC = 0x00001080,     line:     add r4, r14, RAY_ARRAY               # r4 = &RAY_ARRAY (scratch area for register pressure)
 0x000FFA82,   //PC = 0x00001084,     line:     and r5, r15, 0xF                     # r5 = thread_index
 0x0006AA85,   //PC = 0x00001088,     line:     sll r5, r5, 6                        # r5 <<= 6 (64 bytes per thread scratch slot)
 0x00052200,   //PC = 0x0000108C,     line:     add r4, r4, r5                       # r4 = thread-local scratch base
@@ -1643,10 +1643,10 @@ Bytes = 15512
 0x1A2C3F14,   //PC = 0x000019C0,     line:     bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
 0x0038851F,   //PC = 0x000019C4,     line:     lw r10, ROOT_NODE_ID             # r10 = sender node id
 0x19D8D693,   //PC = 0x000019C8,     line:     beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
-0x2854F480,   //PC = 0x000019CC,     line:     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
+0x2850F480,   //PC = 0x000019CC,     line:     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
 0x020CCC80,   //PC = 0x000019D0,     line:     add r9, r9, 524
 0x19DCFF93,   //PC = 0x000019D4,     line:     beq r15, r15, CHECK_IF_SPACE_IN_QUEUE, true  # unconditional goto CHECK_IF_SPACE_IN_QUEUE
-0x2854F480,   //PC = 0x000019D8,     line:     add r9, r14, LOCAL_RAY_QUEUE                # r9 = sender ray queue base address
+0x2850F480,   //PC = 0x000019D8,     line:     add r9, r14, LOCAL_RAY_QUEUE                # r9 = sender ray queue base address
 0x0008CC80,   //PC = 0x000019DC,     line:     add r9, r9, 8                           # r9 = &queue.count (skip head and tail fields)
 0x0001CBB3,   //PC = 0x000019E0,     line:     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
 0x0010F600,   //PC = 0x000019E4,     line:     add r12, r14, 16                        # r12 = 16 (max queue entries)
@@ -1754,8 +1754,8 @@ Bytes = 15512
 0x00020797,   //PC = 0x00001B7C,     line:     jmp r15, r2                             # return
 0x0000F702,   //PC = 0x00001B80,     line:     and r14, r14, 0                     # r14 = 0 (zero register)
 0x206C829F,   //PC = 0x00001B84,     line:     lw r5, IDLE_QUEUE_HIGH      # r5 = self.idle_queue_address_high
-0x3CBC829A,   //PC = 0x00001B88,     line:     sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
-0x38B4F280,   //PC = 0x00001B8C,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
+0x3CB8829A,   //PC = 0x00001B88,     line:     sw r5, SEARCH_FOR_IDLE_CORES_STORAGE # save idle_queue_address_high to scratch storage
+0x38B0F280,   //PC = 0x00001B8C,     line:     add r5, r14, DFS_STACK              # r5 = &DFS_STACK (dfs stack pointer)
 0x00002AA7,   //PC = 0x00001B90,     line:     setmembits r5, r5                   # set_address_bits(DFS_STACK), r5 = old membits (discarded)
 0x2070831F,   //PC = 0x00001B94,     line:     lw r6, IDLE_QUEUE_LOW       # r6 = current = self.idle_queue_address_low
 0xFFFFC403,   //PC = 0x00001B98,     line:     or r8, r8, 0xFFFF                   # r8 = 0xFFFFFFFF (found_core_id sentinel = not found)
@@ -1769,9 +1769,9 @@ Bytes = 15512
 0x001834AA,   //PC = 0x00001BB8,     line:     lh_d r9, r6, 24                     #r9 = is_left
 0x001A352A,   //PC = 0x00001BBC,     line:     lh_d r10, r6, 26                    #r10 = height
 0x000035AC,   //PC = 0x00001BC0,     line:     lw_d r11, r6, 0                     #r11 = parent_high
-0x3CB4859A,   //PC = 0x00001BC4,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
+0x3CB0859A,   //PC = 0x00001BC4,     line:     sw r11, SAVED_BRANCH_HIGH           # save parent_high before DFS_LOOP clobbers r11
 0x0004362C,   //PC = 0x00001BC8,     line:     lw_d r12, r6, 4                     #r12 = parent_low
-0x3CB8861A,   //PC = 0x00001BCC,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
+0x3CB4861A,   //PC = 0x00001BCC,     line:     sw r12, SAVED_BRANCH_LOW            # save parent_low before DFS_LOOP clobbers r12
 0xFFFFEE83,   //PC = 0x00001BD0,     line:     or r13, r13, 0xFFFF                 # r13 = 0xFFFFFFFF (sentinel for null parent)
 0x1CA86D93,   //PC = 0x00001BD4,     line:     beq r11, r13, SEARCH_DONE, false    # if parent_high == 0xFFFFFFFF goto SEARCH_DONE (reached root)
 0x00005FA7,   //PC = 0x00001BD8,     line:     setmembits r11                      # set_address_bits(parent_high)
@@ -1785,7 +1785,7 @@ Bytes = 15512
 0x00042B9A,   //PC = 0x00001BF8,     line:     sw r7, r5, 4                        # dfs_stack[top].low = sibling_low
 0x00082D19,   //PC = 0x00001BFC,     line:     sh r10, r5, 8                       # dfs_stack[top].height = height (sibling same height as us)
 0x000CAA80,   //PC = 0x00001C00,     line:     add r5, r5, 12                      # dfs_top++ (advance stack pointer by sizeof(DFS_Entry))
-0x38B4F680,   //PC = 0x00001C04,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
+0x38B0F680,   //PC = 0x00001C04,     line:     add r13, r14, DFS_STACK             # r13 = base address of DFS_STACK
 0x1C982E93,   //PC = 0x00001C08,     line:     beq r13, r5, SIBLING_EXHAUSTED, false # if stack empty (top == base) goto SIBLING_EXHAUSTED
 0xFFF4AA80,   //PC = 0x00001C0C,     line:     add r5, r5, -12                     # dfs_top-- (pop stack)
 0x00002A1F,   //PC = 0x00001C10,     line:     lw r4, r5, 0                        # r4 = dfs_stack[top].high
@@ -1822,9 +1822,9 @@ Bytes = 15512
 0x0000242B,   //PC = 0x00001C8C,     line:     lhu_d r8, r4, 0                     # r8 = found_core_id = load_dram_half(slot_addr + offsetof(core_id))
 0x0002272E,   //PC = 0x00001C90,     line:     sh_d r14, r4, 2                     # store_dram_half(0, slot_addr + offsetof(is_valid)) (clear slot)
 0x1CA8FF93,   //PC = 0x00001C94,     line:     beq r15, r15, SEARCH_DONE, true    # unconditional goto SEARCH_DONE
-0x3CB4859F,   //PC = 0x00001C98,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
+0x3CB0859F,   //PC = 0x00001C98,     line:     lw r11, SAVED_BRANCH_HIGH           # r11 = saved parent_high
 0x00005FA7,   //PC = 0x00001C9C,     line:     setmembits r11                      # set_address_bits(parent_high)
-0x3CB8831F,   //PC = 0x00001CA0,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
+0x3CB4831F,   //PC = 0x00001CA0,     line:     lw r6, SAVED_BRANCH_LOW            # r6 = current = saved parent_low (ascend to parent)
 0x1BB8FF93,   //PC = 0x00001CA4,     line:     beq r15, r15, ASCEND, true         # unconditional goto ASCEND
 0xFFFFCC83,   //PC = 0x00001CA8,     line:     or r9, r9, 0xFFFF                   # r9 = 0xFFFFFFFF (sentinel value for comparison)
 0x097C4493,   //PC = 0x00001CAC,     line:     beq r9, r8, ray_done, false        # if found_core_id == 0xFFFFFFFF (not found) goto RAY_DONE
@@ -1858,7 +1858,7 @@ Bytes = 15512
 0x0000F702,   //PC = 0x00001D1C,     line:     and r14, r14, 0                          # r14 = 0
 0x2044861F,   //PC = 0x00001D20,     line:     lw r12, NODE_ARRAY_HIGH
 0x000065A7,   //PC = 0x00001D24,     line:     setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
-0x38B4F100,   //PC = 0x00001D28,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
+0x38B0F100,   //PC = 0x00001D28,     line:     add r2, r14, DFS_STACK                   # r2 = stack_top
 0x0000171A,   //PC = 0x00001D2C,     line:     sw r14, r2, 0                            # dram_idx = 0
 0xFFFFF580,   //PC = 0x00001D30,     line:     add r11, r14, 0xFFFF
 0x00041599,   //PC = 0x00001D34,     line:     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
@@ -1867,8 +1867,8 @@ Bytes = 15512
 0x000A1719,   //PC = 0x00001D40,     line:     sh r14, r2, 10                           # is_right = 0
 0x000C171A,   //PC = 0x00001D44,     line:     sw r14, r2, 12                           # depth = 0
 0x00109100,   //PC = 0x00001D48,     line:     add r2, r2, 16                           # stack_top++
-0x2754F180,   //PC = 0x00001D4C,     line:     add r3, r14, LEAF_CORE_LOOKUP_TABLE      # r3 = leaf_node_table_ptr
-0x38B4F580,   //PC = 0x00001D50,     line:     add r11, r14, DFS_STACK
+0x2750F180,   //PC = 0x00001D4C,     line:     add r3, r14, LEAF_CORE_LOOKUP_TABLE      # r3 = leaf_node_table_ptr
+0x38B0F580,   //PC = 0x00001D50,     line:     add r11, r14, DFS_STACK
 0x1EC8D913,   //PC = 0x00001D54,     line:     beq r2, r11, dfs_done, true
 0xFFF09100,   //PC = 0x00001D58,     line:     add r2, r2, -16
 0x0000121F,   //PC = 0x00001D5C,     line:     lw r4, r2, 0                             # dram_idx
@@ -1969,10 +1969,10 @@ Bytes = 15512
 0xBF88851A,   //PC = 0x00001ED8,     line:     sw r10, 49032
 0x0000F702,   //PC = 0x00001EDC,     line:     and r14, r14, 0
 0x0038851F,   //PC = 0x00001EE0,     line:     lw r10, ROOT_NODE_ID
-0x2754F580,   //PC = 0x00001EE4,     line:     add r11, r14, LEAF_CORE_LOOKUP_TABLE
+0x2750F580,   //PC = 0x00001EE4,     line:     add r11, r14, LEAF_CORE_LOOKUP_TABLE
 0x0100DD80,   //PC = 0x00001EE8,     line:     add r11, r11, 256
 0x00005D19,   //PC = 0x00001EEC,     line:     sh r10, r11, 0
-0x2854809F,   //PC = 0x00001EF0,     line:     lw r1, LOCAL_RAY_QUEUE
+0x2850809F,   //PC = 0x00001EF0,     line:     lw r1, LOCAL_RAY_QUEUE
 0x00000F1A,   //PC = 0x00001EF4,     line:     sw r14, r1, 0
 0x00040F1A,   //PC = 0x00001EF8,     line:     sw r14, r1, 4
 0x00080F1A,   //PC = 0x00001EFC,     line:     sw r14, r1, 8
@@ -1997,7 +1997,7 @@ Bytes = 15512
 0x20A0809F,   //PC = 0x00001F48,     line:     lw r1, TILE_DATA_COUNT
 0x00040F1A,   //PC = 0x00001F4C,     line:     sw r14, r1, 4
 0x2004871A,   //PC = 0x00001F50,     line:     sw r14, RAY_SEND_PENDING_ADDR
-0x2354809F,   //PC = 0x00001F54,     line:     lw r1, RAY_ARRAY
+0x2350809F,   //PC = 0x00001F54,     line:     lw r1, RAY_ARRAY
 0x0006F905,   //PC = 0x00001F58,     line:     sll r2, r15, 6
 0x00020880,   //PC = 0x00001F5C,     line:     add r1, r1, r2
 0x003F0F18,   //PC = 0x00001F60,     line:     sb r14, r1, 63
@@ -2017,15 +2017,15 @@ Bytes = 15512
 0x02B48797,   //PC = 0x00001F98,     line: jmp r15, SWITCH_ROLES_INTERRUPT
 0x00000000,   //PC = 0x00001F9C,     line: .data 0
 0x03C25F30,   //PC = 0x00001FA0,     line: .data 63070000
-0x00001A85,   //PC = 0x00001FA4,     line: .data 6789
-0x00001A85,   //PC = 0x00001FA8,     line: .data 6789
-0x0000162E,   //PC = 0x00001FAC,     line: .data 5678
+0x00008000,   //PC = 0x00001FA4,     line: .data 32768
+0x00003F00,   //PC = 0x00001FA8,     line: .data 16128
+0x00000020,   //PC = 0x00001FAC,     line: .data 32
 0x00004000,   //PC = 0x00001FB0,     line: .data 16384
-0xFFFFFFFF,   //PC = 0x00001FB4,     line: .data -1
-0xFFFFFFFF,   //PC = 0x00001FB8,     line: .data -1
-0xFFFFFFFF,   //PC = 0x00001FBC,     line: .data -1
-0xFFFFFFFF,   //PC = 0x00001FC0,     line: .data -1
-0x00000005,   //PC = 0x00001FC4,     line: .data 5
+0x00000020,   //PC = 0x00001FB4,     line: .data 32
+0x00002328,   //PC = 0x00001FB8,     line: .data 9000
+0x00003F00,   //PC = 0x00001FBC,     line: .data 16128
+0x00008000,   //PC = 0x00001FC0,     line: .data 32768
+0x000F4240,   //PC = 0x00001FC4,     line: .data 1000000
 0x000186A0,   //PC = 0x00001FC8,     line: .data 100000
 0x0001FFFF,   //PC = 0x00001FCC,     line: .data 0x0001FFFF
 0x3F000000,   //PC = 0x00001FD0,     line: .data 0x3F000000
@@ -2251,8 +2251,8 @@ Bytes = 15512
 0xBF43E1FB,   //PC = 0x00002340,     line: .data 0xBF43E1FB
 0x3EDF0BC5,   //PC = 0x00002344,     line: .data 0x3EDF0BC5
 0x3F527375,   //PC = 0x00002348,     line: .data 0x3F527375
-0x3EBB9B7C,   //PC = 0x0000234C,     line: .data 0x3EBB9B7C
-0x1F949993,   //PC = 0x00002350,     line: beq r3, r3, JUMP_TO_RAY_EAT_INTERRUPT, true
+0x3EBB9B7C,   //PC = 0x0000234C,     line: .data 0x3EBB9B7C            # DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM 
+0x00000000,   //PC = 0x00002350,     line: .data(256) 0
 0x00000000,   //PC = 0x00002354,     line: .data(256) 0
 0x00000000,   //PC = 0x00002358,     line: .data(256) 0
 0x00000000,   //PC = 0x0000235C,     line: .data(256) 0
@@ -2508,7 +2508,7 @@ Bytes = 15512
 0x00000000,   //PC = 0x00002744,     line: .data(256) 0
 0x00000000,   //PC = 0x00002748,     line: .data(256) 0
 0x00000000,   //PC = 0x0000274C,     line: .data(256) 0
-0x00000000,   //PC = 0x00002750,     line: .data(256) 0
+0x00000000,   //PC = 0x00002750,     line: .data(64) 0
 0x00000000,   //PC = 0x00002754,     line: .data(64) 0
 0x00000000,   //PC = 0x00002758,     line: .data(64) 0
 0x00000000,   //PC = 0x0000275C,     line: .data(64) 0
@@ -2572,7 +2572,7 @@ Bytes = 15512
 0x00000000,   //PC = 0x00002844,     line: .data(64) 0
 0x00000000,   //PC = 0x00002848,     line: .data(64) 0
 0x00000000,   //PC = 0x0000284C,     line: .data(64) 0
-0x00000000,   //PC = 0x00002850,     line: .data(64) 0
+0x00000000,   //PC = 0x00002850,     line: .data(1048) 0
 0x00000000,   //PC = 0x00002854,     line: .data(1048) 0
 0x00000000,   //PC = 0x00002858,     line: .data(1048) 0
 0x00000000,   //PC = 0x0000285C,     line: .data(1048) 0
@@ -3620,7 +3620,7 @@ Bytes = 15512
 0x00000000,   //PC = 0x000038A4,     line: .data(1048) 0
 0x00000000,   //PC = 0x000038A8,     line: .data(1048) 0
 0x00000000,   //PC = 0x000038AC,     line: .data(1048) 0
-0x00000000,   //PC = 0x000038B0,     line: .data(1048) 0
+0x00000000,   //PC = 0x000038B0,     line: .data(256) 0
 0x00000000,   //PC = 0x000038B4,     line: .data(256) 0
 0x00000000,   //PC = 0x000038B8,     line: .data(256) 0
 0x00000000,   //PC = 0x000038BC,     line: .data(256) 0
@@ -3876,7 +3876,6 @@ Bytes = 15512
 0x00000000,   //PC = 0x00003CA4,     line: .data(256) 0
 0x00000000,   //PC = 0x00003CA8,     line: .data(256) 0
 0x00000000,   //PC = 0x00003CAC,     line: .data(256) 0
-0x00000000,   //PC = 0x00003CB0,     line: .data(256) 0
+0xFFFFFFFF,   //PC = 0x00003CB0,     line: .data -1
 0xFFFFFFFF,   //PC = 0x00003CB4,     line: .data -1
 0xFFFFFFFF,   //PC = 0x00003CB8,     line: .data -1
-0xFFFFFFFF,   //PC = 0x00003CBC,     line: .data -1

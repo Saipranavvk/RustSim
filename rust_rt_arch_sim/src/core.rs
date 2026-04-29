@@ -232,14 +232,7 @@ impl<T> SpscQueue<T> {
     /// Consume the queue and split into producer/consumer handles for two threads.
     pub fn split(self) -> (Feeder<T>, Eater<T>) {
         let arc = Arc::new(self.inner);
-        (
-            Feeder {
-                q: arc.clone(),
-            },
-            Eater {
-                q: arc,
-            },
-        )
+        (Feeder { q: arc.clone() }, Eater { q: arc })
     }
 }
 
@@ -319,7 +312,7 @@ pub struct Flit {
     destination_x: u16,
     destination_y: u16,
     origin_x: u16,
-    origin_y: u16
+    origin_y: u16,
 }
 
 pub struct BidirectionalNoc {
@@ -329,10 +322,13 @@ pub struct BidirectionalNoc {
 }
 impl BidirectionalNoc {
     pub fn new(eater: Eater<Flit>, feeder: Feeder<Flit>, latency: usize) -> Self {
-        Self { eater, feeder, latency }
+        Self {
+            eater,
+            feeder,
+            latency,
+        }
     }
 }
-
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Operation {
@@ -347,7 +343,7 @@ pub enum Operation {
     Sra,
     Mul,
     Div,
-    Mod, 
+    Mod,
 
     FPAdd,
     FPMul,
@@ -401,7 +397,6 @@ pub enum Operation {
     AtomicAddDram,
     SendFlit,
     GetLowClock,
-
 }
 #[derive(Copy, Clone)]
 enum FpType {
@@ -430,9 +425,17 @@ impl DecodedInstruction {
         println!("  operation: {:?}", self.operation);
         println!("  fp_type: unimplemented for now");
         println!("  sr1: {}", self.sr1);
-        println!("  sr1_val: 0x{:08X} ({})", reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr1], reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr1]);
+        println!(
+            "  sr1_val: 0x{:08X} ({})",
+            reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr1],
+            reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr1]
+        );
         println!("  sr2: {}", self.sr2);
-        println!("  sr2_val: 0x{:08X} ({})", reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr2], reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr2]);
+        println!(
+            "  sr2_val: 0x{:08X} ({})",
+            reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr2],
+            reg_file[context_in_progress * REGS_PER_CONTEXT + self.sr2]
+        );
         println!("  dr: {}", self.dr);
         println!("  branch_hint: {}", self.branch_hint);
         println!("  imm_0: 0x{:08X} ({})", self.imm_0, self.imm_0);
@@ -598,7 +601,12 @@ fn decode_instruction(instruction_word: u32, pc: u16) -> DecodedInstruction {
         53 => Operation::BranchLTEU,
         54 => Operation::BranchGTU,
         55 => Operation::DisableInterrupts,
-        _ => panic!("UNKNOWN OPERATION"),
+        _ => panic!(
+            "UNKNOWN OPERATION: opcode = {} (0x{:02X}), full word = 0x{:08X}",
+            instruction_word & 0x7F,
+            instruction_word & 0x7F,
+            instruction_word
+        ),
     };
     let fp_type = match (instruction_word >> 20) & 0x3 {
         0 => FpType::Fp32,
@@ -611,8 +619,7 @@ fn decode_instruction(instruction_word: u32, pc: u16) -> DecodedInstruction {
     let sr1_index = (instruction_word >> 11) as usize & 0xF;
     let sr2_index = if instruction_word & 0x7F >= 19 && instruction_word & 0x7F < 23 {
         dr_index
-    }
-    else {
+    } else {
         ((instruction_word >> 16) & 0xF) as usize
     };
     let imm_0 = (instruction_word >> 16) & 0xFFFF;
@@ -636,21 +643,23 @@ fn num_source_registers(instr: &DecodedInstruction) -> u8 {
     use Operation::*;
 
     match instr.operation {
-        Yield
-        | GetThreadOwnership
-        | RelinquishOwnership
-        | NonBlockVal
-        | SetCtx => 0,
+        Yield | GetThreadOwnership | RelinquishOwnership | NonBlockVal | SetCtx => 0,
         Jump | FPSetAccumulator | SetMemoryBits => 1,
-        StoreByte | StoreHalf | StoreWord | AtomicAdd | Add | Sub | And | Or | Xor | Sll | Srl | Sra => {
+        StoreByte | StoreHalf | StoreWord | AtomicAdd | Add | Sub | And | Or | Xor | Sll | Srl
+        | Sra => {
             if instr.is_imm {
                 1
             } else {
                 2
             }
         }
-        LoadByteSigned | LoadByteUnsigned | LoadHalfSigned | LoadHalfUnsigned | LoadWord | EnableInterrupts | DisableInterrupts => {
-            if instr.is_imm { 0 } else { 1 }
+        LoadByteSigned | LoadByteUnsigned | LoadHalfSigned | LoadHalfUnsigned | LoadWord
+        | EnableInterrupts | DisableInterrupts => {
+            if instr.is_imm {
+                0
+            } else {
+                1
+            }
         }
 
         Mul | Div | Mod => 2,
@@ -675,12 +684,12 @@ pub struct LongDramOp {
 
 #[derive(Clone)]
 pub struct LongDramRequest {
-    pub(crate)register_index: usize,
-    pub(crate)address: usize,
-    pub(crate)op: Operation,
-    pub(crate)value_to_write: u32,
-    pub(crate)core_id: u32,
-    pub(crate)origin_stack: usize,
+    pub(crate) register_index: usize,
+    pub(crate) address: usize,
+    pub(crate) op: Operation,
+    pub(crate) value_to_write: u32,
+    pub(crate) core_id: u32,
+    pub(crate) origin_stack: usize,
 }
 pub struct Core {
     core_id: u32,
@@ -739,25 +748,20 @@ pub struct Core {
     cycle: u64,
 }
 impl Core {
-    pub fn new(
-        id: u32,
-        x_dim: u16,
-        y_dim: u16,
-        dram_top_bits: usize,
-    ) -> Self {
+    pub fn new(id: u32, x_dim: u16, y_dim: u16, dram_top_bits: usize) -> Self {
         let init_time_mem: [u32; 12] = [
-            0x00008002,   //PC = 0x00000000,     line: and r0, r0, 0 #00
-            0x000007A7,   //PC = 0x00000004,     line: setmembits r0 #04
-            0x000000AC,   //PC = 0x00000008,     line: lw_d  r1, r0, 0      #08   
-            0x00048100,   //PC = 0x0000000C,     line: add r2, r0, 4     #0C
-            0x002C8180,   //PC = 0x00000010,     line: add r3, r0, done #10
-            0x0000122C,   //PC = 0x00000014,     line:     lw_d  r4, r2, 0 #14
-            0x00001A1A,   //PC = 0x00000018,     line:     sw  r4, r3, 0 #18
-            0x00049100,   //PC = 0x0000001C,     line:     add r2, r2, 4 #1C
-            0x00049980,   //PC = 0x00000020,     line:     add r3, r3, 4 #20
-            0x00018000,   //PC = 0x00000024,     line:     add r0, r0, 1 #24
-            0x00148096,   //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
-            0xDEADBEEF,   //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
+            0x00008002, //PC = 0x00000000,     line: and r0, r0, 0 #00
+            0x000007A7, //PC = 0x00000004,     line: setmembits r0 #04
+            0x000000AC, //PC = 0x00000008,     line: lw_d  r1, r0, 0      #08
+            0x00048100, //PC = 0x0000000C,     line: add r2, r0, 4     #0C
+            0x002C8180, //PC = 0x00000010,     line: add r3, r0, done #10
+            0x0000122C, //PC = 0x00000014,     line:     lw_d  r4, r2, 0 #14
+            0x00001A1A, //PC = 0x00000018,     line:     sw  r4, r3, 0 #18
+            0x00049100, //PC = 0x0000001C,     line:     add r2, r2, 4 #1C
+            0x00049980, //PC = 0x00000020,     line:     add r3, r3, 4 #20
+            0x00018000, //PC = 0x00000024,     line:     add r0, r0, 1 #24
+            0x00148096, //PC = 0x00000028,     line:     bgt r1, r0, loop, true #28
+            0xDEADBEEF, //PC = 0x0000002C,     line:     .data 0xDEADBEEF # i should try to support blt and bgte as well
         ];
         let mut sram_array = [0u8; SRAM_SIZE];
         for i in 0..init_time_mem.len() {
@@ -767,10 +771,11 @@ impl Core {
             sram_array[base_address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
             sram_array[base_address as usize + 2] = ((word & 0xFF0000) >> 16) as u8;
             sram_array[base_address as usize + 3] = ((word & 0xFF000000) >> 24) as u8;
-        };
+        }
         let mut regfile = vec![0u32; CTX_CNT * REGS_PER_CONTEXT];
         for i in 0..CTX_CNT {
-            regfile[i * REGS_PER_CONTEXT + REGS_PER_CONTEXT - 1] = (id * REGS_PER_CONTEXT as u32 + i as u32) as u32;
+            regfile[i * REGS_PER_CONTEXT + REGS_PER_CONTEXT - 1] =
+                (id * REGS_PER_CONTEXT as u32 + i as u32) as u32;
         }
         Self {
             core_id: id,
@@ -783,14 +788,14 @@ impl Core {
             context_cnt: 1,
             ctx_ownership: 0,
             context_in_progress: 0,
-            fp_accumulation: vec![(0.0f32).to_bits();CTX_CNT],
+            fp_accumulation: vec![(0.0f32).to_bits(); CTX_CNT],
             register_file: regfile,
             register_ready: vec![true; CTX_CNT * REGS_PER_CONTEXT],
             memory_bits: [0u32; CTX_CNT],
             up_noc: None,
             down_noc: None,
             left_noc: None,
-            right_noc: None,  
+            right_noc: None,
             runnable: vec![false; CTX_CNT],
             sram: sram_array,
             pc: [0u16; CTX_CNT],
@@ -834,9 +839,8 @@ impl Core {
             mailbox_congestion: vec![],
             core_busy: vec![],
         }
-        
     }
-    fn dump_instruction(&self, inst: &DecodedInstruction){
+    fn dump_instruction(&self, inst: &DecodedInstruction) {
         inst.dump(self.context_in_progress, &self.register_file);
     }
     pub fn get_log(&self) -> CoreLog {
@@ -859,10 +863,9 @@ impl Core {
 
             flits_sent: self.flits_sent,
             flits_received: self.flits_received,
-            flit_sent_manhattan_distance_traversed:
-                self.flit_sent_manhattan_distance_traversed,
-            flit_received_manhattan_distance_traversed:
-                self.flit_received_manhattan_distance_traversed,
+            flit_sent_manhattan_distance_traversed: self.flit_sent_manhattan_distance_traversed,
+            flit_received_manhattan_distance_traversed: self
+                .flit_received_manhattan_distance_traversed,
         }
     }
     pub fn give_far_dram(&mut self, dram_vec: Vec<Sender<LongDramRequest>>) {
@@ -883,7 +886,7 @@ impl Core {
     pub fn give_right_noc(&mut self, right_noc: BidirectionalNoc) {
         self.right_noc = Some(right_noc);
     }
-    pub fn get_stack(&self)->usize{
+    pub fn get_stack(&self) -> usize {
         self.top_bits_dram_stack
     }
     pub fn get_core_id(&self) -> u32 {
@@ -908,7 +911,10 @@ impl Core {
         self.dram_bytes_wrote_far
     }
     pub fn write_to_sram(&mut self, mut base_address: u16, data: &Vec<u32>, words: usize) {
-        assert!(base_address as usize + words * 4 <= SRAM_SIZE, "SRAM WRITE OUT OF BOUNDS!");
+        assert!(
+            base_address as usize + words * 4 <= SRAM_SIZE,
+            "SRAM WRITE OUT OF BOUNDS!"
+        );
         assert!(data.len() >= words, "SRAM WRITE SIZE MISMATCH");
         for word_index in 0..words {
             self.write_sram_word(data[word_index], &base_address);
@@ -973,77 +979,81 @@ impl Core {
             };
             if go_x {
                 if flit_to_send.destination_x > self.x_dim {
-                    while self.right_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                    while self.right_noc_util.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {
                         self.right_noc_util.push(0);
                     }
-                    self.right_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                    self.right_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                     if let Some(right_noc) = &mut self.right_noc {
                         if !right_noc.feeder.is_full() {
                             let mut flit_to_transmit = self.output_noc_send.pop().unwrap();
                             flit_to_transmit.cycle_to_read = self.cycle + right_noc.latency as u64;
                             let _ = right_noc.feeder.push(flit_to_transmit);
                         }
-                    }
-                    else{
-                        while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.right_noc_congestion.len(){
+                    } else {
+                        while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                            >= self.right_noc_congestion.len()
+                        {
                             self.right_noc_congestion.push(0);
                         }
-                        self.right_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                        self.right_noc_congestion[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                     }
                 } else {
                     if let Some(left_noc) = &mut self.left_noc {
-                        while self.left_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                        while self.left_noc_util.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {
                             self.left_noc_util.push(0);
                         }
-                        self.left_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                        self.left_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         if !left_noc.feeder.is_full() {
                             let mut flit_to_transmit = self.output_noc_send.pop().unwrap();
                             flit_to_transmit.cycle_to_read = self.cycle + left_noc.latency as u64;
                             let _ = left_noc.feeder.push(flit_to_transmit);
-                        }
-                        else{
-                            while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.left_noc_congestion.len(){
+                        } else {
+                            while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                >= self.left_noc_congestion.len()
+                            {
                                 self.left_noc_congestion.push(0);
                             }
-                            self.left_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                            self.left_noc_congestion[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         }
                     }
                 }
             } else {
                 if flit_to_send.destination_y > self.y_dim {
                     if let Some(down_noc) = &mut self.down_noc {
-                        while self.down_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                        while self.down_noc_util.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {
                             self.down_noc_util.push(0);
                         }
-                        self.down_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                        self.down_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         if !down_noc.feeder.is_full() {
                             let mut flit_to_transmit = self.output_noc_send.pop().unwrap();
                             flit_to_transmit.cycle_to_read = self.cycle + down_noc.latency as u64;
                             let _ = down_noc.feeder.push(flit_to_transmit);
-                        }
-                        else{
-                            while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.down_noc_congestion.len(){
+                        } else {
+                            while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                >= self.down_noc_congestion.len()
+                            {
                                 self.down_noc_congestion.push(0);
                             }
-                            self.down_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                            self.down_noc_congestion[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         }
                     }
                 } else {
                     if let Some(up_noc) = &mut self.up_noc {
-                        while self.up_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                        while self.up_noc_util.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {
                             self.up_noc_util.push(0);
                         }
-                        self.up_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                        self.up_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         if !up_noc.feeder.is_full() {
                             let mut flit_to_transmit = self.output_noc_send.pop().unwrap();
                             flit_to_transmit.cycle_to_read = self.cycle + up_noc.latency as u64;
                             let _ = up_noc.feeder.push(flit_to_transmit);
-                        }
-                        else{
-                            while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.up_noc_congestion.len(){
+                        } else {
+                            while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                >= self.up_noc_congestion.len()
+                            {
                                 self.up_noc_congestion.push(0);
                             }
-                            self.up_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                            self.up_noc_congestion[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                         }
                     }
                 }
@@ -1067,93 +1077,120 @@ impl Core {
                                 let _ = self.noc_recv_fifo[flit_to_process.mailbox_id as usize]
                                     .push(flit_to_process.value_to_send);
                                 self.flits_received += 1;
-                                self.flit_received_manhattan_distance_traversed += (flit_to_process.origin_x as i64 - flit_to_process.destination_x as i64).abs() as usize 
-                                    + (flit_to_process.origin_y as i64 - flit_to_process.destination_y as i64).abs() as usize;
+                                self.flit_received_manhattan_distance_traversed +=
+                                    (flit_to_process.origin_x as i64
+                                        - flit_to_process.destination_x as i64)
+                                        .abs() as usize
+                                        + (flit_to_process.origin_y as i64
+                                            - flit_to_process.destination_y as i64)
+                                            .abs()
+                                            as usize;
                                 // println!("Core {} received flit at cycle {}", self.core_id, self.cycle);
-                            }
-                            else{
-                                while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.mailbox_congestion.len(){
+                            } else {
+                                while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    >= self.mailbox_congestion.len()
+                                {
                                     self.mailbox_congestion.push(0);
                                 }
-                                self.mailbox_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                self.mailbox_congestion
+                                    [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                             }
                         } else if go_x {
                             if flit_received.destination_x > self.x_dim {
                                 if let Some(right_noc) = &mut self.right_noc {
-                                    while self.right_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.right_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.right_noc_util.push(0);
                                     }
-                                    self.right_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.right_noc_util
+                                        [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !right_noc.feeder.is_full() {
                                         let mut flit_to_transmit = left_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + right_noc.latency as u64;
                                         let _ = right_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.right_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.right_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.right_noc_congestion.push(0);
                                         }
-                                        self.right_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.right_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(left_noc) = &mut self.left_noc {
-                                    while self.left_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.left_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.left_noc_util.push(0);
                                     }
-                                    self.left_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.left_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !left_noc.feeder.is_full() {
                                         let mut flit_to_transmit = left_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + left_noc.latency as u64;
                                         let _ = left_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.left_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.left_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.left_noc_congestion.push(0);
                                         }
-                                        self.left_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.left_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
                         } else {
                             if flit_received.destination_y > self.y_dim {
                                 if let Some(down_noc) = &mut self.down_noc {
-                                    while self.down_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.down_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.down_noc_util.push(0);
                                     }
-                                    self.down_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.down_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !down_noc.feeder.is_full() {
                                         let mut flit_to_transmit = left_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + down_noc.latency as u64;
                                         let _ = down_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.down_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.down_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.down_noc_congestion.push(0);
                                         }
-                                        self.down_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.down_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(up_noc) = &mut self.up_noc {
-                                    while self.up_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.up_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.up_noc_util.push(0);
                                     }
-                                    self.up_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.up_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !up_noc.feeder.is_full() {
                                         let mut flit_to_transmit = left_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + up_noc.latency as u64;
                                         let _ = up_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.up_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.up_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.up_noc_congestion.push(0);
                                         }
-                                        self.up_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.up_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
@@ -1173,99 +1210,126 @@ impl Core {
                             flit_received.destination_y == self.y_dim
                         };
                         if flit_received.destination_x == self.x_dim
-                            && flit_received.destination_y == self.y_dim {
-
+                            && flit_received.destination_y == self.y_dim
+                        {
                             if !self.noc_recv_fifo[flit_received.mailbox_id as usize].is_full() {
                                 let flit_to_process = right_noc.eater.pop().unwrap();
                                 let _ = self.noc_recv_fifo[flit_to_process.mailbox_id as usize]
                                     .push(flit_to_process.value_to_send);
                                 self.flits_received += 1;
-                                self.flit_received_manhattan_distance_traversed += (flit_to_process.origin_x as i64 - flit_to_process.destination_x as i64).abs() as usize 
-                                    + (flit_to_process.origin_y as i64 - flit_to_process.destination_y as i64).abs() as usize;
-                            }
-                            else{
-                                while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.mailbox_congestion.len(){
+                                self.flit_received_manhattan_distance_traversed +=
+                                    (flit_to_process.origin_x as i64
+                                        - flit_to_process.destination_x as i64)
+                                        .abs() as usize
+                                        + (flit_to_process.origin_y as i64
+                                            - flit_to_process.destination_y as i64)
+                                            .abs()
+                                            as usize;
+                            } else {
+                                while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    >= self.mailbox_congestion.len()
+                                {
                                     self.mailbox_congestion.push(0);
                                 }
-                                self.mailbox_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                self.mailbox_congestion
+                                    [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                             }
                         } else if go_x {
                             if flit_received.destination_x > self.x_dim {
                                 if let Some(right_noc) = &mut self.right_noc {
-                                    while self.right_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.right_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.right_noc_util.push(0);
                                     }
-                                    self.right_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.right_noc_util
+                                        [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !right_noc.feeder.is_full() {
                                         let mut flit_to_transmit = right_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + right_noc.latency as u64;
                                         let _ = right_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.right_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.right_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.right_noc_congestion.push(0);
                                         }
-                                        self.right_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.right_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(left_noc) = &mut self.left_noc {
-                                    while self.left_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.left_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.left_noc_util.push(0);
                                     }
-                                    self.left_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.left_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !left_noc.feeder.is_full() {
                                         let mut flit_to_transmit = right_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + left_noc.latency as u64;
                                         let _ = left_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.left_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.left_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.left_noc_congestion.push(0);
                                         }
-                                        self.left_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.left_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
                         } else {
                             if flit_received.destination_y > self.y_dim {
                                 if let Some(down_noc) = &mut self.down_noc {
-                                    while self.down_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.down_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.down_noc_util.push(0);
                                     }
-                                    self.down_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.down_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !down_noc.feeder.is_full() {
                                         let mut flit_to_transmit = right_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + down_noc.latency as u64;
                                         let _ = down_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.down_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.down_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.down_noc_congestion.push(0);
                                         }
-                                        self.down_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.down_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(up_noc) = &mut self.up_noc {
-                                    while self.up_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.up_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.up_noc_util.push(0);
                                     }
-                                    self.up_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.up_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !up_noc.feeder.is_full() {
                                         let mut flit_to_transmit = right_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + up_noc.latency as u64;
                                         let _ = up_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.up_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.up_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.up_noc_congestion.push(0);
                                         }
-                                        self.up_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.up_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
@@ -1292,92 +1356,119 @@ impl Core {
                                 let _ = self.noc_recv_fifo[flit_to_process.mailbox_id as usize]
                                     .push(flit_to_process.value_to_send);
                                 self.flits_received += 1;
-                                self.flit_received_manhattan_distance_traversed += (flit_to_process.origin_x as i64 - flit_to_process.destination_x as i64).abs() as usize 
-                                    + (flit_to_process.origin_y as i64 - flit_to_process.destination_y as i64).abs() as usize;
-                            }
-                            else{
-                                while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.mailbox_congestion.len(){
+                                self.flit_received_manhattan_distance_traversed +=
+                                    (flit_to_process.origin_x as i64
+                                        - flit_to_process.destination_x as i64)
+                                        .abs() as usize
+                                        + (flit_to_process.origin_y as i64
+                                            - flit_to_process.destination_y as i64)
+                                            .abs()
+                                            as usize;
+                            } else {
+                                while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    >= self.mailbox_congestion.len()
+                                {
                                     self.mailbox_congestion.push(0);
                                 }
-                                self.mailbox_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                self.mailbox_congestion
+                                    [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                             }
                         } else if go_x {
                             if flit_received.destination_x > self.x_dim {
                                 if let Some(right_noc) = &mut self.right_noc {
-                                    while self.right_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.right_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.right_noc_util.push(0);
                                     }
-                                    self.right_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.right_noc_util
+                                        [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !right_noc.feeder.is_full() {
                                         let mut flit_to_transmit = up_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + right_noc.latency as u64;
                                         let _ = right_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.right_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.right_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.right_noc_congestion.push(0);
                                         }
-                                        self.right_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.right_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(left_noc) = &mut self.left_noc {
-                                    while self.left_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.left_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.left_noc_util.push(0);
                                     }
-                                    self.left_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.left_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !left_noc.feeder.is_full() {
                                         let mut flit_to_transmit = up_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + left_noc.latency as u64;
                                         let _ = left_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.left_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.left_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.left_noc_congestion.push(0);
                                         }
-                                        self.left_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.left_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
                         } else {
                             if flit_received.destination_y > self.y_dim {
                                 if let Some(down_noc) = &mut self.down_noc {
-                                    while self.down_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.down_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.down_noc_util.push(0);
                                     }
-                                    self.down_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.down_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !down_noc.feeder.is_full() {
                                         let mut flit_to_transmit = up_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + down_noc.latency as u64;
                                         let _ = down_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.down_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.down_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.down_noc_congestion.push(0);
                                         }
-                                        self.down_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.down_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(up_noc) = &mut self.up_noc {
-                                    while self.up_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.up_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.up_noc_util.push(0);
                                     }
-                                    self.up_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.up_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !up_noc.feeder.is_full() {
                                         let mut flit_to_transmit = up_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + up_noc.latency as u64;
                                         let _ = up_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.up_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.up_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.up_noc_congestion.push(0);
                                         }
-                                        self.up_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.up_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
@@ -1404,92 +1495,119 @@ impl Core {
                                 let _ = self.noc_recv_fifo[flit_to_process.mailbox_id as usize]
                                     .push(flit_to_process.value_to_send);
                                 self.flits_received += 1;
-                                self.flit_received_manhattan_distance_traversed += (flit_to_process.origin_x as i64 - flit_to_process.destination_x as i64).abs() as usize 
-                                    + (flit_to_process.origin_y as i64 - flit_to_process.destination_y as i64).abs() as usize;
-                            }
-                            else{
-                                while self.cycle as usize/NOC_UTIL_EPOCH_LEN >= self.mailbox_congestion.len(){
+                                self.flit_received_manhattan_distance_traversed +=
+                                    (flit_to_process.origin_x as i64
+                                        - flit_to_process.destination_x as i64)
+                                        .abs() as usize
+                                        + (flit_to_process.origin_y as i64
+                                            - flit_to_process.destination_y as i64)
+                                            .abs()
+                                            as usize;
+                            } else {
+                                while self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    >= self.mailbox_congestion.len()
+                                {
                                     self.mailbox_congestion.push(0);
                                 }
-                                self.mailbox_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                self.mailbox_congestion
+                                    [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                             }
                         } else if go_x {
                             if flit_received.destination_x > self.x_dim {
                                 if let Some(right_noc) = &mut self.right_noc {
-                                    while self.right_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.right_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.right_noc_util.push(0);
                                     }
-                                    self.right_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.right_noc_util
+                                        [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !right_noc.feeder.is_full() {
                                         let mut flit_to_transmit = down_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + right_noc.latency as u64;
                                         let _ = right_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.right_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.right_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.right_noc_congestion.push(0);
                                         }
-                                        self.right_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.right_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(left_noc) = &mut self.left_noc {
-                                    while self.left_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.left_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.left_noc_util.push(0);
                                     }
-                                    self.left_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.left_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !left_noc.feeder.is_full() {
                                         let mut flit_to_transmit = down_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + left_noc.latency as u64;
                                         let _ = left_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.left_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.left_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.left_noc_congestion.push(0);
                                         }
-                                        self.left_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.left_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
                         } else {
                             if flit_received.destination_y > self.y_dim {
                                 if let Some(down_noc) = &mut self.down_noc {
-                                    while self.down_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.down_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.down_noc_util.push(0);
                                     }
-                                    self.down_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.down_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] +=
+                                        1;
                                     if !down_noc.feeder.is_full() {
                                         let mut flit_to_transmit = down_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + down_noc.latency as u64;
                                         let _ = down_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.down_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.down_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.down_noc_congestion.push(0);
                                         }
-                                        self.down_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.down_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             } else {
                                 if let Some(up_noc) = &mut self.up_noc {
-                                    while self.up_noc_util.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    while self.up_noc_util.len()
+                                        <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                    {
                                         self.up_noc_util.push(0);
                                     }
-                                    self.up_noc_util[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                    self.up_noc_util[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     if !up_noc.feeder.is_full() {
                                         let mut flit_to_transmit = down_noc.eater.pop().unwrap();
                                         flit_to_transmit.cycle_to_read =
                                             self.cycle + up_noc.latency as u64;
                                         let _ = up_noc.feeder.push(flit_to_transmit);
-                                    }
-                                    else{
-                                        while self.up_noc_congestion.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+                                    } else {
+                                        while self.up_noc_congestion.len()
+                                            <= self.cycle as usize / NOC_UTIL_EPOCH_LEN
+                                        {
                                             self.up_noc_congestion.push(0);
                                         }
-                                        self.up_noc_congestion[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1;
+                                        self.up_noc_congestion
+                                            [self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1;
                                     }
                                 }
                             }
@@ -1500,35 +1618,34 @@ impl Core {
         }
     }
 
-    pub fn tick(&mut self, dram: &mut Vec<u32>, cores_to_monitor: &Vec<u32>, context_to_monitor: &i32) {
+    pub fn tick(
+        &mut self,
+        dram: &mut Vec<u32>,
+        cores_to_monitor: &Vec<u32>,
+        context_to_monitor: &i32,
+    ) {
         while self.fp_pipe.peek().is_some()
             && self.fp_pipe.peek().unwrap().cycle_to_read <= self.cycle
         {
             let fp_stage = self.fp_pipe.pop().unwrap();
-            self.register_file[fp_stage.register_index] =
-                fp_stage.calculated_val;
-            self.register_ready[fp_stage.register_index] =
-                true;
+            self.register_file[fp_stage.register_index] = fp_stage.calculated_val;
+            self.register_ready[fp_stage.register_index] = true;
         }
 
         while self.div_seq.peek().is_some()
             && self.div_seq.peek().unwrap().cycle_to_read <= self.cycle
         {
             let div_stage = self.div_seq.pop().unwrap();
-            self.register_file[div_stage.register_index] =
-                div_stage.calculated_val;
-            self.register_ready[div_stage.register_index] =
-                true;
+            self.register_file[div_stage.register_index] = div_stage.calculated_val;
+            self.register_ready[div_stage.register_index] = true;
         }
 
         while self.dram_short_queue.peek().is_some()
             && self.dram_short_queue.peek().unwrap().cycle_to_read <= self.cycle
         {
             let dram_stage = self.dram_short_queue.pop().unwrap();
-            self.register_file[dram_stage.register_index] =
-                dram_stage.calculated_val;
-            self.register_ready[dram_stage.register_index] =
-                true;
+            self.register_file[dram_stage.register_index] = dram_stage.calculated_val;
+            self.register_ready[dram_stage.register_index] = true;
         }
 
         loop {
@@ -1558,7 +1675,10 @@ impl Core {
                 (g.register_index, g.calculated_val)
             };
 
-            assert!(resp_reg == req_reg, "MISMATCHED REGISTER INDEX BETWEEN FAR DRAM QUEUES");
+            assert!(
+                resp_reg == req_reg,
+                "MISMATCHED REGISTER INDEX BETWEEN FAR DRAM QUEUES"
+            );
 
             self.dram_long_queue.pop();
             resp.pop();
@@ -1567,7 +1687,6 @@ impl Core {
             self.register_file[idx] = resp_val;
             self.register_ready[idx] = true;
         }
-
 
         self.cycle_noc();
 
@@ -1591,12 +1710,21 @@ impl Core {
                 }
                 _ => panic!("INVALID NUMBER OF SOURCE REGISTERS"),
             }
-            if let Operation::StoreByte | Operation::StoreByteDram | Operation::StoreHalf
-                | Operation::StoreHalfDram | Operation::StoreWord | Operation::StoreWordDram
-                | Operation::BranchEq | Operation::BranchGT | Operation::BranchGTU
-                | Operation::BranchLTE | Operation::BranchLTEU | Operation::BranchNe = instruction_to_execute.operation {
+            if let Operation::StoreByte
+            | Operation::StoreByteDram
+            | Operation::StoreHalf
+            | Operation::StoreHalfDram
+            | Operation::StoreWord
+            | Operation::StoreWordDram
+            | Operation::BranchEq
+            | Operation::BranchGT
+            | Operation::BranchGTU
+            | Operation::BranchLTE
+            | Operation::BranchLTEU
+            | Operation::BranchNe = instruction_to_execute.operation
+            {
                 let dr_ready = self.register_ready
-                        [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT];
+                    [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT];
                 if !dr_ready {
                     switch_ctx = true;
                 }
@@ -1614,15 +1742,17 @@ impl Core {
 
             if !switch_ctx {
                 let mut core_in_list = false;
-                for i in cores_to_monitor{
-                    if self.core_id == *i{
+                for i in cores_to_monitor {
+                    if self.core_id == *i {
                         core_in_list = true;
                     }
                 }
-                // if DEBUG && (core_in_list || cores_to_monitor.len() == 0) && (*context_to_monitor == self.context_in_progress as i32 || *context_to_monitor < 0)
+                if DEBUG
+                    && (core_in_list || cores_to_monitor.len() == 0)
+                    && (*context_to_monitor == self.context_in_progress as i32
+                        || *context_to_monitor < 0)
                 {
                     println!(
-
                         "Core {} executing instruction x{:08X} ({:?}) at PC {:08X} in context {} at cycle {}, dr: {}, sr1: {}, sr1_val: {}, is_imm: {}, sr2: {}, sr2_val: {},imm_val: {}",
                         self.core_id,
                         instruction_to_execute.raw_instruction,
@@ -1632,10 +1762,12 @@ impl Core {
                         self.cycle,
                         instruction_to_execute.dr,
                         instruction_to_execute.sr1,
-                        self.register_file[self.context_in_progress * CTX_CNT + instruction_to_execute.sr1],
+                        self.register_file
+                            [self.context_in_progress * CTX_CNT + instruction_to_execute.sr1],
                         instruction_to_execute.imm_1,
                         instruction_to_execute.sr2,
-                        self.register_file[self.context_in_progress * CTX_CNT + instruction_to_execute.sr2],
+                        self.register_file
+                            [self.context_in_progress * CTX_CNT + instruction_to_execute.sr2],
                         instruction_to_execute.imm_0
                     );
                     io::stdout().flush().unwrap();
@@ -1645,47 +1777,51 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] =
-                            ((self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as i32).wrapping_add(sr2_val as i32)) as u32;
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] =
+                            ((self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
+                                as i32)
+                                .wrapping_add(sr2_val as i32)) as u32;
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::Sub => {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
                         let result = if instruction_to_execute.is_imm {
-                            (sr2_val as i32).wrapping_sub(self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT] as i32) as u32
+                            (sr2_val as i32).wrapping_sub(
+                                self.register_file[instruction_to_execute.sr1
+                                    + self.context_in_progress * REGS_PER_CONTEXT]
+                                    as i32,
+                            ) as u32
                         } else {
-                            ((self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                            ((self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                                 as i32)
                                 .wrapping_sub(sr2_val as i32)) as u32
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = result;
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = result;
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::And => {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = self
-                            .register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = self.register_file
+                            [instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                             & sr2_val;
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -1693,13 +1829,13 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = self
-                            .register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = self.register_file
+                            [instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                             | sr2_val;
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -1707,13 +1843,13 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = self
-                            .register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = self.register_file
+                            [instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                             ^ sr2_val;
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -1721,13 +1857,13 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = self
-                            .register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = self.register_file
+                            [instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                             << sr2_val;
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -1735,13 +1871,13 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] = self
-                            .register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] = self.register_file
+                            [instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                             >> sr2_val;
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -1749,13 +1885,13 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT] =
-                            ((self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT] =
+                            ((self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                                 as i32)
                                 >> sr2_val) as u32;
                         self.pc[self.context_in_progress] += 4;
@@ -1765,21 +1901,26 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        let mul_result = self.register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT].wrapping_mul(sr2_val);
+                        let mul_result = self.register_file[instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT]
+                            .wrapping_mul(sr2_val);
                         assert!(!self.fp_pipe.is_full(), "FP PIPE IS FULL");
                         let mul_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: mul_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
                         let _ = self.fp_pipe.push(mul_pipe_stage);
                         self.pc[self.context_in_progress] += 4;
                         if self.core_id == 0 && instruction_to_execute.imm_1 == 0 {
-                            println!("MUL RESULT: {}, context: {}", mul_result as i32, self.context_in_progress);
+                            println!(
+                                "MUL RESULT: {}, context: {}",
+                                mul_result as i32, self.context_in_progress
+                            );
                         }
                     }
                     Operation::Div => {
@@ -1787,16 +1928,17 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        let div_result = self.register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        let div_result = self.register_file[instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT]
                             / sr2_val;
                         let div_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + DIV_LATENCY as u64,
                             calculated_val: div_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
                         if self.div_seq.is_full() {
                             switch_ctx = true;
@@ -1810,16 +1952,17 @@ impl Core {
                         let sr2_val = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0 as i16 as i32 as u32
                         } else {
-                            self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT]
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                         };
-                        let div_result = self.register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                        let div_result = self.register_file[instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT]
                             % sr2_val;
                         let div_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + DIV_LATENCY as u64,
                             calculated_val: div_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
                         if self.div_seq.is_full() {
                             switch_ctx = true;
@@ -1831,8 +1974,10 @@ impl Core {
                     Operation::FPAdd => {
                         long_latency_op = true;
 
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpadd_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -1857,7 +2002,8 @@ impl Core {
                         let fpadd_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fpadd_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
 
                         let _ = self.fp_pipe.push(fpadd_pipe_stage);
@@ -1866,8 +2012,10 @@ impl Core {
                     Operation::FPMul => {
                         long_latency_op = true;
 
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpmul_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -1892,7 +2040,8 @@ impl Core {
                         let fpmul_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fpmul_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
 
                         let _ = self.fp_pipe.push(fpmul_pipe_stage);
@@ -1901,8 +2050,10 @@ impl Core {
                     Operation::FPSub => {
                         long_latency_op = true;
 
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpsub_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -1927,33 +2078,41 @@ impl Core {
                         let fpsub_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fpsub_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
 
                         let _ = self.fp_pipe.push(fpsub_pipe_stage);
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::FPMac => {
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpmac_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
                                 let a = f32::from_bits(self.register_file[idx1]);
                                 let b = f32::from_bits(self.register_file[idx2]);
-                                (a * b + f32::from_bits(self.fp_accumulation[self.context_in_progress])).to_bits()
+                                (a * b
+                                    + f32::from_bits(
+                                        self.fp_accumulation[self.context_in_progress],
+                                    ))
+                                .to_bits()
                             }
                             FpType::Fp16 => {
                                 let a = f32::from(f16::from_bits(self.register_file[idx1] as u16));
                                 let b = f32::from(f16::from_bits(self.register_file[idx2] as u16));
-                                let acc = f32::from_bits(self.fp_accumulation[self.context_in_progress]);
+                                let acc =
+                                    f32::from_bits(self.fp_accumulation[self.context_in_progress]);
                                 (a * b + acc).to_bits()
-
                             }
                             FpType::Fp8 => {
                                 let a = Fp8E4M3::from_bits(self.register_file[idx1] as u8).to_f32();
                                 let b = Fp8E4M3::from_bits(self.register_file[idx2] as u8).to_f32();
-                                let acc = f32::from_bits(self.fp_accumulation[self.context_in_progress]);
+                                let acc =
+                                    f32::from_bits(self.fp_accumulation[self.context_in_progress]);
 
                                 (a * b + acc).to_bits()
                             }
@@ -1965,8 +2124,10 @@ impl Core {
                     Operation::FPEQ => {
                         long_latency_op = true;
 
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpeq_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -2014,15 +2175,18 @@ impl Core {
                         let _ = self.fp_pipe.push(PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fpeq_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         });
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::FPLT => {
                         long_latency_op = true;
 
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fplt_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -2070,13 +2234,14 @@ impl Core {
                         let _ = self.fp_pipe.push(PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fplt_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         });
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::FPSetAccumulator => {
-                        let register = self.register_file
-                            [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT];
+                        let register = self.register_file[instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT];
                         let value_to_set = match instruction_to_execute.fp_type {
                             FpType::Fp32 => register,
                             FpType::Fp16 => f32::from(f16::from_bits(register as u16)).to_bits(),
@@ -2086,22 +2251,31 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::FPStoreAccumulator => {
-                        let accumulated_value = match instruction_to_execute.fp_type{
+                        let accumulated_value = match instruction_to_execute.fp_type {
                             FpType::Fp32 => self.fp_accumulation[self.context_in_progress],
-                            FpType::Fp16 => f16::from_f32(f32::from_bits(self.fp_accumulation[self.context_in_progress])).to_bits() as u32,
-                            FpType::Fp8 => Fp8E4M3::from_f32(f32::from_bits(self.fp_accumulation[self.context_in_progress])).to_bits() as u32,
+                            FpType::Fp16 => f16::from_f32(f32::from_bits(
+                                self.fp_accumulation[self.context_in_progress],
+                            ))
+                            .to_bits() as u32,
+                            FpType::Fp8 => Fp8E4M3::from_f32(f32::from_bits(
+                                self.fp_accumulation[self.context_in_progress],
+                            ))
+                            .to_bits() as u32,
                         };
                         long_latency_op = true;
                         let _ = self.fp_pipe.push(PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: accumulated_value,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         });
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::FPMinMax => {
-                        let idx1 = instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT;
-                        let idx2 = instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx1 = instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT;
+                        let idx2 = instruction_to_execute.sr2
+                            + self.context_in_progress * REGS_PER_CONTEXT;
 
                         let fpminmax_result = match instruction_to_execute.fp_type {
                             FpType::Fp32 => {
@@ -2139,50 +2313,57 @@ impl Core {
                         let fpminmax_pipe_stage: PipelineStage = PipelineStage {
                             cycle_to_read: self.cycle + FP_PIPE_STAGES as u64,
                             calculated_val: fpminmax_result,
-                            register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                            register_index: instruction_to_execute.dr
+                                + self.context_in_progress * REGS_PER_CONTEXT,
                         };
 
                         let _ = self.fp_pipe.push(fpminmax_pipe_stage);
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreByte => {
-                        let byte = self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                        let byte = self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT]
                             as u8;
                         if instruction_to_execute.is_imm {
                             self.write_sram_byte(byte, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let address = (self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32 + instruction_to_execute.imm_0) as u16;
+                            let address = (self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
+                                as u32
+                                + instruction_to_execute.imm_0)
+                                as u16;
                             self.write_sram_byte(byte, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreHalf => {
-                        let half = self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                        let half = self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT]
                             as u16;
                         if instruction_to_execute.is_imm {
                             self.write_sram_half(half, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let address = (self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32 + instruction_to_execute.imm_0) as u16;
+                            let address = (self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
+                                as u32
+                                + instruction_to_execute.imm_0)
+                                as u16;
                             self.write_sram_half(half, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::StoreWord => {
-                        let word = self.register_file
-                            [instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT]
+                        let word = self.register_file[instruction_to_execute.dr
+                            + self.context_in_progress * REGS_PER_CONTEXT]
                             as u32;
                         if instruction_to_execute.is_imm {
                             self.write_sram_word(word, &(instruction_to_execute.imm_0 as u16));
                         } else {
-                            let address = (self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32 + instruction_to_execute.imm_0) as u16;
+                            let address = (self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
+                                as u32
+                                + instruction_to_execute.imm_0)
+                                as u16;
                             self.write_sram_word(word, &address);
                         }
                         self.pc[self.context_in_progress] += 4;
@@ -2195,56 +2376,56 @@ impl Core {
                         let address = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16
                         } else {
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT 
-                                + instruction_to_execute.sr1] as u16 + instruction_to_execute.imm_0 as u16
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u16
+                                + instruction_to_execute.imm_0 as u16
                         };
                         let value = match instruction_to_execute.operation {
-                            Operation::LoadByteSigned =>
-                                self.read_sram_byte_signed(&address),
+                            Operation::LoadByteSigned => self.read_sram_byte_signed(&address),
 
-                            Operation::LoadByteUnsigned =>
-                                self.read_sram_byte_unsigned(&address),
+                            Operation::LoadByteUnsigned => self.read_sram_byte_unsigned(&address),
 
-                            Operation::LoadHalfSigned =>
-                                self.read_sram_half_signed(&address),
+                            Operation::LoadHalfSigned => self.read_sram_half_signed(&address),
 
-                            Operation::LoadHalfUnsigned =>
-                                self.read_sram_half_unsigned(&address),
+                            Operation::LoadHalfUnsigned => self.read_sram_half_unsigned(&address),
 
-                            Operation::LoadWord =>
-                                self.read_sram_word(&address),
+                            Operation::LoadWord => self.read_sram_word(&address),
 
                             _ => unreachable!(),
                         };
-                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = value;
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = value;
 
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::AtomicAdd => {
                         if instruction_to_execute.is_imm {
-                            let address = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                            let address = self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                                 as u32 as u16;
                             let old_val = self.read_sram_word(&address);
                             self.write_sram_word(old_val + instruction_to_execute.imm_0, &address);
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = old_val;
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.dr] = old_val;
                         } else {
-                            let address = self.register_file
-                                [instruction_to_execute.sr1 + self.context_in_progress * REGS_PER_CONTEXT]
+                            let address = self.register_file[instruction_to_execute.sr1
+                                + self.context_in_progress * REGS_PER_CONTEXT]
                                 as u32 as u16;
                             let old_val = self.read_sram_word(&(address as u16));
-                            let new_val = old_val + self.register_file
-                                [instruction_to_execute.sr2 + self.context_in_progress * REGS_PER_CONTEXT];
+                            let new_val = old_val
+                                + self.register_file[instruction_to_execute.sr2
+                                    + self.context_in_progress * REGS_PER_CONTEXT];
                             self.write_sram_word(new_val, &address);
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = old_val;
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.dr] = old_val;
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::BranchEq => {
-                        if self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
-                            == self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                        if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr]
+                            == self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1]
                         {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2254,10 +2435,10 @@ impl Core {
                         }
                     }
                     Operation::BranchNe => {
-                        if self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
-                            != self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
+                        if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr]
+                            != self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1]
                         {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2268,11 +2449,9 @@ impl Core {
                     }
                     Operation::BranchLTE => {
                         let is_lt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.dr]
-                            as i32
+                            + instruction_to_execute.dr] as i32
                             <= self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr1]
-                                as i32;
+                                + instruction_to_execute.sr1] as i32;
                         if is_lt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2283,11 +2462,9 @@ impl Core {
                     }
                     Operation::BranchGT => {
                         let is_gt = self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                            + instruction_to_execute.dr]
-                            as i32
+                            + instruction_to_execute.dr] as i32
                             > self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.sr1]
-                                as i32;
+                                + instruction_to_execute.sr1] as i32;
                         if is_gt {
                             self.pc[self.context_in_progress] = instruction_to_execute.imm_0 as u16;
                             flush = !instruction_to_execute.branch_hint;
@@ -2328,27 +2505,27 @@ impl Core {
                             instruction_to_execute.imm_0 as u16
                         } else {
                             flush = true;
-                            self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                                as u16
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr2] as u16
                         };
-                        self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = temp;
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = temp;
                     }
                     Operation::BlockVal => {
                         let fifo_idx = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as usize
                         } else {
-                            self.register_file[
-                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1
-                            ]as usize & 0x3F 
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as usize
+                                & 0x3F
                         };
                         if fifo_idx >= NUM_NOC_PIPES {
                             self.dump_instruction(&self.decoded_instruction.unwrap());
                             panic!("BAD PIPE INDEX");
                         }
                         if let Some(val) = self.noc_recv_fifo[fifo_idx].pop() {
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = val;
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.dr] = val;
                             self.pc[self.context_in_progress] += 4;
                         } else {
                             switch_ctx = true;
@@ -2358,16 +2535,15 @@ impl Core {
                         let fifo_idx = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as usize
                         } else {
-                            self.register_file[
-                                self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1
-                            ]as usize & 0x3F 
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as usize
+                                & 0x3F
                         };
 
                         let fill = self.noc_recv_fifo[fifo_idx].len();
 
-                        self.register_file[
-                            self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr
-                        ] = fill as u32;
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = fill as u32;
 
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -2383,7 +2559,9 @@ impl Core {
                             let mut interrupt_pending = false;
                             let mut index = 0;
                             for fifo in &self.noc_recv_fifo {
-                                if !fifo.is_empty() && self.interrupt_enable[self.context_in_progress][index] {
+                                if !fifo.is_empty()
+                                    && self.interrupt_enable[self.context_in_progress][index]
+                                {
                                     interrupt_pending = true;
                                     break;
                                 }
@@ -2406,7 +2584,7 @@ impl Core {
                         let mut any_runnable = false;
                         if self.ctx_ownership < 0 {
                             self.ctx_ownership = self.context_in_progress as i8;
-                        } 
+                        }
                         assert!(
                             self.ctx_ownership == self.context_in_progress as i8,
                             "ANOTHER Dumb programmer!"
@@ -2428,10 +2606,7 @@ impl Core {
                             instruction_to_execute.imm_0 <= REGS_PER_CONTEXT as u32,
                             "STUPID PROGRAMMER"
                         );
-                        assert!(
-                            instruction_to_execute.imm_0 > 0,
-                            "STUPID PROGRAMMER"
-                        );
+                        assert!(instruction_to_execute.imm_0 > 0, "STUPID PROGRAMMER");
                         for _ in 0..instruction_to_execute.imm_0 {
                             self.runnable[cur_index] = true;
                             cur_index = (cur_index + 1) % REGS_PER_CONTEXT;
@@ -2443,11 +2618,13 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::RelinquishOwnership => {
-                        
                         if self.ctx_ownership != self.context_in_progress as i8 {
                             println!("BAD CORE: {}", self.core_id);
                             self.dump_instruction(&self.decoded_instruction.unwrap());
-                            println!("self.context_in_progress: {}, self.ctx_ownership: {}", self.context_in_progress, self.ctx_ownership);
+                            println!(
+                                "self.context_in_progress: {}, self.ctx_ownership: {}",
+                                self.context_in_progress, self.ctx_ownership
+                            );
                         }
                         assert!(
                             self.ctx_ownership == self.context_in_progress as i8,
@@ -2463,13 +2640,11 @@ impl Core {
                         }
                     }
                     Operation::EnableInterrupts => {
-
                         let pipe = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as usize
                         } else {
-                            self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                                as usize
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr2] as usize
                         };
                         assert!(
                             pipe < NUM_NOC_PIPES,
@@ -2482,9 +2657,8 @@ impl Core {
                         let pipe = if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as usize
                         } else {
-                            self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
-                                as usize
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr2] as usize
                         };
                         assert!(
                             pipe < NUM_NOC_PIPES,
@@ -2496,9 +2670,11 @@ impl Core {
                     Operation::SetMemoryBits => {
                         let temp = self.memory_bits[self.context_in_progress];
 
-                        self.memory_bits[self.context_in_progress] = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1];
-                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = temp;
+                        self.memory_bits[self.context_in_progress] =
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1];
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = temp;
 
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -2507,15 +2683,17 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 1;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: 0,
@@ -2533,7 +2711,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2544,7 +2723,8 @@ impl Core {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: ((value >> (byte_offset * 8)) & 0xFF) as i8 as i32
                                     as u32,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
                         }
@@ -2556,15 +2736,17 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 1;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: 0,
@@ -2582,7 +2764,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2592,7 +2775,8 @@ impl Core {
                             let load_dispatch = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: ((value >> (byte_offset * 8)) & 0xFF) as u8 as u32,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
                         }
@@ -2603,11 +2787,12 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half LOADS CAN'T BE UNALIGNED"
@@ -2615,7 +2800,8 @@ impl Core {
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 2;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: 0,
@@ -2633,7 +2819,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2644,7 +2831,8 @@ impl Core {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: ((value >> (byte_offset * 8)) & 0xFFFF) as i16
                                     as i32 as u32,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
                         }
@@ -2655,11 +2843,12 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half LOADS CAN'T BE UNALIGNED"
@@ -2667,7 +2856,8 @@ impl Core {
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 2;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: 0,
@@ -2685,7 +2875,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2697,7 +2888,8 @@ impl Core {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: ((value >> (byte_offset * 8)) & 0xFFFF) as u16
                                     as u32,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
                         }
@@ -2708,11 +2900,12 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x3 == 0,
                             "DRAM Word LOADS CAN'T BE UNALIGNED"
@@ -2721,7 +2914,8 @@ impl Core {
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 4;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: 0,
@@ -2739,7 +2933,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2748,9 +2943,17 @@ impl Core {
                             let load_dispatch = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: value,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
+                            if DEBUG
+                                && (core_in_list || cores_to_monitor.len() == 0)
+                                && (*context_to_monitor == self.context_in_progress as i32
+                                    || *context_to_monitor < 0)
+                            {
+                                println!("Read to {:0x} - Value: {}", dram_address, value);
+                            }
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -2758,17 +2961,19 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x3 == 0,
                             "DRAM Word STORES CAN'T BE UNALIGNED"
                         );
-                        let value_to_store = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr];
+                        let value_to_store = self.register_file[self.context_in_progress
+                            * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr];
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 4;
                             let long_dram_request = LongDramRequest {
@@ -2797,17 +3002,19 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half STORES CAN'T BE UNALIGNED"
                         );
-                        let value_to_store = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
+                        let value_to_store = self.register_file[self.context_in_progress
+                            * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr]
                             & 0xFFFF;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 2;
@@ -2842,13 +3049,15 @@ impl Core {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
                             instruction_to_execute.imm_0 as u16 as usize
                         } else {
-                            (self.register_file
-                                [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                                as u32 + instruction_to_execute.imm_0) as usize
-                        })
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
-                        let value_to_store = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr]
+                            (self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as u32
+                                + instruction_to_execute.imm_0) as usize
+                        }) | (self.memory_bits[self.context_in_progress]
+                            as usize)
+                            << DRAM_STACK_SIZE_LOG2;
+                        let value_to_store = self.register_file[self.context_in_progress
+                            * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr]
                             & 0xFF;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 1;
@@ -2880,15 +3089,16 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::AtomicAddDram => {
-                        let dram_address = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1]
-                            as usize
-                            | (self.memory_bits[self.context_in_progress] as usize) << DRAM_STACK_SIZE_LOG2;
+                        let dram_address =
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr1] as usize
+                                | (self.memory_bits[self.context_in_progress] as usize)
+                                    << DRAM_STACK_SIZE_LOG2;
                         let value_to_store = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
-                        }
-                        else {
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr2]
+                        } else {
+                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.sr2]
                         };
                         assert!(
                             dram_address & 0x3 == 0,
@@ -2898,7 +3108,8 @@ impl Core {
                             self.dram_bytes_wrote_far += 4;
                             self.dram_bytes_read_far += 4;
                             let long_dram_request = LongDramRequest {
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                                 address: dram_address,
                                 op: instruction_to_execute.operation,
                                 value_to_write: value_to_store,
@@ -2916,7 +3127,8 @@ impl Core {
                             let internal_long_dram_op = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_FAR,
                                 calculated_val: 0,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_long_queue.push(internal_long_dram_op);
                         } else {
@@ -2927,17 +3139,20 @@ impl Core {
                             let load_dispatch = PipelineStage {
                                 cycle_to_read: self.cycle + DRAM_LATENCY_CLOSE,
                                 calculated_val: old_value,
-                                register_index: instruction_to_execute.dr + self.context_in_progress * REGS_PER_CONTEXT,
+                                register_index: instruction_to_execute.dr
+                                    + self.context_in_progress * REGS_PER_CONTEXT,
                             };
                             let _ = self.dram_short_queue.push(load_dispatch);
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::SendFlit => {
-                        let full_address = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.sr1];
-                        let value_to_send = self.register_file
-                            [self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr];
+                        let full_address = self.register_file[self.context_in_progress
+                            * REGS_PER_CONTEXT
+                            + instruction_to_execute.sr1];
+                        let value_to_send = self.register_file[self.context_in_progress
+                            * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr];
 
                         // let mailbox_bits = (NUM_NOC_PIPES as u32).trailing_zeros();
                         let mailbox_mask = (NUM_NOC_PIPES as u32) - 1;
@@ -2949,17 +3164,23 @@ impl Core {
                         };
 
                         let outgoing_flit = Flit {
-                            destination_x: (core_address % (CORES_IN_X * CORES_IN_X_STACK) as u32) as u16,
-                            destination_y: (core_address / (CORES_IN_X * CORES_IN_X_STACK) as u32) as u16,
+                            destination_x: (core_address % (CORES_IN_X * CORES_IN_X_STACK) as u32)
+                                as u16,
+                            destination_y: (core_address / (CORES_IN_X * CORES_IN_X_STACK) as u32)
+                                as u16,
                             mailbox_id: mailbox_index as u16,
                             value_to_send,
                             cycle_to_read: self.cycle + 1,
                             origin_x: self.x_dim,
-                            origin_y: self.y_dim
+                            origin_y: self.y_dim,
                         };
                         self.flits_sent += 1;
-                        self.flit_sent_manhattan_distance_traversed += (outgoing_flit.origin_x as i64 - outgoing_flit.destination_x as i64).abs() as usize
-                            + (outgoing_flit.origin_y as i64 - outgoing_flit.destination_y as i64).abs() as usize;
+                        self.flit_sent_manhattan_distance_traversed +=
+                            (outgoing_flit.origin_x as i64 - outgoing_flit.destination_x as i64)
+                                .abs() as usize
+                                + (outgoing_flit.origin_y as i64
+                                    - outgoing_flit.destination_y as i64)
+                                    .abs() as usize;
                         if self.output_noc_send.is_full() {
                             switch_ctx = true;
                         } else {
@@ -2968,26 +3189,28 @@ impl Core {
                         }
                     }
                     Operation::GetLowClock => {
-                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT + instruction_to_execute.dr] = self.cycle as u32;
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = self.cycle as u32;
                         self.pc[self.context_in_progress] += 4;
-                    },
+                    }
                     Operation::SwitchCtx => {
                         switch_ctx = true;
                         self.pc[self.context_in_progress] += 4;
-                    },
+                    }
                 }
-            }
-            else{
-                while self.core_busy.len() <= self.cycle as usize/NOC_UTIL_EPOCH_LEN {
+            } else {
+                while self.core_busy.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {
                     self.core_busy.push(0);
                 }
-                self.core_busy[self.cycle as usize/NOC_UTIL_EPOCH_LEN] += 1
+                self.core_busy[self.cycle as usize / NOC_UTIL_EPOCH_LEN] += 1
             }
-            self.register_file[REGS_PER_CONTEXT * self.context_in_progress + REGS_PER_CONTEXT - 1] =
+            self.register_file
+                [REGS_PER_CONTEXT * self.context_in_progress + REGS_PER_CONTEXT - 1] =
                 (CTX_CNT * self.core_id as usize + self.context_in_progress) as u32;
             if long_latency_op && instruction_to_execute.dr != REGS_PER_CONTEXT - 1 {
                 self.register_ready
-                    [REGS_PER_CONTEXT * self.context_in_progress + instruction_to_execute.dr] = false;
+                    [REGS_PER_CONTEXT * self.context_in_progress + instruction_to_execute.dr] =
+                    false;
             }
             if switch_ctx {
                 let mut next_ctx = None;
@@ -3019,7 +3242,9 @@ impl Core {
                     next_decoded = None;
                 }
                 _ => {
-                    panic!("FETCH/PC PAIRING BROKEN: fetched_value and fetch_pc must be both Some or both None");
+                    panic!(
+                        "FETCH/PC PAIRING BROKEN: fetched_value and fetch_pc must be both Some or both None"
+                    );
                 }
             }
         } else {
@@ -3029,22 +3254,22 @@ impl Core {
         let next_req_pc: u16 = if flush {
             self.pc[self.context_in_progress]
         } else if let Some(instr) = &next_decoded {
-            let is_control =
-                matches!(
-                    instr.operation,
-                    Operation::BranchNe
-                        | Operation::BranchEq
-                        | Operation::BranchGT
-                        | Operation::BranchLTE
-                );
+            let is_control = matches!(
+                instr.operation,
+                Operation::BranchNe
+                    | Operation::BranchEq
+                    | Operation::BranchGT
+                    | Operation::BranchLTE
+            );
 
-            if (is_control && instr.branch_hint) || (instr.operation == Operation::Jump && instr.is_imm) {
+            if (is_control && instr.branch_hint)
+                || (instr.operation == Operation::Jump && instr.is_imm)
+            {
                 instr.imm_0 as u16
             } else {
                 (instr.pc as u16).wrapping_add(4)
             }
         } else {
-    
             self.pc[self.context_in_progress]
         };
 
@@ -3056,8 +3281,6 @@ impl Core {
 
         self.decoded_instruction = next_decoded;
 
-
         self.cycle += 1;
     }
 }
-
