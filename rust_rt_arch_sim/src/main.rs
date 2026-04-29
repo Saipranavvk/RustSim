@@ -1249,9 +1249,9 @@ fn main() {
         .filter_map(|s| s.parse::<u32>().ok())
         .filter(|&n| n <= 8191)
         .collect();
-
-    print!("Enter core to inspect (0-15, or Enter to skip): ");
     io::stdout().flush().unwrap();
+    print!("Enter context to inspect (0-15, or Enter to skip): ");
+    input.clear();
     io::stdin().read_line(&mut input).unwrap();
     let context_to_watch = match input.trim() {
         "" => -1,

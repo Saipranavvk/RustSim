@@ -2664,31 +2664,31 @@ dfs_done:
     add r11, r11, 256
     sh r10, r11, 0
     
-    lw r1, LOCAL_RAY_QUEUE
+    add r1, r14, LOCAL_RAY_QUEUE
     sw r14, r1, 0
     sw r14, r1, 4
     sw r14, r1, 8
-    add r1, r1, 75
+    add r1, r1, 12
     add r2, r14, 16
 queue_loop_1:
     beq r2, r14, queue_loop_1_done, true
-    sw r14, r1, 0
+    sb r14, r1, 63
     add r1, r1, 64
     add r2, r2, -1
     beq r15, r15, queue_loop_1, true
 
 queue_loop_1_done:
 
-    sb r14, r1, 1
-    sb r14, r1, 5
-    sb r14, r1, 9
+    sw r14, r1, 1
+    sw r14, r1, 5
+    sw r14, r1, 9
 
-    add r1, r1, 76
+    add r1, r1, 13
 
     add r2, r14, 16
 queue_loop_2:
     beq r2, r14, queue_loop_2_done, true
-    sw r14, r1, 0
+    sb r14, r1, 63
     add r1, r1, 64
     add r2, r2, -1
     beq r15, r15, queue_loop_2, true
@@ -2705,12 +2705,12 @@ queue_loop_2_done:
     # *(self.ray_send_pending_addr) = 0;
     sw r14, RAY_SEND_PENDING_ADDR
 
-
+    and r14, r14, 0
     # ray_base = self.ray_array_base;
-    lw r1, RAY_ARRAY
-
+    add r1, r14, RAY_ARRAY
+    and r2, r15, 0xF
     # ray_array_index = self.thread_id << 6;
-    sll r2, r15, 6
+    sll r2, r2, 6
 
     # ray = ray_base + index
     add r1, r1, r2

@@ -922,17 +922,29 @@ impl Core {
         }
     }
     fn write_sram_byte(&mut self, byte: u8, address: &u16) {
+        assert!(
+            *address as usize <= SRAM_SIZE ,
+            "SRAM WRITE OUT OF BOUNDS, core: {}", self.core_id
+        );
         self.sram[*address as usize] = byte;
     }
     fn write_sram_half(&mut self, half: u16, address: &u16) {
+        assert!(
+            *address as usize <= SRAM_SIZE ,
+            "SRAM WRITE OUT OF BOUNDS, core: {}", self.core_id
+        );
         assert!(*address & 0x1 == 0, "HALF NOT ALIGNED!");
         self.sram[*address as usize] = (half & 0xFF) as u8;
         self.sram[*address as usize + 1] = ((half & 0xFF00) >> 8) as u8;
     }
     fn write_sram_word(&mut self, word: u32, address: &u16) {
+        assert!(
+            *address as usize <= SRAM_SIZE ,
+            "SRAM WRITE OUT OF BOUNDS, core: {}", self.core_id
+        );
         if *address & 0x3 != 0 {
             self.dump_instruction(&self.decoded_instruction.unwrap());
-            assert!(*address & 0x3 == 0, "WORD NOT ALIGNED!");
+            assert!(*address & 0x3 == 0, "WORD NOT ALIGNED!, core: {}", self.core_id);
         }
         self.sram[*address as usize] = (word & 0xFF) as u8;
         self.sram[*address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
@@ -3241,7 +3253,13 @@ impl Core {
                 }
                 self.context_in_progress = match next_ctx {
                     Some(idx) => idx,
-                    None => self.ctx_ownership.try_into().expect("There was no owner"),
+                    None => { if self.ctx_ownership == -1{
+                            self.context_in_progress
+                        }
+                        else{
+                            self.ctx_ownership.try_into().expect("There was no owner")
+                        }
+                    }
                 };
                 flush = true;
             }
