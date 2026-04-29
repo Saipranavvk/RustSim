@@ -1,4 +1,4 @@
-use crate::core::{BidirectionalNoc, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE, Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue};
+use crate::core::{BidirectionalNoc, CacheState, CACHE_ENABLED, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE, Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue};
 use crate::matrices::{MAT_A, MAT_B, MAT_C, get_init_vector};
 use crate::parse_bvh::assemble_tree;
 pub mod core;
@@ -19,10 +19,10 @@ use std::fs::create_dir_all;
 const CORES_IN_X_STACK: u16 = 4;
 const CORES_IN_Y_STACK: u16 = 4;
 const PRINT_STATS: bool = true;
-const CACHE_ENABLED: bool = false;
 struct Stack {
     cores: Vec<Core>,
     dram_stack: Vec<u32>,
+    cache: CacheState,
     service_other_stack: Receiver<LongDramRequest>,
     return_result_to_stack: Vec<Sender<LongDramOp>>,
     receive_dram_result_from_stack: Receiver<LongDramOp>,
@@ -60,9 +60,7 @@ fn assemble_stacks() -> Vec<Stack> {
                         core_index as u32, 
                         x_index, 
                         y_index, 
-                        dram_top_bits,
-                        //RYAN ADDED
-                        CACHE_ENABLED,));
+                        dram_top_bits));
                 }
             }
         }
@@ -134,6 +132,7 @@ fn assemble_stacks() -> Vec<Stack> {
         stacks.push(Stack {
             cores: Vec::new(),
             dram_stack: vec![0; DRAM_STACK_SIZE / 4],
+            cache: CacheState::new(CACHE_ENABLED),
             service_other_stack: service_rx,
             return_result_to_stack: Vec::new(),
             receive_dram_result_from_stack: rx,
@@ -256,9 +255,6 @@ pub struct CoreLog {
     flits_received: usize,
     flit_sent_manhattan_distance_traversed: usize,
     flit_received_manhattan_distance_traversed: usize,
-    cache_hits: usize,
-    cache_misses: usize,
-    cache_accesses: usize,
 }
 #[derive(Clone)]
 struct StackLog {
@@ -417,10 +413,6 @@ fn dump_logs_for_viz(
     let mut flits_recv = Array2::<u64>::zeros((total_y, total_x));
     let mut flits_sent_manhattan = Array2::<u64>::zeros((total_y, total_x));
     let mut flits_recv_manhattan = Array2::<u64>::zeros((total_y, total_x));
-    //Added by Ryan
-    let mut cache_hits = Array2::<u64>::zeros((total_y, total_x));
-    let mut cache_misses = Array2::<u64>::zeros((total_y, total_x));
-    let mut cache_accesses = Array2::<u64>::zeros((total_y, total_x));
     // Also per-stack totals CSV
     {
         let mut w = csv::Writer::from_path(format!("{}/stack_totals.csv", out_dir))?;
@@ -465,10 +457,6 @@ fn dump_logs_for_viz(
                     flits_recv[(gy, gx)] = cl.flits_received as u64;
                     flits_sent_manhattan[(gy, gx)] = cl.flit_sent_manhattan_distance_traversed as u64;
                     flits_recv_manhattan[(gy, gx)] = cl.flit_received_manhattan_distance_traversed as u64;
-                    // ADDED BY RYAN
-                    cache_hits[(gy, gx)] = cl.cache_hits as u64;
-                    cache_misses[(gy, gx)] = cl.cache_misses as u64;
-                    cache_accesses[(gy, gx)] = cl.cache_accesses as u64;
                     // Time series tensor, padded with last value
                     let series = series_for_metric(cl, m);
                     if series.is_empty() {
@@ -495,10 +483,6 @@ fn dump_logs_for_viz(
     write_npy(format!("{}/flits_received.npy", out_dir), &flits_recv)?;
     write_npy(format!("{}/flits_sent_manhattan.npy", out_dir), &flits_sent_manhattan)?;
     write_npy(format!("{}/flits_received_manhattan.npy", out_dir), &flits_recv_manhattan)?;
-    // ADDED BY RYAN
-    write_npy(format!("{}/cache_hits.npy", out_dir), &cache_hits)?;
-    write_npy(format!("{}/cache_misses.npy", out_dir), &cache_misses)?;
-    write_npy(format!("{}/cache_accesses.npy", out_dir), &cache_accesses)?;
     println!("WROTE ALL LOGS");
     Ok(())
 }
@@ -533,7 +517,7 @@ fn main() {
                 let mut local_read = 0;
                 let mut local_write = 0;
                 for core in stack.cores.iter_mut() {
-                    core.tick(&mut stack.dram_stack);
+                    core.tick(&mut stack.dram_stack, &mut stack.cache);
                     local_read += core.get_local_read();
                     local_write += core.get_local_write();
                 }
@@ -570,12 +554,59 @@ fn main() {
                     if result_val == 4096{
                         println!("Finished at Cycle {}", cycle);
                         println!("WE CALCULATED THE MATRIX!!!");
-                        println!("Local Read: {}, Local write: {}, foreign read: {}, foreign write: {}", 
-                            stack.local_read, stack.local_write, 
+                        println!("Local Read: {}, Local write: {}, foreign read: {}, foreign write: {}",
+                            stack.local_read, stack.local_write,
                             stack.foreign_read, stack.foreign_write);
+
+                        // Aggregate cache and DRAM stats across all cores in this stack
+                        let mut total_cache_hits: usize = 0;
+                        let mut total_cache_misses: usize = 0;
+                        let mut total_cache_accesses: usize = 0;
+                        let mut total_cache_read_bytes_throttled: usize = 0;
+                        let mut total_dram_read_bytes_throttled: usize = 0;
+                        let mut total_dram_write_bytes_throttled: usize = 0;
+                        let mut total_dram_read_close: usize = 0;
+                        let mut total_dram_read_far: usize = 0;
+                        let mut total_dram_wrote_close: usize = 0;
+                        let mut total_dram_wrote_far: usize = 0;
+
+                        for core in &stack.cores {
+                            total_cache_hits                  += core.get_cache_hits();
+                            total_cache_misses                += core.get_cache_misses();
+                            total_cache_accesses              += core.get_cache_accesses();
+                            total_cache_read_bytes_throttled  += core.get_cache_read_bytes_throttled();
+                            total_dram_read_bytes_throttled   += core.get_dram_read_bytes_throttled();
+                            total_dram_write_bytes_throttled  += core.get_dram_write_bytes_throttled();
+                            total_dram_read_close             += core.get_local_read();
+                            total_dram_read_far               += core.get_foreign_read();
+                            total_dram_wrote_close            += core.get_local_write();
+                            total_dram_wrote_far              += core.get_foreign_write();
+                        }
+                        let hit_rate = if total_cache_accesses > 0 {
+                            total_cache_hits as f64 / total_cache_accesses as f64 * 100.0
+                        } else {
+                            0.0
+                        };
+                        println!("--- Cache Statistics ---");
+                        println!("  Cache accesses : {}", total_cache_accesses);
+                        println!("  Cache hits     : {} ({:.2}%)", total_cache_hits, hit_rate);
+                        println!("  Cache misses   : {} ({:.2}%)", total_cache_misses, 100.0 - hit_rate);
+                        println!("--- Throttle Statistics ---");
+                        println!("  Cache read bytes throttled : {}", total_cache_read_bytes_throttled);
+                        println!("  DRAM read bytes throttled  : {}", total_dram_read_bytes_throttled);
+                        println!("  DRAM write bytes throttled : {}", total_dram_write_bytes_throttled);
+                        println!("  Total bytes throttled      : {}", total_cache_read_bytes_throttled + total_dram_read_bytes_throttled + total_dram_write_bytes_throttled);
+                        println!("--- DRAM Statistics ---");
+                        println!("  Close reads    : {} bytes", total_dram_read_close);
+                        println!("  Close writes   : {} bytes", total_dram_wrote_close);
+                        println!("  Far reads      : {} bytes", stack.foreign_read);
+                        println!("  Far writes     : {} bytes", stack.foreign_write);
+                        println!("  Total DRAM traffic (close) : {} bytes", total_dram_read_close + total_dram_wrote_close);
+                        println!("  Total DRAM traffic (far)   : {} bytes", stack.foreign_read + stack.foreign_write);
                         done_per_thread.store(true, Ordering::Release);
                     }
                 }
+                //println!("waiting on barrier");
                 std::thread::yield_now();
                 barrier.wait();
                 if done_per_thread.load(Ordering::Acquire) {
