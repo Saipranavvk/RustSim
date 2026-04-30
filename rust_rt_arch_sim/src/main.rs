@@ -1018,6 +1018,7 @@ fn main() {
         stacks[1].dram_stack[12 * i + 5 + node_array_start] = node_vec[i].max_z.to_bits();
         stacks[1].dram_stack[12 * i + 6 + node_array_start] = node_vec[i].left_first;
         stacks[1].dram_stack[12 * i + 7 + node_array_start] = node_vec[i].parent;
+        stacks[1].dram_stack[12 * i + 9 + node_array_start] = 0xFFFF_FFFF;
     }
 
     let mut node_id_vec_wrapped = node_id_lists("placement.csv".to_owned());
@@ -1124,13 +1125,17 @@ fn main() {
 
     for i in 0..node_id_vec.len() {
         let (_x, _y, node_id, is_branch) = node_id_vec[i];
-        let address = node_id_hash_map.get(&node_id).unwrap().0;
+        let queue_index = &node_id_hash_map.get(&node_id).unwrap().0;
+        let address = address_ray_queue_hash_map.get(queue_index).unwrap();
+        if node_id == 82476 {
+            println!("Putting address {} at {}", address, 12 * node_id as usize + 9 + node_array_start);
+        }
         stacks[1].dram_stack[12 * node_id as usize + 8 + node_array_start] = is_branch;
-        stacks[1].dram_stack[12 * node_id as usize + 9 + node_array_start] = address as u32;
+        stacks[1].dram_stack[12 * node_id as usize + 9 + node_array_start] = *address as u32;
         dram_store_half(
             &mut stacks[1].dram_stack,
             4 * (12 * node_id as usize + node_array_start) + 40,
-            (address >> 32) as u32,
+            (*address >> 32) as u32,
         );
         dram_store_half(
             &mut stacks[1].dram_stack,
@@ -1233,6 +1238,7 @@ fn main() {
     for i in auto_gen_code::get_branch_core_code().iter().enumerate() {
         stacks[0].dram_stack[branch_core_code_base + i.0] = *i.1;
     }
+    println!("Val: {}", dram_read_word(&stacks[1].dram_stack, 2151442532 - (1 << 31)));
     println!("Finished copying code");
     let barrier = Arc::new(Barrier::new((CORES_IN_X_STACK * CORES_IN_Y_STACK) as usize));
     let mut handles = Vec::new();

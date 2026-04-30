@@ -504,14 +504,8 @@ RIGHT_BITFIELD_DONE:
     sb r5, r0, 62
 
     # if (node->parent == 0) goto send_ray_up;
-    lhu r6, r1, 28                  # r6 = node->parent
+    lhu r1, r1, 28                  # r6 = node->parent
     beq r6, r7, SEND_RAY_UP, true  # r7 = 0
-
-
-
-    # node = node->parent;
-    and r1, r1, 0
-    add r1, r1, r6                  # r1 = node->parent (SRAM pointer)
     beq r15, r15, START_SEARCHING, true
     
 CHECK_BOTH_ZERO:
@@ -1074,6 +1068,7 @@ RAY_UPDATE_LOOP_DONE:
     add r7, r7, 1
     sb r7, r0, 63           # ray->active_ray = 1 (r7=0)
     lw r1, ROOT_NODE_ADDRESS
+    add r1, r1, 0
     # goto start_ray_traversal;
     beq r15, r15, START_RAY_TRAVERSAL, true
 NEGATIVE_RAY_COUNT:
@@ -1852,7 +1847,8 @@ FIND_BRANCH_NODE:
     mul r9, r9, 48
     add r9, r9, r12
     lw_d r10, r9, 32
-    beq r11, r10, FOUND_BRANCH_CORE_NODE, false
+    bne r11, r10, FOUND_BRANCH_CORE_NODE, false
+    lw r10, RAY_QUEUE_LOW
     lw_d r9, r9, 28                        # parent index
     beq r15, r15, FIND_BRANCH_NODE, true
 FOUND_BRANCH_CORE_NODE:
@@ -1910,7 +1906,7 @@ dfs_loop:
     lhu_d r10, r12, 40
     sh r10, r13, 40                          # queue_high_bit_addr
     lw_d r10, r12, 36
-    add r10, r10, 24512
+    add r10, r10, 32612
     sw r10, r13, 36                          # queue_low_bit_addr
     lw_d r10, r12, 44
     add r10, r10, 8192
@@ -1951,7 +1947,7 @@ PATCH_RIGHT_CHILD:
 SKIP_PATCH:
 
     # if (owner == self->core_id) self->root_node = node;
-    lw r10, r13, 36                         # owner = dram_node->core_owner
+    lw r10, r13, 36                         
     bne r10, r11, CHECK_RECURSE, true
     sw r13, ROOT_NODE_ID
 CHECK_RECURSE:
@@ -1966,6 +1962,8 @@ CHECK_RECURSE:
     bne r14, r10, dfs_loop, false
     add r10, r14, LEAF_CORE_INDEX_FOR_BRANCH
     atomadd r15, r10, 1
+    lw r14, BRANCH_START_OF_GEO
+    beq r13, r14, DO_RECURSE, true
     beq r15, r15, dfs_loop, true             # foreign owner: stop here
 SET_NODE_ID:
     add r10, r14, 1
@@ -2101,6 +2099,7 @@ queue_loop_1_done:
     add r0, r1, r2
     lw r1, ROOT_NODE_ADDRESS
     # *(ray + 63) = 0;
+    add r1, r1, 0
     sb r14, r0, 63
 
     # *(self.core_handled->previously_idle) = 0;
@@ -2292,7 +2291,7 @@ SRAM_ALLOC_COUNT:
 SRAM_NODE_ALLOC_PTR:     
 .data 0
 NODE_ARRAY_TOP:         
-.data 0
+.data 16128
 BRANCH_START_OF_CODE:    
 .data 32
 BRANCH_NUM_INSTRUCTION_BYTES: 

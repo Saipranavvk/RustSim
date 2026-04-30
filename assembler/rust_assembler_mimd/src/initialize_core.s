@@ -103,7 +103,7 @@ branch_addr_high:
 branch_addr_low:
     .data 424 
 num_instructions_leaf:
-    .data 1633   
+    .data 2000   
 leaf_addr_high:
     .data 0   
 leaf_addr_low:
