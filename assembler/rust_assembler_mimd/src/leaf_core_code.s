@@ -648,7 +648,7 @@ THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE:
     add r9, r9, -4                 # r9 = queue base (tail field)
     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
     and r10, r10, 0x3FFF            # r10 = tail & 0x3FFF (ring mask)
-    add r9, r9, 16224                # r11 = queue base + 540 (start of ray slots)
+    add r9, r9, 16228                # r11 = queue base + 540 (start of ray slots)
     add r9, r9, r10               # r11 = write_addr = slot base + tail offset
 
 WAIT_FOR_SLOT_TO_OPEN:
@@ -1140,16 +1140,16 @@ PROCEED_TO_READ_RAY:
     atomadd_d r10, r9, r7       # r10 = head, advance head by 64 bytes
 
     # queue_address_low = queue_address_low + 536; // skip header + core_slots to ray data
-    add r9, r9, 16224                # r9 = queue_address_low + 536 (start of ray slots)
+    add r9, r9, 16228                 # r9 = queue_address_low + 536 (start of ray slots)
     # head = head & 0x00003FFF;
-    and r10, r10, 0x3FFF            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue)
+    and r10, r10, 0x3FC0            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue) TODO ALEX THE "AND" ALSO THE OFFSET 
     # queue_address_low += head;
     add r9, r9, r10               # r9 = queue_address_low + 536 + head (ray slot address)
 
 WAIT_FOR_WRITE:
     # int ready = load_dram_byte(queue_address_low + 63);
     add r10, r9, 63              # r10 = queue_address_low + 63
-    lbu r10, r10, 0              # r10 = ready byte
+    lbu_d r10, r10, 0              # r10 = ready byte
     # if (ready == 0)
     # {
     #    goto wait_for_write;
@@ -1169,6 +1169,7 @@ WRITE_TO_RAY_IDX_LOOP:
     #     ray_index = ray_index + 4;
     # }
     beq r7, r6, WRITE_TO_RAY_IDX_LOOP_DONE, true
+
     lw_d r12, r9, 0           # r12 = load_dram_word(queue_address_low)
     sw r12, r11, 0         # *(ray_index) = ray_word
     add r9, r9, 4           # queue_address_low = queue_address_low + 4

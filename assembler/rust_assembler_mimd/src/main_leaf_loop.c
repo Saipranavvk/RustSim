@@ -269,7 +269,7 @@ else if (left_bitfield_check == 0 && right_bitfield_check == 0)
                         queue_address_low -= 16;
                         int tail = atomic_add_dram(queue_address_low, 64);
                         tail &= 0x00003FFF;
-                        int write_addr = queue_address_low + 536;
+                        int write_addr = queue_address_low + 16228;
                         write_addr += tail;
                         // wait_for_slot_to_open:
                         int cur_ray_count = load_dram_byte(write_addr + 63);
@@ -585,7 +585,7 @@ if (cur_ray_count > 0)
         goto ray_done;
     }
     int head = atomic_add_dram(queue_address_low, 64);
-    queue_address_low = queue_address_low + 536; // skip header + core_slots to ray data
+    queue_address_low = queue_address_low + 16228; // skip header + core_slots to ray data
     head = head & 0x00003FFF;
     queue_address_low += head;
 
