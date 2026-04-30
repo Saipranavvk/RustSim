@@ -2592,16 +2592,17 @@ dfs_loop:
 SKIP_LEAF_TABLE_INSERT:
     and r14, r14, 0
     # if (parent_ptr != 0xFFFF) patch parent child pointer
-    or r12, r14, 0xFFFF
-    beq r5, r12, SKIP_PATCH, true
-    add r12, r14, 1
-    beq r8, r12, PATCH_RIGHT_CHILD, true
+    or r14, r14, 0xFFFF
+    beq r5, r14, SKIP_PATCH, true
+    add r14, r14, 1
+    beq r8, r14, PATCH_RIGHT_CHILD, true
     sh r13, r6, 0                            # *patch_left = node
     beq r15, r15, SKIP_PATCH, true
 PATCH_RIGHT_CHILD:
+    and r14, r14, 0
     sh r13, r7, 0                            # *patch_right = node
 SKIP_PATCH:
-
+    and r14, r14, 0
     # if (owner == self->core_id) self->root_node = node;
     lw r10, r13, 36                         # owner = dram_node->core_owner
     bne r10, r11, CHECK_RECURSE, true
@@ -2912,7 +2913,7 @@ PREVIOUSLY_IDLE:
 FLOAT_TO_BYTE_RGB_TABLE: 
 .data(128) 0
 LIGHT0_X: 
-.data 0x44228000
+.data 0x44228000            # LIGHT0_X
 LIGHT0_Y: 
 .data 0x430C0000
 LIGHT0_Z: 

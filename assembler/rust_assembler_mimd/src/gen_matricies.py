@@ -124,7 +124,7 @@ def main():
     print(f"\nWrote {out}")
 
     subprocess.run(
-        ["cargo", "run"],
+        ["cargo", "run", "2>&1", "|", "tee", "run.log"],
         cwd=os.path.join(os.path.dirname(__file__), "..", "..", "..", "rust_rt_arch_sim", "src")
     )
 

@@ -1129,7 +1129,7 @@ CHECK_CUR_RAY_COUNT:
     beq r15, r15, ray_done, true
 PROCEED_TO_READ_RAY:
     # int head = atomic_add_dram(queue_address_low, 64);
-    add r9, r9, -8 
+    lw r9, RAY_QUEUE_LOW # TODO Alex what is this
     and r7, r7, 0
     add r7, r7, 64
     atomadd_d r10, r9, r7       # r10 = head, advance head by 64 bytes
@@ -1137,7 +1137,7 @@ PROCEED_TO_READ_RAY:
     # queue_address_low = queue_address_low + 536; // skip header + core_slots to ray data
     add r9, r9, 16228                 # r9 = queue_address_low + 536 (start of ray slots)
     # head = head & 0x00003FFF;
-    and r10, r10, 0x3FC0            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue) TODO ALEX THE "AND" ALSO THE OFFSET 
+    and r10, r10, 0x3FFF            # r10 = head & 0x3FFF (ring buffer mask for 16KB queue) TODO ALEX THE "AND" ALSO THE OFFSET 
     # queue_address_low += head;
     add r9, r9, r10               # r9 = queue_address_low + 536 + head (ray slot address)
 

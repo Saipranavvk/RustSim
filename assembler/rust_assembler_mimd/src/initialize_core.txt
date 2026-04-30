@@ -1,14 +1,14 @@
 Origin = 0x0028
-Bytes = 220
+Bytes = 224
 
 ============ HEX ============
 0x00000028,   //PC = 0x00000028,     line: .data 40        # TODO Double check
 0x0044FF93,   //PC = 0x0000002C,     line:     beq r15, r15, INITIALIZE_CORE, true
-0xFFFFFFFF,   //PC = 0x00000030,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000034,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000038,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x0000003C,     line:     .data -1
-0xFFFFFFFF,   //PC = 0x00000040,     line:     .data -1
+0xA5A5A5A5,   //PC = 0x00000030,     line:     .data 0xA5A5A5A5
+0xDEADBEEF,   //PC = 0x00000034,     line:     .data 0xDEADBEEF
+0x69696969,   //PC = 0x00000038,     line:     .data 0x69696969
+0x67676767,   //PC = 0x0000003C,     line:     .data 0x67676767
+0xCAFEBABE,   //PC = 0x00000040,     line:     .data 0xCAFEBABE
 0x00DC801F,   //PC = 0x00000044,     line:     lw r0, dram_queue_array_high    
 0x000007A7,   //PC = 0x00000048,     line:     setmembits r0   
 0x0004FF06,   //PC = 0x0000004C,     line:     srl r14, r15, 4
@@ -44,16 +44,17 @@ Bytes = 220
 0x00F8811F,   //PC = 0x000000C4,     line:     lw r2, leaf_addr_high
 0x000017A7,   //PC = 0x000000C8,     line:     setmembits r2
 0x00FC811F,   //PC = 0x000000CC,     line:     lw r2, leaf_addr_low             # r2 = leaf_addr_low
-0x00008002,   //PC = 0x000000D0,     line:     and r0, r0, 0
-0x0010FF93,   //PC = 0x000000D4,     line:     beq r15, r15, 16, true   # unconditional jump to bootloader
+0x0104819F,   //PC = 0x000000D0,     line:     lw r3, START_OF_DOWNLOADING_MORE_CODE
+0x0014FF93,   //PC = 0x000000D4,     line:     beq r15, r15, 20, true   # unconditional jump to bootloader
 0x00004E20,   //PC = 0x000000D8,     line:     .data 20000   
 0x00000000,   //PC = 0x000000DC,     line:     .data 0  
 0x00000000,   //PC = 0x000000E0,     line:     .data 0  
 0x03C25F30,   //PC = 0x000000E4,     line:     .data 63070000  
 0x00000ABE,   //PC = 0x000000E8,     line:     .data 2750   
 0x00000000,   //PC = 0x000000EC,     line:     .data 0   
-0x00000190,   //PC = 0x000000F0,     line:     .data 400 
-0x00000661,   //PC = 0x000000F4,     line:     .data 1633   
+0x000001A8,   //PC = 0x000000F0,     line:     .data 424 
+0x000007D0,   //PC = 0x000000F4,     line:     .data 2000   
 0x00000000,   //PC = 0x000000F8,     line:     .data 0   
-0x03A2F050,   //PC = 0x000000FC,     line:     .data 61010000   
+0x03A2F068,   //PC = 0x000000FC,     line:     .data 61010024   
 0x7FFFFFFF,   //PC = 0x00000100,     line:     .data 0x7FFFFFFF
+0x00000044,   //PC = 0x00000104,     line:     .data 0x44
