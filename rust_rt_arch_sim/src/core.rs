@@ -952,32 +952,43 @@ impl Core {
         self.sram[*address as usize + 3] = ((word & 0xFF000000) >> 24) as u8;
     }
     fn read_sram_byte_unsigned(&self, address: &u16) -> u32 {
-        self.sram[*address as usize] as u32
+        let index = *address as usize;
+        *self.sram.get(index).expect(&format!("Failed to read SRAM byte unsigned at PC 0x{:08X}, index out of bounds: tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index, SRAM_SIZE)) as u32
     }
+    
     fn read_sram_byte_signed(&self, address: &u16) -> u32 {
-        ((self.sram[*address as usize] as i8) as i32) as u32
+        let index = *address as usize;
+        ((*self.sram.get(index).expect(&format!("Failed to read SRAM byte signed at PC 0x{:08X}, index out of bounds: tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index, SRAM_SIZE)) as i8) as i32) as u32
     }
     fn read_sram_half_unsigned(&self, address: &u16) -> u32 {
-        assert!(*address & 0x1 == 0, "HALF NOT ALIGNED!");
-        let low_half = self.sram[*address as usize] as u32;
-        let high_half = (self.sram[*address as usize + 1] as u32) << 8;
+        assert!(*address & 0x1 == 0, "UNSIGNED HALF NOT ALIGNED! at PC 0x{:08X} on core {}", self.pc[self.context_in_progress], self.core_id);
+        let index_low = *address as usize;
+        let index_high = index_low + 1;
+        let low_half = *self.sram.get(index_low).expect(&format!("Failed to read SRAM half unsigned at PC 0x{:08X}, index out of bounds (low byte): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index_low, SRAM_SIZE)) as u32;
+        let high_half = (*self.sram.get(index_high).expect(&format!("Failed to read SRAM half unsigned at PC 0x{:08X}, index out of bounds (high byte): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index_high, SRAM_SIZE)) as u32) << 8;
         low_half | high_half
     }
     fn read_sram_half_signed(&self, address: &u16) -> u32 {
-        assert!(*address & 0x1 == 0, "HALF NOT ALIGNED!");
-        let lo = self.sram[*address as usize];
-        let hi = self.sram[*address as usize + 1];
+        assert!(*address & 0x1 == 0, "SIGNED HALF NOT ALIGNED! at PC 0x{:08X} on core {}", self.pc[self.context_in_progress], self.core_id);
+        let index_low = *address as usize;
+        let index_high = index_low + 1;
+        let lo = *self.sram.get(index_low).expect(&format!("Failed to read SRAM half signed at PC 0x{:08X}, index out of bounds (low byte): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index_low, SRAM_SIZE));
+        let hi = *self.sram.get(index_high).expect(&format!("Failed to read SRAM half signed at PC 0x{:08X}, index out of bounds (high byte): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index_high, SRAM_SIZE));
 
         let val = u16::from_le_bytes([lo, hi]) as i16;
         val as i32 as u32
     }
     fn read_sram_word(&self, address: &u16) -> u32 {
         assert!(address & 0x3 == 0, "WORD NOT ALIGNED! address = 0x{:04X} ({}), core_id: {}", address, address, self.core_id);
+        let index0 = *address as usize;
+        let index1 = index0 + 1;
+        let index2 = index0 + 2;
+        let index3 = index0 + 3;
         let val = u32::from_le_bytes([
-            self.sram[*address as usize],
-            self.sram[*address as usize + 1],
-            self.sram[*address as usize + 2],
-            self.sram[*address as usize + 3],
+            *self.sram.get(index0).expect(&format!("Failed to read SRAM word at PC 0x{:08X}, index out of bounds (byte 0): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index0, SRAM_SIZE)),
+            *self.sram.get(index1).expect(&format!("Failed to read SRAM word at PC 0x{:08X}, index out of bounds (byte 1): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index1, SRAM_SIZE)),
+            *self.sram.get(index2).expect(&format!("Failed to read SRAM word at PC 0x{:08X}, index out of bounds (byte 2): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index2, SRAM_SIZE)),
+            *self.sram.get(index3).expect(&format!("Failed to read SRAM word at PC 0x{:08X}, index out of bounds (byte 3): tried to access index {} when SRAM size is {}", self.pc[self.context_in_progress], index3, SRAM_SIZE)),
         ]);
         val
     }
@@ -2826,7 +2837,8 @@ impl Core {
                             << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
-                            "DRAM Half LOADS CAN'T BE UNALIGNED"
+                            "DRAM Half LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
+                            self.pc[self.context_in_progress], dram_address
                         );
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 2;
@@ -2882,7 +2894,8 @@ impl Core {
                             << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
-                            "DRAM Half LOADS CAN'T BE UNALIGNED"
+                            "DRAM Half LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
+                            self.pc[self.context_in_progress], dram_address
                         );
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 2;
@@ -2939,7 +2952,8 @@ impl Core {
                             << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x3 == 0,
-                            "DRAM Word LOADS CAN'T BE UNALIGNED"
+                            "DRAM Word LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
+                            self.pc[self.context_in_progress], dram_address
                         );
                         if DEBUG                     && (core_in_list || cores_to_monitor.len() == 0)
                     && (*context_to_monitor == self.context_in_progress as i32
@@ -3005,7 +3019,8 @@ impl Core {
                             << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x3 == 0,
-                            "DRAM Word STORES CAN'T BE UNALIGNED"
+                            "DRAM Word STORES CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}, CORE {}",
+                            self.pc[self.context_in_progress], dram_address, self.core_id
                         );
                         let value_to_store = self.register_file[self.context_in_progress
                             * REGS_PER_CONTEXT
@@ -3046,7 +3061,8 @@ impl Core {
                             << DRAM_STACK_SIZE_LOG2;
                         assert!(
                             dram_address & 0x1 == 0,
-                            "DRAM Half STORES CAN'T BE UNALIGNED"
+                            "DRAM Half STORES CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}, CORE {}",
+                            self.pc[self.context_in_progress], dram_address, self.core_id
                         );
                         let value_to_store = self.register_file[self.context_in_progress
                             * REGS_PER_CONTEXT
@@ -3138,7 +3154,8 @@ impl Core {
                         };
                         assert!(
                             dram_address & 0x3 == 0,
-                            "DRAM Word LOADS CAN'T BE UNALIGNED"
+                            "DRAM Word LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}, CORE {}",
+                            self.pc[self.context_in_progress], dram_address, self.core_id
                         );
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_wrote_far += 4;
