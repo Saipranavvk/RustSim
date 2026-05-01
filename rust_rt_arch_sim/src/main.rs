@@ -4,13 +4,13 @@ use crate::core::{
     Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, SpscQueue,
 };
 use crate::matrices::{MAT_A, MAT_B, MAT_C};
-use crate::parse_bvh::assemble_tree;
+use crate::parse_bvh::{QPoint, assemble_tree, read_indices, read_nodes, read_triangles, subtree_leaf_size};
 pub mod auto_gen_code;
 pub mod core;
 pub mod matrices;
 pub mod parse_bvh;
 use half::f16;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
@@ -745,7 +745,7 @@ pub fn load_bvh_nodes() -> Vec<BvhNode> {
     nodes
 }
 
-const WELD_EPSILON: f32 = 1e-6;
+const WELD_EPSILON: f32 = 1e-4;
 
 #[derive(Debug, Clone)]
 struct BvhLeaf {
@@ -764,77 +764,104 @@ fn walk(
     let node = &nodes[node_id];
 
     if node.tri_count > 0 {
-        // ---- True leaf: left_first IS the bvh_leaves node_id to look up.
-        // The current node's tri_count tells us how many triangles to expect,
-        // but the actual firstTri offset lives in bvh_leaves under left_first.
-        // e.g. node 15 has left_first=71, tri_count=1 → look up node 71 in
-        // bvh_leaves to find where in bvh_triangles to read from.
-        let tri_id = node.left_first as usize;
-        let tri_count = node.tri_count as usize;
+        let leaf_id = node.left_first as usize;
+        let leaf = &leaves[leaf_id];
+        let tri_id = leaf.first_tri;
+        let tri_count = leaf.tri_count;
         out.extend_from_slice(&triangles[tri_id..tri_id + tri_count]);
         return;
     }
 
-    // ---- Internal node: recurse into both children ----
     let left = node.left_first;
     let right = node.left_first + 1;
     walk(left as usize, nodes, leaves, triangles, out);
     walk(right as usize, nodes, leaves, triangles, out);
 }
-
 // A triangle is three vertices, each with x/y/z → 9 floats.
 /// Build an indexed mesh for the subtree rooted at `node_id`.
 ///
 /// - Walks all descendant leaves left-to-right (same order as `walk`).
 /// - Dedupes vertices by quantizing to WELD_EPSILON.
 /// - Emits 3 indices per triangle in traversal order.
-fn indexed_mesh_for_node(
+fn indexed_mesh_for_node_partitioner(
     node_id: usize,
-    nodes: &Vec<BvhNode>,
-    leaves: &Vec<BvhLeaf>,
-    triangles: &[TriangleVertices],
+    nodes: &[parse_bvh::Node],
+    triangles: &[parse_bvh::Triangle],
 ) -> (Vec<(u32, u16, u16, u16)>, Vec<[f32; 3]>) {
-    // Gather all triangles under this subtree, in left-to-right leaf order.
-    let mut tris: Vec<TriangleVertices> = Vec::new();
-    walk(node_id, nodes, leaves, triangles, &mut tris);
-
-    let inv_eps = 1.0 / WELD_EPSILON;
-    let quantize = |x: f32| -> i32 { (x * inv_eps).round() as i32 };
-
-    let mut vertex_map: HashMap<[i32; 3], u32> = HashMap::new();
+    // Walk the subtree, gathering triangles in DFS order and deduping
+    // vertices the SAME way the partitioner does.
+    let mut vertex_map: HashMap<parse_bvh::QPoint, u16> = HashMap::new();
     let mut vertices: Vec<[f32; 3]> = Vec::new();
-    let mut indices: Vec<(u32, u16, u16, u16)> = Vec::with_capacity(tris.len());
+    let mut indices: Vec<(u32, u16, u16, u16)> = Vec::new();
 
-    for (tri_num, tri) in tris.iter().enumerate() {
-        // Three corner indices for this triangle.
-        let mut corner_idx: [u16; 3] = [0; 3];
-
-        for v in 0..3 {
-            let pos: [f32; 3] = [tri[v * 3], tri[v * 3 + 1], tri[v * 3 + 2]];
-            let key: [i32; 3] = [quantize(pos[0]), quantize(pos[1]), quantize(pos[2])];
-
-            let idx = match vertex_map.get(&key) {
-                Some(&i) => i,
-                None => {
-                    let i = vertices.len() as u32;
-                    vertices.push(pos);
-                    vertex_map.insert(key, i);
-                    i
-                }
-            };
-
-            if idx > u16::MAX as u32 {
-                panic!("vertex index {} exceeds u16 range", idx);
-            }
-            corner_idx[v] = idx as u16;
+    fn intern(
+        p: parse_bvh::Point,
+        map: &mut HashMap<parse_bvh::QPoint, u16>,
+        verts: &mut Vec<[f32; 3]>,
+    ) -> u16 {
+        let key = parse_bvh::snap(p);
+        if let Some(&i) = map.get(&key) {
+            return i;
         }
-
-        indices.push((tri_num as u32, corner_idx[0], corner_idx[1], corner_idx[2]));
+        let i: u16 = verts.len().try_into().expect("vertex index exceeds u16");
+        verts.push([p.x, p.y, p.z]);
+        map.insert(key, i);
+        i
     }
+
+    fn walk(
+        idx: usize,
+        nodes: &[parse_bvh::Node],
+        triangles: &[parse_bvh::Triangle],
+        vertex_map: &mut HashMap<parse_bvh::QPoint, u16>,
+        vertices: &mut Vec<[f32; 3]>,
+        indices: &mut Vec<(u32, u16, u16, u16)>,
+    ) {
+        let n = &nodes[idx];
+        if n.is_leaf {
+            for i in n.first_tri..n.first_tri + n.tri_count {
+                let t = &triangles[i];
+                let v0 = intern(t.v0, vertex_map, vertices);
+                let v1 = intern(t.v1, vertex_map, vertices);
+                let v2 = intern(t.v2, vertex_map, vertices);
+                indices.push((indices.len() as u32, v0, v1, v2));
+            }
+            return;
+        }
+        walk(n.left_child, nodes, triangles, vertex_map, vertices, indices);
+        walk(n.right_child, nodes, triangles, vertex_map, vertices, indices);
+    }
+
+    walk(node_id, nodes, triangles, &mut vertex_map, &mut vertices, &mut indices);
+
+    println!(
+        "node {}: tris={} unique_vertices={}",
+        node_id, indices.len(), vertices.len()
+    );
 
     (indices, vertices)
 }
 
+fn walk_direct(
+    node_id: usize,
+    nodes: &Vec<BvhNode>,
+    triangles: &[TriangleVertices],
+    out: &mut Vec<TriangleVertices>,
+) {
+    let node = &nodes[node_id];
+
+    if node.tri_count > 0 {
+        // Leaf: left_first is the direct triangle offset.
+        let tri_id = node.left_first as usize;
+        let tri_count = node.tri_count as usize;
+        out.extend_from_slice(&triangles[tri_id..tri_id + tri_count]);
+        return;
+    }
+
+    let left = node.left_first as usize;
+    walk_direct(left, nodes, triangles, out);
+    walk_direct(left + 1, nodes, triangles, out);
+}
 use std::fs;
 
 fn parse_bvh_nodes(path: &str) -> Vec<BvhNode> {
@@ -970,6 +997,68 @@ fn parse_triangles(path: &str) -> Vec<TriangleVertices> {
     tris
 }
 
+
+fn count_branch_subtree(
+    nodes: &[BvhNode],
+    start: usize,
+    leaf_owned: &HashSet<u32>,
+    node_id_vec: &Vec<(u32, u32, u32, u32)>,
+    node_id_map: &HashMap<u32, (usize, u32)>
+) -> usize {  
+    let mut parent = nodes[start].parent;
+    loop {
+        match node_id_map.get(&parent) {
+            None => parent = nodes[parent as usize].parent,
+            Some(&(idx, _)) => {
+                if node_id_vec[idx].3 == 1 {
+                    break;
+                }
+                parent = nodes[parent as usize].parent;
+            }
+        }
+    }
+    let mut count = 0;
+    let mut stack = vec![parent as usize];
+    while let Some(idx) = stack.pop() {
+        println!("Node id examined in Rust: {}", idx);
+        count += 1;
+        if nodes[idx].tri_count == 0 {
+            let l = nodes[idx].left_first as usize;
+            let r = l + 1;
+            let a = node_id_map.get(&(idx as u32));
+            if let Some(b) = a {
+                if node_id_vec[b.0].3 == 0 && idx != start {
+                    continue;
+                }
+            }
+            stack.push(l);
+            stack.push(r);
+        }
+    }
+    count
+}
+
+
+fn max_depth(nodes: &[BvhNode], index: usize) -> usize {
+    if nodes[index].tri_count != 0 {
+        return 1;
+    }
+    let l = nodes[index].left_first as usize;
+    let r = l + 1;
+    1 + max_depth(nodes, l).max(max_depth(nodes, r))
+}
+
+
+fn find_depth(nodes: &[BvhNode], index: usize) -> usize {
+    let mut id = index;
+    let mut height = 0;
+    while id != 0{
+        id = nodes[id].parent as usize;
+        height += 1;
+    }
+    height
+}
+
 fn main() {
     // assemble_tree("bvh_data".to_string());
     // return;
@@ -1016,7 +1105,8 @@ fn main() {
         stacks[1].dram_stack[12 * i + 3 + node_array_start] = node_vec[i].max_y.to_bits();
         stacks[1].dram_stack[12 * i + 4 + node_array_start] = node_vec[i].min_z.to_bits();
         stacks[1].dram_stack[12 * i + 5 + node_array_start] = node_vec[i].max_z.to_bits();
-        stacks[1].dram_stack[12 * i + 6 + node_array_start] = node_vec[i].left_first;
+        let tri_count_packed = (node_vec[i].tri_count as u32) | (node_vec[i].left_first << 8);  // byte 31
+        stacks[1].dram_stack[12 * i + 6 + node_array_start] = tri_count_packed;  // word 6 = bytes 24-27, full u32
         stacks[1].dram_stack[12 * i + 7 + node_array_start] = node_vec[i].parent;
         stacks[1].dram_stack[12 * i + 9 + node_array_start] = 0xFFFF_FFFF;
     }
@@ -1028,7 +1118,7 @@ fn main() {
 
     let node_id_vec = node_id_vec_wrapped.unwrap();
     let start_of_dram_queue_mapping = 63_070_000 / 4;
-    let mut node_id_hash_map = HashMap::new();
+    let mut node_id_hash_map: HashMap<u32, (usize, u32)> = HashMap::new();
     let mut address_ray_queue_hash_map = HashMap::new();
 
     let mut ray_queue_allocations: Vec<Vec<u32>> = vec![
@@ -1052,7 +1142,37 @@ fn main() {
 
     let tri_vec = parse_triangles("bvh_triangles.txt");
     let node_vec = parse_bvh_nodes("bvh_nodes.txt");
-    let leaf_vec = parse_bvh_leaves("bvh_leaves.txt");
+    println!("MAX DEPTH: {}", max_depth(&node_vec, 0));
+
+    let leaf_owned: HashSet<u32> = node_id_vec
+        .iter()
+        .filter(|(_, _, _, is_branch)| *is_branch == 0)
+        .map(|(_, _, id, _)| *id)
+        .collect();
+    
+    let start = 1692269;
+    let count = count_branch_subtree(&node_vec, start, &leaf_owned, &node_id_vec, &node_id_hash_map);
+
+    
+
+        // After read_nodes / read_indices / read_triangles and patching first_tri:
+    let nodes_p = parse_bvh::read_nodes("bvh_nodes.txt");  // or your subfolder path
+    let tris_p = parse_bvh::read_triangles("bvh_triangles.txt");
+    let indices_p = parse_bvh::read_indices("bvh_leaves.txt");
+    let mut nodes_p = nodes_p;
+    // Patch first_tri on each node from the leaves table — copy this from assemble_tree:
+    let mut expanded: Vec<parse_bvh::Indices> = vec![
+        parse_bvh::Indices { node_index: 0, first_triangle_index: 0, num_triangles: 0 };
+        nodes_p.len().max(2_000_000)
+    ];
+    for idx in indices_p {
+        expanded[idx.node_index] = idx;
+    }
+    for n in nodes_p.iter_mut() {
+        n.first_tri = expanded[n.index].first_triangle_index;
+    }
+
+    // Now use it:
     for (_, _, node_id, is_branch) in &node_id_vec {
         if *is_branch != 0 {
             continue;
@@ -1060,21 +1180,23 @@ fn main() {
         let i = node_id_hash_map.get(node_id).unwrap().0;
         let address = address_ray_queue_hash_map.get(&i).unwrap();
         let (indices, vertices) =
-            indexed_mesh_for_node(*node_id as usize, &node_vec, &leaf_vec, &tri_vec);
+            indexed_mesh_for_node_partitioner(*node_id as usize, &nodes_p, &tris_p);
         let stack_num = address >> 31;
         let intra_stack_addr = address & 0x7FFF_FFFF;
         let mut address_inc = 8 + 32612;
         dram_store_word(
             &mut stacks[stack_num as usize].dram_stack,
             intra_stack_addr as usize + address_inc - 8,
-            indices.len() as u32 * 12,
+            ((indices.len() as u32 * 12) << 8) | find_depth(&node_vec, *node_id as usize) as u32,
         );
         dram_store_word(
             &mut stacks[stack_num as usize].dram_stack,
             intra_stack_addr as usize + address_inc - 4,
             vertices.len() as u32 * 12,
         );
-
+        if *node_id == start as u32{
+            println!("Size of stuff: {}, {}", indices.len() as u32 * 12, vertices.len() as u32 * 12);
+        }
         for index_set in indices {
             dram_store_word(
                 &mut stacks[stack_num as usize].dram_stack,

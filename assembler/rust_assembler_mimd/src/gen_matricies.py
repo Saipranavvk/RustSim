@@ -123,10 +123,27 @@ def main():
         f.write(rust_code)
     print(f"\nWrote {out}")
 
-    subprocess.run(
-        ["cargo", "run", "2>&1", "|", "tee", "run.log"],
-        cwd=os.path.join(os.path.dirname(__file__), "..", "..", "..", "rust_rt_arch_sim", "src")
-    )
+    # subprocess.run(
+    #     ["cargo", "run", "2>&1", "|", "tee", "run.log"],
+    #     cwd=os.path.join(os.path.dirname(__file__), "..", "..", "..", "rust_rt_arch_sim", "src")
+    # )
+    import sys
+
+    sim_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "rust_rt_arch_sim", "src")
+    log_path = os.path.join(sim_dir, "run.log")
+
+    with open(log_path, "w") as log_file:
+        proc = subprocess.Popen(
+            ["cargo", "run"],
+            cwd=sim_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        for line in proc.stdout:
+            decoded = line.decode()
+            sys.stdout.write(decoded)
+            log_file.write(decoded)
+        proc.wait()
 
 
 if __name__ == "__main__":

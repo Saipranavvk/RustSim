@@ -6,13 +6,13 @@ pub struct Point {
 }
 
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
-struct QPoint {
+pub struct QPoint {
     x: i64,
     y: i64,
     z: i64,
 }
 
-fn snap(point: Point) -> QPoint {
+pub(crate) fn snap(point: Point) -> QPoint {
     QPoint {
         x: (point.x * 10000.0) as i64,
         y: (point.y * 10000.0) as i64,
@@ -28,14 +28,14 @@ impl Point {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Node {
-    index: usize,
+    pub(crate) index: usize,
     min: Point,
     max: Point,
-    left_child: usize,
-    is_leaf: bool,
-    right_child: usize,
-    tri_count: usize,
-    first_tri: usize,
+    pub(crate) left_child: usize,
+    pub(crate) is_leaf: bool,
+    pub(crate) right_child: usize,
+    pub(crate) tri_count: usize,
+    pub(crate) first_tri: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -86,11 +86,11 @@ const ENABLE_SPINE_ABSORPTION: bool = true;
 // File readers (unchanged)
 // ---------------------------------------------------------------------------
 
-fn read_nodes(path: &str) -> Vec<Node> {
+pub fn read_nodes(path: &str) -> Vec<Node> {
     let reader = BufReader::new(File::open(path).expect("failed to open node file"));
     let mut nodes = Vec::new();
 
-    for line in reader.lines() {
+    for (line_index, line) in reader.lines().enumerate() {
         let line = line.expect("failed to read line");
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -107,7 +107,7 @@ fn read_nodes(path: &str) -> Vec<Node> {
 
         let offset = if parts.len() == 9 { 1 } else { 0 };
         let index: usize = if offset == 1 {
-            parts[0].parse().unwrap()
+            parts[0].trim_matches('`').parse().unwrap()
         } else {
             nodes.len()
         };
@@ -160,7 +160,7 @@ fn read_nodes(path: &str) -> Vec<Node> {
     nodes
 }
 
-fn read_indices(path: &str) -> Vec<Indices> {
+pub fn read_indices(path: &str) -> Vec<Indices> {
     let reader = BufReader::new(File::open(path).expect("failed to open indices file"));
     let mut indices = Vec::new();
 
@@ -188,7 +188,7 @@ fn read_indices(path: &str) -> Vec<Indices> {
     indices
 }
 
-fn read_triangles(path: &str) -> Vec<Triangle> {
+pub fn read_triangles(path: &str) -> Vec<Triangle> {
     let reader = BufReader::new(File::open(path).expect("failed to open triangle file"));
     let mut tris = Vec::new();
 
@@ -262,15 +262,13 @@ fn build_parent_map(nodes: &[Node]) -> Vec<Option<usize>> {
 /// Counts: NODE_SIZE per internal/leaf node, plus geometry at leaves
 /// (deduplicated vertex points + index/material overhead per triangle).
 /// Stops (inclusive) at nodes in `boundary` — they count as NODE_SIZE stubs.
-fn subtree_leaf_size(
+pub fn subtree_leaf_size(
     index: usize,
     nodes: &[Node],
     triangles: &[Triangle],
     boundary: &HashSet<usize>,
     points: &mut HashMap<QPoint, ()>,
-) -> usize {
-    // If this node is a boundary stub (and not the root of the query),
-    // we handle it at the call site. This function always includes `index`.
+) -> (usize, usize) {
     let node = &nodes[index];
 
     if node.is_leaf {
@@ -281,30 +279,31 @@ fn subtree_leaf_size(
             points.insert(snap(triangles[i].v1), ());
             points.insert(snap(triangles[i].v2), ());
         }
-        return size;
+        return (size, node.tri_count);
     }
 
     let mut size = NODE_SIZE;
+    let mut tris = 0;
 
-    // Left child
     if boundary.contains(&node.left_child) {
-        size += NODE_SIZE; // stub
+        size += NODE_SIZE;
     } else {
-        size += subtree_leaf_size(node.left_child, nodes, triangles, boundary, points);
+        let (s, t) = subtree_leaf_size(node.left_child, nodes, triangles, boundary, points);
+        size += s;
+        tris += t;
     }
 
-    // Right child
     if boundary.contains(&node.right_child) {
-        size += NODE_SIZE; // stub
+        size += NODE_SIZE;
     } else {
-        size += subtree_leaf_size(node.right_child, nodes, triangles, boundary, points);
+        let (s, t) = subtree_leaf_size(node.right_child, nodes, triangles, boundary, points);
+        size += s;
+        tris += t;
     }
 
-    size
+    (size, tris)
 }
 
-/// Full cost of a leaf treelet rooted at `index`, bounded by `boundary`.
-/// Returns total bytes (nodes + geometry with deduplicated vertices).
 fn leaf_treelet_cost(
     index: usize,
     nodes: &[Node],
@@ -312,7 +311,11 @@ fn leaf_treelet_cost(
     boundary: &HashSet<usize>,
 ) -> usize {
     let mut points: HashMap<QPoint, ()> = HashMap::new();
-    let node_bytes = subtree_leaf_size(index, nodes, triangles, boundary, &mut points);
+    let (node_bytes, tri_count) = subtree_leaf_size(index, nodes, triangles, boundary, &mut points);
+    println!(
+        "LEAF {}: tris={} unique_vertices={}",
+        index, tri_count, points.len()
+    );
     node_bytes + points.len() * POINT_SIZE
 }
 
@@ -815,6 +818,93 @@ fn branch_owned_nodes(index: usize, nodes: &[Node], leaf_core_roots: &HashSet<us
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
+/// Count nodes from a branch core root down, treating each leaf core root
+/// as a single stub EXCEPT for `target_lcr` whose full subtree is expanded.
+fn count_leaf_plus_branch_path(
+    branch_root: usize,
+    target_lcr: usize,
+    nodes: &[Node],
+    leaf_core_roots: &HashSet<usize>,
+) -> usize {
+    fn recurse(
+        index: usize,
+        target: usize,
+        nodes: &[Node],
+        lcrs: &HashSet<usize>,
+    ) -> usize {
+        if index == target {
+            // Expand the target leaf core's full subtree
+            return count_total_descendants(index, nodes);
+        }
+        if lcrs.contains(&index) {
+            return 1; // other leaf cores are stubs
+        }
+        let node = &nodes[index];
+        if node.is_leaf {
+            return 1;
+        }
+        1 + recurse(node.left_child, target, nodes, lcrs)
+          + recurse(node.right_child, target, nodes, lcrs)
+    }
+    recurse(branch_root, target_lcr, nodes, leaf_core_roots)
+}
+
+/// Returns (node_bytes, index_bytes, vertex_bytes) for a leaf treelet.
+fn leaf_treelet_cost_breakdown(
+    index: usize,
+    nodes: &[Node],
+    triangles: &[Triangle],
+    boundary: &HashSet<usize>,
+) -> (usize, usize, usize) {
+    let mut points: HashMap<QPoint, ()> = HashMap::new();
+    let mut node_bytes = 0;
+    let mut index_bytes = 0;
+    accumulate_leaf_breakdown(
+        index,
+        nodes,
+        triangles,
+        boundary,
+        &mut points,
+        &mut node_bytes,
+        &mut index_bytes,
+    );
+    let vertex_bytes = points.len() * POINT_SIZE;
+    (node_bytes, index_bytes, vertex_bytes)
+}
+
+fn accumulate_leaf_breakdown(
+    index: usize,
+    nodes: &[Node],
+    triangles: &[Triangle],
+    boundary: &HashSet<usize>,
+    points: &mut HashMap<QPoint, ()>,
+    node_bytes: &mut usize,
+    index_bytes: &mut usize,
+) {
+    let node = &nodes[index];
+    if node.is_leaf {
+        *node_bytes += NODE_SIZE;
+        for i in node.first_tri..node.first_tri + node.tri_count {
+            *index_bytes += INDEX_SIZE * 3 + MATERIAL_POINTER_SIZE;
+            points.insert(snap(triangles[i].v0), ());
+            points.insert(snap(triangles[i].v1), ());
+            points.insert(snap(triangles[i].v2), ());
+        }
+        return;
+    }
+    *node_bytes += NODE_SIZE;
+    if boundary.contains(&node.left_child) {
+        *node_bytes += NODE_SIZE;
+    } else {
+        accumulate_leaf_breakdown(node.left_child, nodes, triangles, boundary, points, node_bytes, index_bytes);
+    }
+    if boundary.contains(&node.right_child) {
+        *node_bytes += NODE_SIZE;
+    } else {
+        accumulate_leaf_breakdown(node.right_child, nodes, triangles, boundary, points, node_bytes, index_bytes);
+    }
+}
+
 
 pub fn assemble_tree(subfolder: String) {
     let bvh_leaves_path = format!("{}\\bvh_leaves.txt", subfolder);
@@ -1131,17 +1221,19 @@ pub fn assemble_tree(subfolder: String) {
 
     {
         let mut f = File::create(&leaf_out_path).expect("failed to create leaf core roots file");
-        writeln!(
-            f,
-            "# Leaf core root node indices (LEAF_OWNED_PCT={}%)",
-            LEAF_OWNED_PCT
-        )
-        .unwrap();
+        writeln!(f, "# Leaf core root node indices (LEAF_OWNED_PCT={}%)", LEAF_OWNED_PCT).unwrap();
         writeln!(f, "# {} leaf cores total", leaf_core_roots_vec.len()).unwrap();
+        writeln!(f, "# format: lcr_index own_subtree_nodes connecting_nodes total_nodes branch_root index_bytes vertex_bytes geom_total_bytes").unwrap();
         let mut sorted_lcrs = leaf_core_roots_vec.clone();
         sorted_lcrs.sort();
         for lr in &sorted_lcrs {
-            writeln!(f, "{}", lr).unwrap();
+            let branch = lcr_to_branch.get(lr).copied().unwrap_or(*lr);
+            let own = count_total_descendants(*lr, &nodes);
+            let total = count_leaf_plus_branch_path(branch, *lr, &nodes, &leaf_core_roots);
+            let connecting = total - own;
+            let (_node_b, idx_b, vert_b) = leaf_treelet_cost_breakdown(*lr, &nodes, &triangles, &HashSet::new());
+            let geom_total = idx_b + vert_b;
+            writeln!(f, "{} {} {} {} {} {} {} {}", lr, own, connecting, total, branch, idx_b, vert_b, geom_total).unwrap();
         }
         println!("\nWrote leaf core roots to:   {}", leaf_out_path);
     }

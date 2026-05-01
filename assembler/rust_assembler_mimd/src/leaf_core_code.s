@@ -1830,11 +1830,11 @@ download_bvh_tree:
 
     # *(self.sram_alloc_count) = self.node_array_top;
     lw r11, NODE_ARRAY_TOP
-    sw r11, SRAM_ALLOC_COUNT
+    sw r11, SRAM_NODE_ALLOC_PTR
 
     # set_address_bits(self.node_array_high);
     lw r12, NODE_ARRAY_HIGH
-    setmembits r11, r12                      # r11 = old membits (ignored), membits = node_array_high
+    setmembits r12                      # r11 = old membits (ignored), membits = node_array_high
     lw r12, NODE_ARRAY_LOW
 
     # stack_top = DFS_STACK;
@@ -1847,23 +1847,31 @@ FIND_BRANCH_NODE:
     mul r9, r9, 48
     add r9, r9, r12
     lw_d r10, r9, 32
-    bne r11, r10, FOUND_BRANCH_CORE_NODE, false
-    lw r10, RAY_QUEUE_LOW
+    bne r14, r10, FOUND_BRANCH_CORE_NODE, false
     lw_d r9, r9, 28                        # parent index
+    add r11, r9, 0
     beq r15, r15, FIND_BRANCH_NODE, true
 FOUND_BRANCH_CORE_NODE:
     lw_d r10, r9, 36
-    sw r10, r2, 0                            # dram_idx = 0
+    sw r11, r2, 0                            # dram_idx = 0
     or r11, r14, 0xFFFF
     sh r11, r2, 4                            # parent_ptr = 0xFFFF (null sentinel)
     sh r14, r2, 6                            # patch_left = 0
     sh r14, r2, 8                            # patch_right = 0
     sh r14, r2, 10                           # is_right = 0
-    sw r14, r2, 12                           # depth = 0
+    lw r11, RAY_QUEUE_HIGH
+    setmembits r11
+    lw r11, RAY_QUEUE_LOW
+    lw_d r11, r11, 32612
+    and r11, r11, 0xFF
+    sw r11, r2, 12                          
+    lw r11, NODE_ARRAY_HIGH
+    setmembits r11
     add r2, r2, 16                           # stack_top++
 
 dfs_loop:
     # if (stack_top == DFS_STACK) goto dfs_done;
+    and r14, r14, 0
     add r11, r14, DFS_STACK
     beq r2, r11, dfs_done, true
 
@@ -1897,10 +1905,11 @@ dfs_loop:
     sw r10, r13, 16
     lw_d r10, r12, 20
     sw r10, r13, 20
-
+    lbu_d r10, r12, 24
+    sb r10, r13, 31
     # -- copy metadata --
     or r10, r14, 0xFFFF
-    sh r10, r13, 30                          # core_owner
+    sh r10, r13, 34                          # core_owner
     lhu_d r10, r12, 42
     beq r14, r10, NOT_BRANCH_IMPORT, true
     lhu_d r10, r12, 40
@@ -1922,7 +1931,7 @@ NOT_BRANCH_IMPORT:
 SKIP_NON_BRANCH_IMPORT:
     add r11, r14, 0xFFFF
     sh r11, r13, 42                          # prev_index = 0xFFFF
-    sb r8, r13, 32                           # is_right = is_right (byte field)
+    sb r8, r13, 30                           # is_right = is_right (byte field)
 
     # -- set parent pointer --
     sh r5, r13, 28                           # node->parent = parent_ptr
@@ -1936,24 +1945,30 @@ SKIP_NON_BRANCH_IMPORT:
 
     and r14, r14, 0
     # if (parent_ptr != 0xFFFF) patch parent child pointer
-    add r12, r14, 0xFFFF
-    beq r5, r12, SKIP_PATCH, true
-    add r12, r14, 1
-    beq r8, r12, PATCH_RIGHT_CHILD, true
+    or r14, r14, 0xFFFF
+    beq r5, r14, SKIP_PATCH, true
+    and r14, r14, 0
+    beq r8, r14, PATCH_RIGHT_CHILD, true
     sh r13, r6, 0                            # *patch_left = node
     beq r15, r15, SKIP_PATCH, true
 PATCH_RIGHT_CHILD:
     sh r13, r7, 0                            # *patch_right = node
 SKIP_PATCH:
-
-    # if (owner == self->core_id) self->root_node = node;
+    lbu r10, r13, 31
+    and r14, r14, 0
+    bne r10, r14, dfs_loop, false
     lw r10, r13, 36                         
     bne r10, r11, CHECK_RECURSE, true
     sw r13, ROOT_NODE_ID
 CHECK_RECURSE:
-
+    lw r14, BRANCH_START_OF_GEO
+    beq r13, r14, DO_RECURSE, true
     # recurse if owner == 0xFFFF || owner == self->core_id
+    lbu r10, r13, 31
+    and r14, r14, 0
+    bne r10, r14, dfs_loop, false
     or r14, r14, 0xFFFF
+    lw r10, r13, 36
     beq r10, r14, DO_RECURSE, true
     and r14, r14, 0
     beq r10, r11, SET_NODE_ID, true
@@ -1962,13 +1977,11 @@ CHECK_RECURSE:
     bne r14, r10, dfs_loop, false
     add r10, r14, LEAF_CORE_INDEX_FOR_BRANCH
     atomadd r15, r10, 1
-    lw r14, BRANCH_START_OF_GEO
-    beq r13, r14, DO_RECURSE, true
-    beq r15, r15, dfs_loop, true             # foreign owner: stop here
+    beq r15, r15, dfs_loop, true            
 SET_NODE_ID:
     add r10, r14, 1
     sw r10, FOUND_LEAF_CORE_INDEX_FOR_BRANCH
-    lw r10, r12, 44                        # node_id
+    lw_d r10, r12, 44                        # node_id
     sw r10, ROOT_NODE_ID
     lw r10, SRAM_NODE_ALLOC_PTR
     add r10, r10, -48
@@ -1977,6 +1990,7 @@ DO_RECURSE:
     # -- push right child first (so left is processed first) --
     and r14, r14, 0
     lw_d r11, r12, 24                        # left index
+    srl r11, r11, 8
     add r10, r11, 1                          #right index
     add r12, r9, 1                           # child_depth = depth + 1
 
@@ -2013,7 +2027,7 @@ dfs_done:
     lw r10, JUMP_TO_SWITCH_ROLES_INTERRUPT
     sw r10, 49032
     # set_address_bits(self.node_array_high);
-    lw r12, NODE_ARRAY_HIGH
+    lw r12, RAY_QUEUE_HIGH
     setmembits r13, r12
 
     # dram_src = self.leaf_alloc.index_array_low + self.leaf_alloc.index_byte_offset;
@@ -2022,6 +2036,7 @@ dfs_done:
     lw r2, RAY_QUEUE_LOW
     add r1, r1, r2
     lw_d r2, r1, 0
+    srl r2, r2, 8
     lw_d r3, r1, 4
     add r1, r1, 8
     lw r6, SRAM_NODE_ALLOC_PTR# r6 = sram_dst (start of tile data in SRAM)
@@ -2283,10 +2298,8 @@ NODE_ID_TABLE_LOW:
 EMERGENCY_QUEUE_SWITCHED_NODE: 
 .data -1
 LEAF_CORE_INDEX_FOR_BRANCH: 
-.data 0
+.data -1
 FOUND_LEAF_CORE_INDEX_FOR_BRANCH:
-.data 0
-SRAM_ALLOC_COUNT:       
 .data 0
 SRAM_NODE_ALLOC_PTR:     
 .data 0

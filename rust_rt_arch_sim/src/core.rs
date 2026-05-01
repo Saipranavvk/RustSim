@@ -2398,6 +2398,9 @@ impl Core {
                                 && (*context_to_monitor == self.context_in_progress as i32
                                     || *context_to_monitor < 0)
                         {
+                            if self.pc[self.context_in_progress] == 0x1728 {
+                                println!("End of dfs download");
+                            }
                             println!("Local Write to {:0x} - Value: {}", address, word);
                         }
                     }
@@ -2431,39 +2434,53 @@ impl Core {
                         self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                             + instruction_to_execute.dr] = value;
 
-                        self.pc[self.context_in_progress] += 4;
                         if DEBUG
-                                && (core_in_list || cores_to_monitor.len() == 0)
-                                && (*context_to_monitor == self.context_in_progress as i32
-                                    || *context_to_monitor < 0)
+                            && (core_in_list || cores_to_monitor.len() == 0)
+                            && (*context_to_monitor == self.context_in_progress as i32
+                            || *context_to_monitor < 0)
                         {
                             println!("Local Read from {:0x} - Value: {}", address, value);
-                        }
-                    }
-                    Operation::AtomicAdd => {
-                        if instruction_to_execute.is_imm {
-                            let address = self.register_file[instruction_to_execute.sr1
-                                + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32 as u16;
-                            let old_val = self.read_sram_word(&address);
-                            self.write_sram_word(old_val + instruction_to_execute.imm_0, &address);
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.dr] = old_val;
-                        } else {
-                            let address = self.register_file[instruction_to_execute.sr1
-                                + self.context_in_progress * REGS_PER_CONTEXT]
-                                as u32 as u16;
-                            let old_val = self.read_sram_word(&(address as u16));
-                            let new_val = old_val
-                                + self.register_file[instruction_to_execute.sr2
-                                    + self.context_in_progress * REGS_PER_CONTEXT];
-                            self.write_sram_word(new_val, &address);
-                            self.register_file[self.context_in_progress * REGS_PER_CONTEXT
-                                + instruction_to_execute.dr] = old_val;
+                            if self.pc[self.context_in_progress] == 0x1514 {
+                                println!("NODE_ID EXAMINED: {}", value);
+                            }
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
+
+                    Operation::AtomicAdd => {
+                        let address = self.register_file[instruction_to_execute.sr1
+                            + self.context_in_progress * REGS_PER_CONTEXT]
+                            as u32 as u16;
+                        let old_val = self.read_sram_word(&address);
+                        let increment = if instruction_to_execute.is_imm {
+                            instruction_to_execute.imm_0
+                        } else {
+                            self.register_file[instruction_to_execute.sr2
+                                + self.context_in_progress * REGS_PER_CONTEXT]
+                        };
+                        self.write_sram_word(old_val + increment, &address);
+                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                            + instruction_to_execute.dr] = old_val;
+                        if DEBUG
+                            && (core_in_list || cores_to_monitor.is_empty())
+                            && (*context_to_monitor == self.context_in_progress as i32
+                                || *context_to_monitor < 0)
+                        {
+                            println!("Local Atomadd from {:0x} - Old Value: {}", address, old_val);
+                            if self.pc[self.context_in_progress] == 0x1D80{
+                                println!("DFS ALLOC HERE");
+                            }
+                        }
+                        self.pc[self.context_in_progress] += 4;
+
+
+                    }
                     Operation::BranchEq => {
+                        if DEBUG && (core_in_list || cores_to_monitor.len() == 0)
+                            && (*context_to_monitor == self.context_in_progress as i32
+                            || *context_to_monitor < 0) && self.pc[self.context_in_progress] == 0x1508 {
+                            println!("Current stack index: {}", self.register_file[2]);
+                        }
                         if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                             + instruction_to_execute.dr]
                             == self.register_file[self.context_in_progress * REGS_PER_CONTEXT
@@ -2475,6 +2492,8 @@ impl Core {
                             self.pc[self.context_in_progress] += 4;
                             flush = instruction_to_execute.branch_hint;
                         }
+
+
                     }
                     Operation::BranchNe => {
                         if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
@@ -2955,7 +2974,7 @@ impl Core {
                             "DRAM Word LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
                             self.pc[self.context_in_progress], dram_address
                         );
-                        if DEBUG                     && (core_in_list || cores_to_monitor.len() == 0)
+                        if DEBUG && (core_in_list || cores_to_monitor.len() == 0)
                     && (*context_to_monitor == self.context_in_progress as i32
                         || *context_to_monitor < 0){
                             println!("address: {}", dram_address);

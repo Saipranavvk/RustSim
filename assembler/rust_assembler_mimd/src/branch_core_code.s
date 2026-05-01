@@ -2584,7 +2584,7 @@ dfs_loop:
     # if (core_owner != 0xFFFF && core_owner != self.core_id) leaf_node_table_ptr[0] = node;
     lw r10, r13, 36                         # r10 = core_owner
     beq r10, r11, SKIP_LEAF_TABLE_INSERT, true
-    add r14, r14, 0xFFFF
+    or r14, r14, 0xFFFF
     beq r10, r14, SKIP_LEAF_TABLE_INSERT, true
     and r14, r14, 0
     sh r13, r3, 0
@@ -2612,10 +2612,11 @@ SKIP_PATCH:
 CHECK_RECURSE:
 
     # recurse if owner == 0xFFFF || owner == self->core_id
-    add r14, r14, 0xFFFF
+    or r14, r14, 0xFFFF
     beq r10, r14, DO_RECURSE, true
     and r14, r14, 0
-    beq r10, r11, SET_NODE_ID, true
+    add r10, r14, 16128
+    beq r10, r13, SET_NODE_ID, true
     beq r15, r15, dfs_loop, true             # foreign owner: stop here
 SET_NODE_ID:
     lw r10, r12, 44                        # node_id
@@ -2623,8 +2624,8 @@ SET_NODE_ID:
 DO_RECURSE:
     # -- push right child first (so left is processed first) --
     and r14, r14, 0
-    lw_d r10, r12, 24                        # right_idx
-    lw_d r11, r12, 28                        # left_idx
+    lw_d r11, r12, 24                        # left_index
+    add r10, r11, 1                        # right_idx
 
     add r12, r9, 1                           # child_depth = depth + 1
 
@@ -2679,12 +2680,11 @@ queue_loop_1:
     beq r15, r15, queue_loop_1, true
 
 queue_loop_1_done:
+    sw r14, r1, 0
+    sw r14, r1, 4
+    sw r14, r1, 8
 
-    sw r14, r1, 1
-    sw r14, r1, 5
-    sw r14, r1, 9
-
-    add r1, r1, 13
+    add r1, r1, 12
 
     add r2, r14, 16
 queue_loop_2:
@@ -2700,24 +2700,15 @@ queue_loop_2_done:
     sw r14, LOCAL_QUEUE_FLUSHING
 
     # *(self.tile_data_sram + 4) = 0;
-    lw r1, TILE_DATA_COUNT
+    add r1, r14, TILE_DATA_COUNT
     sw r14, r1, 4
 
     # *(self.ray_send_pending_addr) = 0;
     sw r14, RAY_SEND_PENDING_ADDR
 
-    and r14, r14, 0
-    # ray_base = self.ray_array_base;
-    add r1, r14, RAY_ARRAY
-    and r2, r15, 0xF
-    # ray_array_index = self.thread_id << 6;
-    sll r2, r2, 6
 
-    # ray = ray_base + index
-    add r1, r1, r2
 
     # *(ray + 63) = 0;
-    sb r14, r1, 63
 
     # *(self.core_handled->previously_idle) = 0;
     sw r14, PREVIOUSLY_IDLE
@@ -2740,7 +2731,19 @@ queue_loop_2_done:
     intena 36
     setctx 16
     relinquish true
-    beq r15, r15, GRAB_FROM_TILE, true
+    and r14, r14, 0
+    # ray_base = self.ray_array_base;
+    add r1, r14, RAY_ARRAY
+    and r2, r15, 0xF
+    # ray_array_index = self.thread_id << 6;
+    sll r2, r2, 6
+
+    # ray = ray_base + index
+    add r0, r1, r2
+    sb r14, r0, 63 
+    add r1, r14, LEAF_CORE_LOOKUP_TABLE
+    lw r1, r1, 256
+    beq r15, r15, ray_done, true
 
 
 
@@ -2761,7 +2764,7 @@ LEAF_START_OF_GEO:
 leaf_start_of_code:
 .data 28
 SRAM_NODE_ALLOC_PTR:     
-.data 16384
+.data 16128
 BRANCH_START_OF_CODE:    
 .data 28
 BRANCH_NUM_INSTRUCTION_BYTES: 
