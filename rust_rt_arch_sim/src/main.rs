@@ -1001,39 +1001,29 @@ fn parse_triangles(path: &str) -> Vec<TriangleVertices> {
 fn count_branch_subtree(
     nodes: &[BvhNode],
     start: usize,
-    leaf_owned: &HashSet<u32>,
-    node_id_vec: &Vec<(u32, u32, u32, u32)>,
     node_id_map: &HashMap<u32, (usize, u32)>
 ) -> usize {  
-    let mut parent = nodes[start].parent;
-    loop {
-        match node_id_map.get(&parent) {
-            None => parent = nodes[parent as usize].parent,
-            Some(&(idx, _)) => {
-                if node_id_vec[idx].3 == 1 {
-                    break;
-                }
-                parent = nodes[parent as usize].parent;
-            }
-        }
-    }
     let mut count = 0;
-    let mut stack = vec![parent as usize];
+    let mut stack = vec![0];
     while let Some(idx) = stack.pop() {
-        println!("Node id examined in Rust: {}", idx);
         count += 1;
-        if nodes[idx].tri_count == 0 {
-            let l = nodes[idx].left_first as usize;
-            let r = l + 1;
-            let a = node_id_map.get(&(idx as u32));
-            if let Some(b) = a {
-                if node_id_vec[b.0].3 == 0 && idx != start {
-                    continue;
-                }
+        let l = nodes[idx].left_first as usize;
+        let r = l + 1;
+        let a = node_id_map.get(&(idx as u32));
+        if let Some(b) = a{
+            if idx == start {
+                stack.push(l);
+                stack.push(r);
             }
-            stack.push(l);
-            stack.push(r);
+            continue;
         }
+        if nodes[idx].tri_count != 0{
+            println!("Happened with origin {}", start);
+            continue;
+        }
+        stack.push(l);
+        stack.push(r);
+
     }
     count
 }
@@ -1139,7 +1129,7 @@ fn main() {
             64 * 1024;
     }
     println!("Allocating values next to the dram queues");
-
+    println!("ALEX SUPPOSEDLY {} --- {}", 8710512896_u64, address_ray_queue_hash_map.get(&node_id_hash_map.get(&1791132).unwrap().0).unwrap());
     let node_vec = parse_bvh_nodes("bvh_nodes.txt");
     println!("MAX DEPTH: {}", max_depth(&node_vec, 0));
 
@@ -1154,6 +1144,12 @@ fn main() {
     let indices_p = parse_bvh::read_indices("bvh_leaves.txt");
     let mut nodes_p = nodes_p;
     // Patch first_tri on each node from the leaves table — copy this from assemble_tree:
+    for i in &node_id_vec {
+        if i.3 != 0 {
+            let num_in_node = count_branch_subtree(&node_vec, i.2 as usize, &node_id_hash_map);
+            println!("BRANCH_NODE_ID: {}, NUM NODES: {}", i.2, num_in_node);
+        }
+    }
     let mut expanded: Vec<parse_bvh::Indices> = vec![
         parse_bvh::Indices { node_index: 0, first_triangle_index: 0, num_triangles: 0 };
         nodes_p.len().max(2_000_000)
@@ -1187,6 +1183,7 @@ fn main() {
             intra_stack_addr as usize + address_inc - 4,
             vertices.len() as u32 * 12,
         );
+        println!("STORING AT ADDRESS {} FOR NODE_ID {}: {}", address, node_id, vertices.len() as u32 * 12);
         if *node_id == start as u32{
             println!("Size of stuff: {}, {}", indices.len() as u32 * 12, vertices.len() as u32 * 12);
         }
@@ -1472,6 +1469,7 @@ fn main() {
         let done_per_thread = done.clone();
         let cores_to_monitor = cores_to_watch.clone();
         let handle = thread::spawn(move || -> Option<StackLog> {
+            let mut rays_completed_so_far = 0;
             for cycle in 0..1500 * 1000 * 16 {
                 let mut local_read = 0;
                 let mut local_write = 0;
@@ -1520,6 +1518,11 @@ fn main() {
                         );
                         done_per_thread.store(true, Ordering::Release);
                     }
+                    if dram_read_word(&stack.dram_stack, 168_000_000) != rays_completed_so_far {
+                        rays_completed_so_far = dram_read_word(&stack.dram_stack, 168_000_000);
+                        println!("RAYS COMPLETED_SO_FAR: {}", rays_completed_so_far);
+                    }
+
                 }
                 barrier.wait();
                 if done_per_thread.load(Ordering::Acquire) {

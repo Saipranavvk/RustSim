@@ -479,8 +479,7 @@ start_ray_traversal:
     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
     lhu r6, r1, 24                  # r6 = node->left_child
-    and r7, r7, 0
-    add r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
+    or r7, r7, 0xFFFF              # r7 = 0xFFFF (null sentinel)
     beq r6, r7, LEFT_CHILD_NULL, true
     and r6, r6, 0                   # left_child != null => contribute 0
     beq r15, r15, LEFT_BITFIELD_DONE, true
@@ -561,7 +560,6 @@ AABB_INTERSECT_RETURN:
     beq r11, r7, AABB_MISS, true
 
     # if (node->tri_count == 0) <- ASSUME RAY -> TRI_INDEX
-    lbu r6, r0, 56                  # TODO confirm offset
     # ; beq r6, r7, IS_INTERNAL_NODE, true
     # ; beq r15, r15, IS_LEAF_NODE, true
 
@@ -936,47 +934,43 @@ TRAVERSE_OWN_CHILD:
 ;     beq r15, r15, start_ray_traversal, true
 
 AABB_MISS:
-    lbu r5, r0, 59
+    lbu r5, r0, 62                  # r5 = ray->ray_depth  (was 59)
     beq r5, r7, MISS_AT_ROOT, true
-    lbu r6, r1, 31                  # node->is_right
-    sll r6, r6, 2
-    add r6, r0, r6
-    add r6, r6, 18
-    lw r8, r6, 0
-    add r5, r5, -1
+    lbu r6, r1, 32                  # r6 = node->is_right  (was 31)
+    sll r6, r6, 2                   # r6 *= 4 (0 or 4)
+    add r6, r0, r6                  # r6 = ray + is_right*4
+    lw r8, r6, 44                    # r8 = check_left or check_right
+    add r5, r5, -1                  # r5 = depth - 1
     and r10, r10, 0
     add r10, r10, 1
-    sll r10, r10, r5
-    or r8, r8, r10
-    sw r8, r6, 0
-    lbu r5, r0, 59
-    add r5, r5, -1
-    sb r5, r0, 59
-    lhu r1, r1, 28
+    sll r10, r10, r5                # r10 = 1 << (depth - 1)
+    or r8, r8, r10                  # set bit
+    sw r8, r6, 44
+    sb r5, r0, 62                   # store new ray_depth   (was 59)
+    lhu r1, r1, 28                  # node = node->parent   (correct)
     beq r15, r15, start_ray_traversal, true
 
 MISS_AT_ROOT:
-    and r8, r8, 0
-    add r8, r8, 0xFFFF              # 0xFFFF as 32-bit all-ones approx; need two stores
-    sw r8, r0, 22                   # ray->check_right = 0xFFFFFFFF
-    sw r8, r0, 18                   # ray->check_left  = 0xFFFFFFFF
+    add r8, r0, -1                  # r8 = 0xFFFFFFFF (assuming sign-extended immediate)
+    sw r8, r0, 48                   # ray->check_right     (was 22)
+    sw r8, r0, 44                   # ray->check_left      (was 18)
     beq r15, r15, start_ray_traversal, true
 
 TRAVERSE_LEFT_OR_RIGHT:
     # clear bits below current depth in check_left and check_right
-    lbu r5, r0, 59
+    lbu r5, r0, 62
     add r5, r5, 1
     or r8, r8, 0xFFFF
     sll r8, r8, r5                  # mask = 0xFFFFFFFF << (ray_depth+1)... TODO: need NOT
     # workaround: xor with all-ones to get ~mask
     or r11, r11, 0xFFFF
     xor r8, r8, r11                 # r8 = zero_out_subtree
-    lw r2, r0, 18
+    lw r2, r0, 44
     and r2, r2, r8
-    sw r2, r0, 18
-    lw r3, r0, 22
+    sw r2, r0, 44
+    lw r3, r0, 48
     and r3, r3, r8
-    sw r3, r0, 22
+    sw r3, r0, 48
 
     # node = *(node.left_child + (left_bitfield_check != 0) * 2)
     and r6, r6, 0
@@ -986,9 +980,9 @@ USE_LEFT:
     add r1, r1, r6
     lhu r1, r1, 24
 
-    lbu r5, r0, 59
+    lbu r5, r0, 62
     add r5, r5, 1
-    sb r5, r0, 59
+    sb r5, r0, 62
     beq r15, r15, start_ray_traversal, true
 
 ray_done:
@@ -2535,6 +2529,7 @@ download_bvh_tree:
 
 dfs_loop:
     # if (stack_top == DFS_STACK) goto dfs_done;
+    and r14, r14, 0
     add r11, r14, DFS_STACK
     beq r2, r11, dfs_done, true
 
@@ -2542,7 +2537,6 @@ dfs_loop:
     lw r4, r2, 0                             # dram_idx
     lhu r5, r2, 4                            # parent_ptr
     lhu r6, r2, 6                            # patch_left
-    lhu r7, r2, 8                            # patch_right
     lhu r8, r2, 10                           # is_right
     lw r9, r2, 12                            # depth
 
@@ -2606,13 +2600,7 @@ SKIP_LEAF_TABLE_INSERT:
     # if (parent_ptr != 0xFFFF) patch parent child pointer
     or r14, r14, 0xFFFF
     beq r5, r14, SKIP_PATCH, true
-    add r14, r14, 1
-    beq r8, r14, PATCH_RIGHT_CHILD, true
     sh r13, r6, 0                            # *patch_left = node
-    beq r15, r15, SKIP_PATCH, true
-PATCH_RIGHT_CHILD:
-    and r14, r14, 0
-    sh r13, r7, 0                            # *patch_right = node
 SKIP_PATCH:
     and r14, r14, 0
     # if (owner == self->core_id) self->root_node = node;
@@ -2626,8 +2614,7 @@ CHECK_RECURSE:
     # recurse if owner == 0xFFFF || owner == self->core_id
     or r14, r14, 0xFFFF
     beq r10, r14, DO_RECURSE, true
-    and r14, r14, 0
-    add r10, r14, 16128
+    lw r10, RAY_QUEUE_LOW
     beq r10, r13, SET_NODE_ID, true
     beq r15, r15, dfs_loop, true             # foreign owner: stop here
 SET_NODE_ID:
@@ -2637,16 +2624,16 @@ DO_RECURSE:
     # -- push right child first (so left is processed first) --
     and r14, r14, 0
     lw_d r11, r12, 24                        # left_index
+    srl r11, r11, 8
     add r10, r11, 1                        # right_idx
 
     add r12, r9, 1                           # child_depth = depth + 1
 
     sw r10, r2, 0                            # right_idx
     sh r13, r2, 4                            # parent = node
-    add r10, r13, 24
-    sh r10, r2, 6                            # patch_left = &node->left_child
+
     add r10, r13, 26
-    sh r10, r2, 8                            # patch_right = &node->right_child
+    sh r10, r2, 6                            # patch_right = &node->right_child
     add r10, r14, 1
     sh r10, r2, 10                           # is_right = 1
     sw r12, r2, 12                           # depth + 1
@@ -2656,9 +2643,7 @@ DO_RECURSE:
     sw r11, r2, 0                            # left_idx
     sh r13, r2, 4
     add r10, r13, 24
-    sh r10, r2, 6
-    add r10, r13, 26
-    sh r10, r2, 8
+    sh r10, r2, 6                            # patch_left = &node->left_child
     sh r14, r2, 10                           # is_right = 0
     sw r12, r2, 12
     add r2, r2, 16

@@ -2528,8 +2528,11 @@ impl Core {
                                 println!("  ray_depth    = {}", ray_depth);
                                 println!("  active_ray   = {}", active_ray);
                             }
-                            if self.pc[self.context_in_progress] == 0x0520 {
-                                let base = self.register_file[self.context_in_progress * REGS_PER_CONTEXT + 1] as u16;
+                            if self.pc[self.context_in_progress] == 0x051C || self.pc[self.context_in_progress] == 0x1E34 {
+                                let base = if self.pc[self.context_in_progress] != 0x1E34 {
+                                    self.register_file[self.context_in_progress * REGS_PER_CONTEXT + 1] as u16} else {
+                                        self.register_file[self.context_in_progress * REGS_PER_CONTEXT + 13] as u16
+                                    };
 
                                 let read_word = |s: &mut Self, off: u16| s.read_sram_word(&base.wrapping_add(off));
                                 let read_half = |s: &mut Self, off: u16| s.read_sram_half_unsigned(&base.wrapping_add(off));
@@ -2841,7 +2844,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 1;
                             let long_dram_request = LongDramRequest {
@@ -2894,7 +2897,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         if self.top_bits_dram_stack != dram_address / DRAM_STACK_SIZE {
                             self.dram_bytes_read_far += 1;
                             let long_dram_request = LongDramRequest {
@@ -2945,7 +2948,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
@@ -3002,7 +3005,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
@@ -3060,7 +3063,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         assert!(
                             dram_address & 0x3 == 0,
                             "DRAM Word LOADS CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}",
@@ -3127,7 +3130,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         assert!(
                             dram_address & 0x3 == 0,
                             "DRAM Word STORES CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}, CORE {}",
@@ -3169,7 +3172,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         assert!(
                             dram_address & 0x1 == 0,
                             "DRAM Half STORES CAN'T BE UNALIGNED; PC: {:08X}, DRAM ADDRESS: {:08X}, CORE {}",
@@ -3217,7 +3220,7 @@ impl Core {
                                 + instruction_to_execute.imm_0) as usize
                         }) | (self.memory_bits[self.context_in_progress]
                             as usize)
-                            << DRAM_STACK_SIZE_LOG2;
+                            << 32;
                         let value_to_store = self.register_file[self.context_in_progress
                             * REGS_PER_CONTEXT
                             + instruction_to_execute.dr]
@@ -3257,7 +3260,7 @@ impl Core {
                             self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                                 + instruction_to_execute.sr1] as usize
                                 | (self.memory_bits[self.context_in_progress] as usize)
-                                    << DRAM_STACK_SIZE_LOG2;
+                                    << 32;
                         if DEBUG
                             && (core_in_list || cores_to_monitor.is_empty())
                             && (*context_to_monitor == self.context_in_progress as i32
