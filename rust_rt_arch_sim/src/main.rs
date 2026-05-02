@@ -1360,6 +1360,86 @@ fn main() {
     for i in auto_gen_code::get_branch_core_code().iter().enumerate() {
         stacks[0].dram_stack[branch_core_code_base + i.0] = *i.1;
     }
+
+    /*
+    typedef struct
+    {
+        uint16_t core_id;
+        uint16_t is_valid;
+    } idle_queue_slot;
+
+    typedef struct
+    {
+        uint32_t head_relative; // 4
+        uint32_t tail_relative; // 4 
+        uint32_t count; // 4
+        uint32_t parent_node_high; // 4
+        uint32_t parent_node_low; // 4
+        idle_queue_slot slots[8192]; // 4 * 8192 = 32768
+    } idle_core_queue_dram; // total size: 32768 + 20 = 32788 bytes
+    
+    typedef struct
+    {
+        uint32_t parent_high; 4
+        uint32_t parent_low; 4
+        uint32_t left_high; 4
+        uint32_t left_low; 4
+        uint32_t right_high; 4
+        uint32_t right_low; 4
+        uint16_t is_left; 2
+        uint16_t height; 2
+    } idle_queue_tree_node; 28 bytes
+
+    */
+
+    let idle_queue_base = 63_300_000 / 4;
+    
+    for i in 0..8 {
+        stacks[i].dram_stack[idle_queue_base] = 0; // head_relative = 0
+        stacks[i].dram_stack[idle_queue_base + 1] = 0; // tail_relative = 0
+        stacks[i].dram_stack[idle_queue_base + 2] = 0; // count = 0
+        stacks[i].dram_stack[idle_queue_base + 3] = ((i >> 1) as u32) & 3 ; // parent_node_high
+        stacks[i].dram_stack[idle_queue_base + 4] = (63_400_000 + (((i as u32) & 1) << 31)) / 4; // parent_node_low
+        for j in 0..8192 {
+            stacks[i].dram_stack[idle_queue_base + 5 + j] = 0; // mark all slots invalid initially
+        }
+    }
+
+    let idle_tree_level_1 = 63_400_000 / 4;
+    for i in 0..4 {
+        stacks[i * 2].dram_stack[idle_tree_level_1] = ((i >> 1) as u32) & 3; // parent_high
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 1] = (63_400_100 + ((((i >> 1) as u32) & 1) << 31)); // parent_low
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 2] = (i as u32); // left_high
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 3] = (63_300_000) / 4; // left_low
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 4] = (i as u32); // right_high
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 5] = (63_300_000 | (1 << 31)) / 4; // right_low
+        stacks[i * 2].dram_stack[idle_tree_level_1 + 6] = 0 | 0; // is_left = 0 for root
+    }
+
+    let idle_tree_level_2 = 63_400_100 / 4;
+    for i in 0..2 {
+        stacks[i * 4].dram_stack[idle_tree_level_2] = ((i >> 1) as u32) & 3; // parent_high
+        stacks[i * 4].dram_stack[idle_tree_level_2 + 1] = 63_400_200; // parent_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 2] = (i as u32) * 2; // left_high
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 3] = (63_400_000) / 4; // left_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 4] = (i as u32) * 2 | 1; // right_high
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 5] = (63_400_000 | (1 << 31)) / 4; // right_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 6] = 0 | 1; // is_left = 0 for root
+    }
+
+    let idle_tree_level_2 = 63_400_200 / 4;
+    for i in 0..1 {
+        stacks[i * 8].dram_stack[idle_tree_level_2] = 0; // parent_high
+        stacks[i * 8].dram_stack[idle_tree_level_2 + 1] = 0; // parent_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 2] = 0; // left_high
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 3] = (63_400_100) / 4; // left_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 4] = 1; // right_high
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 5] = (63_400_100) / 4; // right_low
+        stacks[i * 4].dram_stack[idle_tree_level_1 + 6] = 0 | 2; // is_left = 0 for root
+    }
+
+    
+
     println!("Val: {}", dram_read_word(&stacks[1].dram_stack, 2151442532 - (1 << 31)));
     println!("Finished copying code");
     let barrier = Arc::new(Barrier::new((CORES_IN_X_STACK * CORES_IN_Y_STACK) as usize));
@@ -1379,6 +1459,7 @@ fn main() {
         .collect();
     io::stdout().flush().unwrap();
     print!("Enter context to inspect (0-15, or Enter to skip): ");
+    io::stdout().flush().unwrap();
     input.clear();
     io::stdin().read_line(&mut input).unwrap();
     let context_to_watch = match input.trim() {
