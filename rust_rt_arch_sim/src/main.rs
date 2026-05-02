@@ -1140,18 +1140,11 @@ fn main() {
     }
     println!("Allocating values next to the dram queues");
 
-    let tri_vec = parse_triangles("bvh_triangles.txt");
     let node_vec = parse_bvh_nodes("bvh_nodes.txt");
     println!("MAX DEPTH: {}", max_depth(&node_vec, 0));
 
-    let leaf_owned: HashSet<u32> = node_id_vec
-        .iter()
-        .filter(|(_, _, _, is_branch)| *is_branch == 0)
-        .map(|(_, _, id, _)| *id)
-        .collect();
     
     let start = 1692269;
-    let count = count_branch_subtree(&node_vec, start, &leaf_owned, &node_id_vec, &node_id_hash_map);
 
     
 
@@ -1288,7 +1281,7 @@ fn main() {
 
         // Even input exp: seed = 1/sqrt(1+m)        ∈ [~0.707, 1.0)
         // Odd input exp:  seed = sqrt(2)/sqrt(1+m)  ∈ [1.0, ~1.414)
-        let seed = if exp_lsb == 0 {
+        let seed = if exp_lsb != 0 {
             1.0 / m_mid.sqrt()
         } else {
             2.0_f64.sqrt() / m_mid.sqrt()

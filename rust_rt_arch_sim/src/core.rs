@@ -2443,6 +2443,7 @@ impl Core {
                             if self.pc[self.context_in_progress] == 0x1514 {
                                 println!("NODE_ID EXAMINED: {}", value);
                             }
+
                         }
                         self.pc[self.context_in_progress] += 4;
                     }
@@ -2478,8 +2479,99 @@ impl Core {
                     Operation::BranchEq => {
                         if DEBUG && (core_in_list || cores_to_monitor.len() == 0)
                             && (*context_to_monitor == self.context_in_progress as i32
-                            || *context_to_monitor < 0) && self.pc[self.context_in_progress] == 0x1508 {
-                            println!("Current stack index: {}", self.register_file[2]);
+                            || *context_to_monitor < 0) {
+                            if self.pc[self.context_in_progress] == 0x102C{
+                                let base = self.register_file[self.context_in_progress * REGS_PER_CONTEXT] as u16;
+
+                                let read_word = |s: &mut Self, off: u16| s.read_sram_word(&base.wrapping_add(off));
+                                let read_half = |s: &mut Self, off: u16| s.read_sram_half_unsigned(&base.wrapping_add(off));
+                                let read_byte = |s: &mut Self, off: u16| s.read_sram_byte_unsigned(&base.wrapping_add(off));
+
+                                let ox     = f32::from_bits(read_word(self,  0));
+                                let oy     = f32::from_bits(read_word(self,  4));
+                                let oz     = f32::from_bits(read_word(self,  8));
+                                let dx     = f32::from_bits(read_word(self, 12));
+                                let dy     = f32::from_bits(read_word(self, 16));
+                                let dz     = f32::from_bits(read_word(self, 20));
+                                let inv_dx = f32::from_bits(read_word(self, 24));
+                                let inv_dy = f32::from_bits(read_word(self, 28));
+                                let inv_dz = f32::from_bits(read_word(self, 32));
+                                let t_max  = f32::from_bits(read_word(self, 36));
+
+                                let leaf_node_starting_point = read_word(self, 40);
+                                let check_left               = read_word(self, 44);
+                                let check_right              = read_word(self, 48);
+
+                                let pix_x = read_half(self, 52) as u16;
+                                let pix_y = read_half(self, 54) as u16;
+
+                                let tri_index = read_word(self, 56);
+
+                                let bounce_count = read_byte(self, 60) as u8;
+                                let light_id     = read_byte(self, 61) as u8;
+                                let ray_depth    = read_byte(self, 62) as u8;
+                                let active_ray   = read_byte(self, 63) as u8;
+
+                                println!("Ray @ 0x{:04X} (ctx {})", base, self.context_in_progress);
+                                println!("  origin    = ({:>12.6}, {:>12.6}, {:>12.6})", ox, oy, oz);
+                                println!("  direction = ({:>12.6}, {:>12.6}, {:>12.6})", dx, dy, dz);
+                                println!("  inv_dir   = ({:>12.6}, {:>12.6}, {:>12.6})", inv_dx, inv_dy, inv_dz);
+                                println!("  t_max     = {}", t_max);
+                                println!("  leaf_node_starting_point = 0x{:08X}", leaf_node_starting_point);
+                                println!("  check_left  = 0x{:08X}", check_left);
+                                println!("  check_right = 0x{:08X}", check_right);
+                                println!("  pixel       = ({}, {})", pix_x, pix_y);
+                                println!("  tri_index   = 0x{:08X}{}", tri_index,
+                                        if tri_index == 0xFFFF_FFFF { " (no hit)" } else { "" });
+                                println!("  bounce_count = {}", bounce_count);
+                                println!("  light_id     = {}", light_id);
+                                println!("  ray_depth    = {}", ray_depth);
+                                println!("  active_ray   = {}", active_ray);
+                            }
+                            if self.pc[self.context_in_progress] == 0x0520 {
+                                let base = self.register_file[self.context_in_progress * REGS_PER_CONTEXT + 1] as u16;
+
+                                let read_word = |s: &mut Self, off: u16| s.read_sram_word(&base.wrapping_add(off));
+                                let read_half = |s: &mut Self, off: u16| s.read_sram_half_unsigned(&base.wrapping_add(off));
+                                let read_byte = |s: &mut Self, off: u16| s.read_sram_byte_unsigned(&base.wrapping_add(off));
+
+                                let x_min = f32::from_bits(read_word(self,  0));
+                                let x_max = f32::from_bits(read_word(self,  4));
+                                let y_min = f32::from_bits(read_word(self,  8));
+                                let y_max = f32::from_bits(read_word(self, 12));
+                                let z_min = f32::from_bits(read_word(self, 16));
+                                let z_max = f32::from_bits(read_word(self, 20));
+
+                                let left_child  = read_half(self, 24) as u16;
+                                let right_child = read_half(self, 26) as u16;
+                                let parent      = read_half(self, 28) as u16;
+                                let core_owner  = read_half(self, 30) as u16;
+
+                                let is_right = read_byte(self, 32) as u8;
+                                // pad bytes at 33, 34, 35 — skipped
+
+                                let queue_low_bit_addr  = read_word(self, 36);
+                                let queue_high_bit_addr = read_half(self, 40) as u16;
+                                let prev_index          = read_half(self, 42) as u16;
+                                let node_id             = read_word(self, 44);
+
+                                let is_leaf = left_child == 0 && right_child == 0;
+
+                                println!("AABB Node @ 0x{:04X} (ctx {})", base, self.context_in_progress);
+                                println!("  x range = [{:>12.6}, {:>12.6}]", x_min, x_max);
+                                println!("  y range = [{:>12.6}, {:>12.6}]", y_min, y_max);
+                                println!("  z range = [{:>12.6}, {:>12.6}]", z_min, z_max);
+                                println!("  left_child  = 0x{:04X}{}", left_child,  if left_child  == 0 { " (none)" } else { "" });
+                                println!("  right_child = 0x{:04X}{}", right_child, if right_child == 0 { " (none)" } else { "" });
+                                println!("  parent      = 0x{:04X}", parent);
+                                println!("  core_owner  = 0x{:04X}{}", core_owner, if core_owner == 0xFFFF { " (none)" } else { "" });
+                                println!("  is_right    = {}", is_right);
+                                println!("  is_leaf     = {}", is_leaf);
+                                println!("  queue_low_bit_addr  = 0x{:08X}", queue_low_bit_addr);
+                                println!("  queue_high_bit_addr = 0x{:04X}", queue_high_bit_addr);
+                                println!("  prev_index  = {}", prev_index);
+                                println!("  node_id     = 0x{:08X} ({})", node_id, node_id);
+                            }
                         }
                         if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                             + instruction_to_execute.dr]
@@ -3160,11 +3252,19 @@ impl Core {
                         self.pc[self.context_in_progress] += 4;
                     }
                     Operation::AtomicAddDram => {
+                        long_latency_op = true;
                         let dram_address =
                             self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                                 + instruction_to_execute.sr1] as usize
                                 | (self.memory_bits[self.context_in_progress] as usize)
                                     << DRAM_STACK_SIZE_LOG2;
+                        if DEBUG
+                            && (core_in_list || cores_to_monitor.is_empty())
+                            && (*context_to_monitor == self.context_in_progress as i32
+                                || *context_to_monitor < 0)
+                        {
+                            println!("Global Atomadd from {:0x}", dram_address);
+                        }
                         let value_to_store = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
                         } else {

@@ -572,9 +572,8 @@ IS_INTERNAL_NODE:
     sb r5, r0, 62
 
     # if (node->core_owner != 0xFFFF)
-    lhu r6, r1, 30                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
-    and r7, r7, 0
-    add r7, r7, 0xFFFF
+    lw r6, r1, 36                  # r6 = node->core_owner (uint16 offset 32) TODO confirm offset
+    or r7, r7, 0xFFFF
     beq r6, r7, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
 
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
@@ -994,6 +993,7 @@ USE_LEFT:
 
 ray_done:
     lbu r9, r0, 63                  # ray->active_ray
+    and r7, r7, 0
     bne r9, r7, start_ray_traversal, true   # r7=0
 
     yield r8
@@ -1009,7 +1009,7 @@ ray_done:
 
     add r12, r12, 8
     atomadd r14, r12, -1            # decrement count
-    beq r7, r14, SLOT_AVAILABLE_LOCAL_RAY_QUEUE, true
+    bgt r14, r7, SLOT_AVAILABLE_LOCAL_RAY_QUEUE, true
     atomadd r14, r12, 1
     beq r15, r15, no_rays_available, true
 SLOT_AVAILABLE_LOCAL_RAY_QUEUE:
@@ -1068,10 +1068,7 @@ no_rays_available:
     
     lw r3, LOCAL_QUEUE_FLUSHING          # uint8_t flushing_queue = *(self.local_queue_flushing)
     and r14, r3, 0                       # r14 = 0
-    beq r3, r14, INF_LOOP, false         
-    add r3, r14, LOCAL_QUEUE_FLUSHING
-    atomadd r15, r3, 1
-    beq r15, r15, INF_LOOP, true
+    bne r3, r14, INF_LOOP, false         
 NOT_FLUSHING_CORE:
     yield r8                             # yield()
     lw r3, RAY_QUEUE_HIGH                # int queue_address_high = self.ray_queue_address_high
@@ -1276,13 +1273,15 @@ GRAB_FROM_TILE:
     sll r4, r4, 1                        # rays_forwarded_out_from_tile <<= 1
     bgt r2, r4, SPAWN_FROM_TILE, true    # if (rays_forwarded_out_from_tile < rays_spawned_from_tile) goto spawn_from_tile
 GET_NEW_TILE:
+    add r2, r14, GRAB_FROM_TILE_ATOMADDER
+    atomadd r2, r2, 1
+    bne r2, r14, ray_done, false
     getowner                             # get_ownership()
-    and r14, r14, 0                      # r14 = 0
     lw r2, TILE_QUEUE_HIGH               # uint32_t tile_pool_high = self.tile_pool_high
     setmembits r2                        # set_address_bits(tile_pool_high)
     lw r2, TILE_QUEUE_LOW                # uint32_t tile_pool_low = self.tile_pool_low
     lhu r3, TILE_IS_ACTIVE               # uint8_t tile_rays_spawned = *(self.tile_data_sram->is_active)  -- differs: pseudocode checks count not is_active
-    bne r3, r14, SKIP_RETURNING_TILE, false  # if (tile_rays_spawned != 0) goto skip_returning_tile  -- differs: pseudocode checks count > 255
+    beq r3, r14, SKIP_RETURNING_TILE, false  # if (tile_rays_spawned != 0) goto skip_returning_tile  -- differs: pseudocode checks count > 255
     lw r3, RAYS_SPAWNED_FROM_TILE        # r3 = rays_spawned_from_tile
     add r4, r14, 255                     # r4 = 255
     bgt r3, r4, SKIP_RETURNING_TILE, true  # if (rays_spawned_from_tile > 255) goto skip_returning_tile
@@ -1354,7 +1353,7 @@ SKIP_RETURNING_TILE:
     lw r2, TILE_QUEUE_LOW
     # uint32_t count = load_dram_word(tile_pool_low + 8);
     add r2, r2, 8
-    lw r3, r2, 0
+    lw_d r3, r2, 0
     add r2, r2, -8
     and r14, r14, 0
     # if (count <= 0) { goto skip_grabbing_tile_rays; }
@@ -1373,7 +1372,9 @@ DONT_SKIP_GRABBING_TILE:
     # uint32_t head = atomic_add(tile_pool_low, 4);
     atomadd_d r3, r2, 4
     # uint32_t head_mask = 0x0000FFFF;
-    add r4, r14, 0xFFFF
+    add r4, r14, 0x7FFF
+    add r4, r4, 0x7FFF
+    add r4, r4, 1
     # head &= head_mask;
     and r3, r3, r4
     # tile_pool_low += head;
@@ -1418,24 +1419,35 @@ WAIT_FOR_TILE_SLOT_TO_OPEN:
     # *(self.tile_data_sram->cur_ray_spawned_from_tile + 4) = zero;
     # *(self.tile_data_sram->cur_ray_spawned_from_tile + 8) = zero;
     # *(self.tile_data_sram->cur_ray_spawned_from_tile + 12) = zero;
-    sw r14, r2, 4
-    sw r14, r2, 8
-    sw r14, r2, 12
+    add r2, r14, TILE_DATA_COUNT
     sw r14, r2, 16
-
+    sw r14, r2, 20
+    sw r14, r2, 24
+    sw r14, r2, 28
+    sw r14, r2, 36
+# TILE_DATA_COUNT: 
+# .data 0 #count
+# TILE_IS_ACTIVE: 
+# .data 0 
+# TILE_INTER_INDEX_X: 
+# .data 0 
+# TILE_INTER_INDEX_Y:
+# .data 0
+# TILE_CUR_RAY_SPAWNED:
+# .data 0 #cur_ray_spawned_from_tile[16] in bytes
+# .data 0 
+# .data 0 
+# .data 0
+# RAYS_SPAWNED_FROM_TILE: 
+# .data 0 #rays_spawned_from_tile
+# RAYS_FORWARDED_OUT_FROM_TILE: 
+# .data 0 #rays_forwarded_out_from_tile
     # *(self.tile_data_sram->cur_ray_spawned_from_tile + self.thread_id) = 1;
     and r3, r15, 0xF                     # r3 = thread_id
-    add r3, r3, 4                        # r3 = thread_id + 4 (offset into struct past x/y)
-    add r3, r3, r2                       # r3 = &cur_ray_spawned_from_tile[thread_id]
-    and r4, r4, 0
-    add r4, r4, 1
-    sb r4, r3, 0                         # cur_ray_spawned_from_tile[thread_id] = 1
-
-
-    # self.tile_data_sram->rays_forwarded_out_from_tile = zero;
-    # self.tile_data_sram->rays_spawned_from_tile = zero;
-    sw r14, RAYS_FORWARDED_OUT_FROM_TILE # rays_forwarded_out_from_tile = 0
-    sw r14, RAYS_SPAWNED_FROM_TILE       # rays_spawned_from_tile = 0
+    add r3, r2, r3
+    add r4, r14, 1
+    sb r4, r3, 16
+    sw r4, r2, 32                         # cur_ray_spawned_from_tile[thread_id] = 1
 
     setctx 16                            # set_ctx(16)
     relinquish false                     # relinquish_ownership(0)
@@ -1447,9 +1459,9 @@ SPAWN_FROM_TILE:
     atomadd r3, r2, 1                    # uint32_t ray_num_from_tile = atomic_add(tile_data_sram_address, 1)
     add r4, r14, 255                     # r4 = 255
     bgt r3, r4, GET_NEW_TILE, false      # if (ray_num_from_tile > 255) goto get_new_tile
-    add r2, r2, 40                       # tile_data_sram_address += 28 (point to rays_spawned counter)
+    add r2, r2, 32                       # tile_data_sram_address += 28 (point to rays_spawned counter)
     atomadd r15, r2, 1                   # atomic_add(tile_data_sram_address, 1) -- increment rays spawned
-    add r2, r2, -40                       # tile_data_sram_address -= 28 
+    add r2, r2, -32                       # tile_data_sram_address -= 28 
     and r4, r3, 0xF                      # uint32_t intra_tile_x = ray_num_from_tile & 0xF
     srl r5, r3, 4                        # uint32_t intra_tile_y = ray_num_from_tile >> 4
     lw r6, TILE_INTER_INDEX_X                        # uint32_t inter_tile_x = *(self.tile_data_sram->tile_x_index)
@@ -1481,7 +1493,7 @@ SPAWN_FROM_TILE:
     lw r6, CAM_CY
     lw r7, CAM_INV_FOCAL
     fpsub.32 r8, r3, r5                  # r8 = dx_cam = fpix_x - CAM_CX
-    fpsub.32 r9, r4, r6                  # r9 = dy_cam = fpix_y - CAM_CY
+    fpsub.32 r9, r6, r4                  # r9 = dy_cam = fpix_y - CAM_CY
     fpmul.32 r2, r8, r7                  # r2 = dx_cam *= inv_focal
     fpmul.32 r3, r9, r7                  # r3 = dy_cam *= inv_focal
     lw r4, NEG_ONE                       # r4 = dz_cam = -1.0
@@ -1538,17 +1550,17 @@ SPAWN_FROM_TILE:
 
 
     fpmul.32 r9, r8, r2                   # inv_dx intermediate: inv_len * dx
+    sw r9, r0, 12
     jmp r10, RECIPROCAL                  # ray->inv_dx = reciprocal(inv_len * dx)  -- differs: pseudocode does reciprocal(dx) separately
     sw r9, r0, 24                        # store ray->inv_dx
     fpmul.32 r9, r8, r3                   # inv_dy intermediate
+    sw r9, r0, 16
     jmp r10, RECIPROCAL                  # ray->inv_dy = reciprocal(inv_len * dy)
     sw r9, r0, 28                        # store ray->inv_dy
     fpmul.32 r9, r8, r4                   # inv_dz intermediate
+    sw r9, r0, 20
     jmp r10, RECIPROCAL                  # ray->inv_dz = reciprocal(inv_len * dz)
     sw r9, r0, 32                        # store ray->inv_dz
-    sw r2, r0, 12                        # ray->dx = dx (unnormalized -- differs: pseudocode normalizes before storing)
-    sw r3, r0, 16                        # ray->dy = dy
-    sw r4, r0, 20                        # ray->dz = dz
     lw r2, INFINITY                      # r2 = 0x7F800000
     sw r2, r0, 36                        # ray->t_max = INFINITY
     and r14, r14, 0                      # r14 = 0
@@ -1559,7 +1571,7 @@ SPAWN_FROM_TILE:
     add r12, r14, -1                     # r12 = 0xFFFFFFFF
     sw r12, r0, 56                       # ray->tri_index = 0xFFFFFFFF
     sb r13, r0, 63                       # ray->active_ray = 1
-    lw r1, ROOT_NODE_ADDRESS             # node = self.sram_node_base_address
+    add r1, r14, 16128             # node = self.sram_node_base_address
     beq r15, r15, start_ray_traversal, true   # goto start_ray_traversal
 SKIP_GRABBING_TILE_RAYS:
     yield r8                             # yield()
@@ -1720,6 +1732,7 @@ INF_LOOP:
     beq r15, r15, INF_LOOP, true         # goto inf_loop
 
 AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
+    and r7, r7, 0
     lw r2, r1, 0                        
     lw r3, r0, 0
     fpsub.32 r2, r2, r3                   # float t1 = (node->min_x - ray->ox) * ray->inv_dx
@@ -1736,7 +1749,7 @@ AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
     lw r10, EPSILON                 # float epsilon = self.epsilon
     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-    blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+    beq r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
     #doing y now
     lw r2, r1, 8
     lw r3, r0, 4
@@ -1753,7 +1766,7 @@ AABB_INTERSECT: #do not use r4, r9. r0 = ray, r1 = node, r7 = 0
     fplt.32 r6, r12, r13                  # r6 = tmin < tmax
     fplt.32 r8, r10, r13                # r8 = epsilon < tmax
     and r11, r6, r8                     # r11 = (tmax >= tmin) && (tmax > epsilon)
-    blte r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
+    beq r7, r11, AABB_INTERSECT_RETURN, false  # if (tmax < EPSILON) return false
     #doing z now
     lw r2, r1, 16                           # r2 = node->z_min
     lw r3, r0, 8                            # r3 = ray->oz
@@ -2161,28 +2174,27 @@ SHADOW_RAY_MUST_BE_CALCULATED:
 
 RECIPROCAL:
     lw r11, NEG_MAX                     # r11 = 0x80000000
-    and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
-    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
-    and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
-    srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
-    sub r13, r13, 254                   # r13 = new_exp = 254 - exp
-    srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
-    and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
-    lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
-    setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
-    lw r14, DIV_TABLE_LOW               # r14 = div_table_low
-    add r14, r14, r9                    # r14 = &div_table[index]
-    lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+    and r12, r11, r9                    # r12 = sign bit
+    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF
+    and r11, r11, r9                    # r11 = |x|
+    srl r13, r11, 23                    # r13 = exp (from |x|, NO sign pollution)
+    sub r13, r13, 253                   # r13 = 253 - exp = new_exp
+    srl r9, r11, 10                     # r9 = |x| >> 10 (from |x|, NO sign pollution)
+    and r9, r9, 0x1FFC                  # 11-bit mantissa index, byte-aligned
+    lw r14, DIV_TABLE_HIGH
+    setmembits r14, r14
+    lw r14, DIV_TABLE_LOW
+    add r14, r14, r9
+    lw_d r9, r14, 0                     # table lookup
     sll r14, r13, 23                    # r14 = new_exp << 23
-    or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
-    sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
-    fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
-    lw r11, TWO                         # r11 = 2.0f
-    fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
-    fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
-    or r9, r9, r12                      # r9 |= sign (restore sign bit)
-    setmembits r14, r14                 # restore membits
-    jmp r15, r10                        # return (result in r9)
+    or r9, r14, r9                      # r9 = seed (no sign pollution now)
+    fpmul.32 r13, r11, r9               # |x| * seed (should be ≈ 1.0)
+    lw r11, TWO
+    fpsub.32 r13, r11, r13              # 2 - |x|*seed
+    fpmul.32 r9, r9, r13                # NR refined seed
+    or r9, r9, r12                      # restore sign
+    setmembits r14, r14
+    jmp r15, r10
 
 INV_SQRT:
     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
@@ -2742,7 +2754,7 @@ queue_loop_2_done:
     add r0, r1, r2
     sb r14, r0, 63 
     add r1, r14, LEAF_CORE_LOOKUP_TABLE
-    lw r1, r1, 256
+    lhu r1, r1, 256
     beq r15, r15, ray_done, true
 
 
@@ -2871,7 +2883,8 @@ CAM_Y:
 .data 0x431F0000
 CAM_Z: 
 .data 0xC451C000
-
+GRAB_FROM_TILE_ATOMADDER:
+.data 0
 # https://stackoverflow.com/questions/78072261/how-to-find-cameras-intrinsic-matrix-from-focal-length
 
 CAM_CX:
@@ -2890,10 +2903,6 @@ TILE_DATA_COUNT:
 .data 0 #count
 TILE_IS_ACTIVE: 
 .data 0 
-TILE_X_INDEX:
-.data 0
-TILE_Y_INDEX:
-.data 0
 TILE_INTER_INDEX_X: 
 .data 0 
 TILE_INTER_INDEX_Y:

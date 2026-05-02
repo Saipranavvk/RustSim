@@ -1613,28 +1613,27 @@ TRIANGLE_INTERSECT_END_IF_BLOCK_3:
 
 RECIPROCAL:
     lw r11, NEG_MAX                     # r11 = 0x80000000
-    and r12, r11, r9                    # r12 = sign bit of x (sign in r12)
-    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF (sign extends 0xFFFF to flip all 32 bits)
-    and r11, r11, r9                    # r11 = x & 0x7FFFFFFF = |x| (original magnitude in r11)
-    srl r13, r9, 23                     # r13 = exp = x >> 23 (biased exponent)
-    sub r13, r13, 254                   # r13 = new_exp = 254 - exp
-    srl r9, r9, 12                      # r9 = x >> 12 (top mantissa bits for table index)
-    and r9, r9, 0x1FFC                  # r9 = index = (x >> 12) & 0x7FF, pre-shifted by 2 (index in r9)
-    lw r14, DIV_TABLE_HIGH              # r14 = div_table_high
-    setmembits r14, r14                 # swap membits with r14 (r14 = old membits, membits = DIV_TABLE_HIGH)
-    lw r14, DIV_TABLE_LOW               # r14 = div_table_low
-    add r14, r14, r9                    # r14 = &div_table[index]
-    lw_d r9, r14, 0                     # r9 = reciprocal_lookup = load_dram_word(table_addr)
+    and r12, r11, r9                    # r12 = sign bit
+    xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF
+    and r11, r11, r9                    # r11 = |x|
+    srl r13, r11, 23                    # r13 = exp (from |x|, NO sign pollution)
+    sub r13, r13, 253                   # r13 = 253 - exp = new_exp
+    srl r9, r11, 10                     # r9 = |x| >> 10 (from |x|, NO sign pollution)
+    and r9, r9, 0x1FFC                  # 11-bit mantissa index, byte-aligned
+    lw r14, DIV_TABLE_HIGH
+    setmembits r14, r14
+    lw r14, DIV_TABLE_LOW
+    add r14, r14, r9
+    lw_d r9, r14, 0                     # table lookup
     sll r14, r13, 23                    # r14 = new_exp << 23
-    or r9, r14, r9                      # r9 = reciprocal_lookup |= new_exp (assemble initial estimate)
-    sub r13, r13, 254                   # r13 = 254 - new_exp = original exp (recover for NR)
-    fpmul.32 r13, r11, r9              # r13 = t = original_magnitude * r0 (NR: x * r0)
-    lw r11, TWO                         # r11 = 2.0f
-    fpsub.32 r13, r11, r13             # r13 = 2 - t = 2 - x*r0
-    fpmul.32 r9, r9, r13               # r9 = r0 * (2 - x*r0) (one NR step, result in r9)
-    or r9, r9, r12                      # r9 |= sign (restore sign bit)
-    setmembits r14, r14                 # restore membits
-    jmp r15, r10                        # return (result in r9)
+    or r9, r14, r9                      # r9 = seed (no sign pollution now)
+    fpmul.32 r13, r11, r9               # |x| * seed (should be ≈ 1.0)
+    lw r11, TWO
+    fpsub.32 r13, r11, r13              # 2 - |x|*seed
+    fpmul.32 r9, r9, r13                # NR refined seed
+    or r9, r9, r12                      # restore sign
+    setmembits r14, r14
+    jmp r15, r10
 
 INV_SQRT:
     srl r10, r8, 11                     # r10 = index = len_sq >> 11 (top 15 bits as table index)
@@ -2102,20 +2101,6 @@ queue_loop_1_done:
     # *(self.ray_send_pending_addr) = 0;
     sw r14, RAY_SEND_PENDING_ADDR
 
-    and r14, r14, 0
-    # ray_base = self.ray_array_base;
-    add r1, r14, RAY_ARRAY
-
-    and r2, r15, 0xF
-    # ray_array_index = self.thread_id << 6;
-    sll r2, r2, 6
-
-    # ray = ray_base + index
-    add r0, r1, r2
-    lw r1, ROOT_NODE_ADDRESS
-    # *(ray + 63) = 0;
-    add r1, r1, 0
-    sb r14, r0, 63
 
     # *(self.core_handled->previously_idle) = 0;
     sw r14, PREVIOUSLY_IDLE
@@ -2137,6 +2122,20 @@ queue_loop_1_done:
     intena 36
     setctx 16
     relinquish true
+    and r14, r14, 0
+    # ray_base = self.ray_array_base;
+    add r1, r14, RAY_ARRAY
+
+    and r2, r15, 0xF
+    # ray_array_index = self.thread_id << 6;
+    sll r2, r2, 6
+
+    # ray = ray_base + index
+    add r0, r1, r2
+    lw r1, ROOT_NODE_ADDRESS
+    # *(ray + 63) = 0;
+    add r1, r1, 0
+    sb r14, r0, 63
 
     beq r15, r15, ray_done, true
 

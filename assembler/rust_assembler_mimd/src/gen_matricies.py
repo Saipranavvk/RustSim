@@ -100,7 +100,12 @@ def run_and_capture(src_file: str, out_path: str) -> None:
 
 def main():
     parsed = {}
-    
+    import shutil
+
+    shutil.copy2(
+        "../../../rust_rt_arch_sim/src/run.log",
+        "../../../rust_rt_arch_sim/src/backup_run.log"
+    )
     run_and_capture("initialize_core.s", "initialize_core.txt")
     run_and_capture("branch_core_code.s", "branch_core_code.txt")
     run_and_capture("leaf_core_code.s",   "leaf_core_code.txt")
