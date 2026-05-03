@@ -7,3 +7,6 @@ rust_rt_arch_sim/bvh_data/bvh_nodes.txt
 
 rust_rt_arch_sim/bvh_data/bvh_triangles.txt
 scene.txt
+assembler/rust_assembler_mimd/src/initialize_core.txt
+assembler/rust_assembler_mimd/src/branch_core_code.txt
+assembler/rust_assembler_mimd/src/leaf_core_code.txt
