@@ -69,7 +69,7 @@ const MATERIAL_POINTER_SIZE: usize = 6;
 const MAX_ALLOC: usize = 32 * 1024;
 
 /// Phase 1: leaf cores use 65% of SRAM for owned geometry.
-const LEAF_OWNED_PCT: usize = 78;
+const LEAF_OWNED_PCT: usize = 79;
 const LEAF_OWNED_BUDGET: usize = MAX_ALLOC * LEAF_OWNED_PCT / 100;
 
 /// Phase 2: branch treelets (above leaf cores) use the remaining 35%.
@@ -80,7 +80,7 @@ const SPINE_BUDGET: usize = LEAF_OWNED_BUDGET;
 
 /// Phase 4: absorb small branch cores into the spine.
 /// Set to false to disable.
-const ENABLE_SPINE_ABSORPTION: bool = true;
+const ENABLE_SPINE_ABSORPTION: bool = false;
 
 // ---------------------------------------------------------------------------
 // File readers (unchanged)
@@ -907,9 +907,9 @@ fn accumulate_leaf_breakdown(
 
 
 pub fn assemble_tree(subfolder: String) {
-    let bvh_leaves_path = format!("{}\\bvh_leaves.txt", subfolder);
-    let bvh_nodes_path = format!("{}\\bvh_nodes.txt", subfolder);
-    let bvh_triangles_path = format!("{}\\bvh_triangles.txt", subfolder);
+    let bvh_leaves_path = format!("bvh_leaves.txt");
+    let bvh_nodes_path = format!("bvh_nodes.txt");
+    let bvh_triangles_path = format!("bvh_triangles.txt");
 
     let triangles = read_triangles(&bvh_triangles_path);
     let indices = read_indices(&bvh_leaves_path);
@@ -1216,8 +1216,8 @@ pub fn assemble_tree(subfolder: String) {
     }
 
     // ── Write output files ──────────────────────────────────────────────────
-    let leaf_out_path = format!("{}\\leaf_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT);
-    let branch_out_path = format!("{}\\branch_core_roots_{}pct.txt", subfolder, LEAF_OWNED_PCT);
+    let leaf_out_path = format!("leaf_core_roots_{}pct.txt", LEAF_OWNED_PCT);
+    let branch_out_path = format!("branch_core_roots_{}pct.txt", LEAF_OWNED_PCT);
 
     {
         let mut f = File::create(&leaf_out_path).expect("failed to create leaf core roots file");
@@ -1255,6 +1255,46 @@ pub fn assemble_tree(subfolder: String) {
         }
         println!("Wrote branch core roots to: {}", branch_out_path);
     }
+
+    let mut violations = vec![];
+    // ── Validate: spine traversal should never hit a BVH leaf ───────────────
+    println!("\nValidating spine coverage (no BVH leaves should leak into spine)...");
+    {
+        // Stops are: any branch core root OR any leaf core root.
+        // Absorbed branch cores have already been removed from branch_core_roots,
+        // so they will be traversed through (their leaf cores are still stops).
+        fn check_no_leaks(
+            index: usize,
+            nodes: &[Node],
+            leaf_core_roots: &HashSet<usize>,
+            violations: &mut Vec<usize>,
+            path: &mut Vec<usize>,
+        ) {
+            // Only leaf core roots are stops. Branch core roots are traversed through.
+            if leaf_core_roots.contains(&index) {
+                return;
+            }
+            let node = &nodes[index];
+            if node.is_leaf || node.tri_count > 0 {
+                violations.push(index);
+                println!(
+                    "  VIOLATION: BVH leaf {} (tri_count={}) reached — not owned by any leaf core",
+                    index, node.tri_count
+                );
+                println!("    path from root: {:?}", path);
+                return;
+            }
+            path.push(index);
+            check_no_leaks(node.left_child, nodes, leaf_core_roots, violations, path);
+            check_no_leaks(node.right_child, nodes, leaf_core_roots, violations, path);
+            path.pop();
+        }
+        for &br in &branch_core_roots_vec {
+            let mut path = vec![];
+            check_no_leaks(br, &nodes, &leaf_core_roots, &mut violations, &mut path);
+        }
+    }
+    println!("VIOLATIONS: {}", violations.len());
 }
 
 // ---------------------------------------------------------------------------

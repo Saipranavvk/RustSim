@@ -50,32 +50,6 @@ from pathlib import Path
 # --------------------------------------------------------------------------
 # Constants
 # --------------------------------------------------------------------------
-
-BRANCH_ROOTS = [
-    2, 113, 453, 781, 1532, 1533, 49289, 49292, 49293, 49298, 49299,
-    88562, 88563, 107930, 107931, 132914, 137561, 138206, 138207,
-    150751, 151915, 152514, 152515, 154692, 154693, 195708, 195709,
-    273029, 274979, 276578, 276579, 280787, 282290, 287798, 288032,
-    288033, 342534, 362619, 364828, 364829, 379196, 379197, 395811,
-    397398, 429026, 429027, 440582, 487254, 487255, 497073, 498580,
-    498581, 538584, 538585, 578516, 601686, 601687, 621092, 621093,
-    649896, 662872, 662873, 690042, 690043, 713347, 714903, 717271,
-    717884, 717885, 728512, 728513, 783405, 783416, 783417, 783418,
-    783419, 852324, 852325, 894683, 894686, 894687, 900050, 900051,
-    945590, 952681, 955972, 955973, 955975, 956458, 993224, 993225,
-    1002514, 1002515, 1047936, 1047937, 1051520, 1081168, 1081169,
-    1092340, 1108816, 1108817, 1126273, 1126932, 1126933, 1139362,
-    1139363, 1173307, 1173925, 1174408, 1174409, 1183860, 1183861,
-    1253570, 1253571, 1276547, 1277136, 1277137, 1303808, 1306858,
-    1309901, 1310218, 1310219, 1331456, 1350425, 1351226, 1351227,
-    1366242, 1375282, 1375283, 1408305, 1408311, 1408312, 1408313,
-    1410329, 1410650, 1410651, 1482598, 1482599, 1483538, 1483539,
-    1525972, 1525973, 1548318, 1554530, 1554531, 1600356, 1600357,
-    1626246, 1635826, 1644522, 1649559, 1649560, 1649561, 1675929,
-    1675930, 1675931, 1710848, 1710849, 1731327, 1731329, 1731333,
-    1731334, 1731335, 1748842, 1749804, 1749805,
-]
-
 TREE_ROOT = 0
 K_GROUPS  = 8
 TILE      = 32
@@ -569,29 +543,30 @@ def _edges_from_nbr(nbr):
 # --------------------------------------------------------------------------
 
 def main():
-    if len(sys.argv) < 4:
-        print("usage: place_cores.py bvh_nodes.txt leaf_core_roots.txt out_dir/",
-              file=sys.stderr)
+    if len(sys.argv) < 5:
+        print("usage: place_cores.py bvh_nodes.txt leaf_core_roots.txt "
+              "branch_core_roots.txt out_dir/", file=sys.stderr)
         sys.exit(1)
-    bvh_path  = Path(sys.argv[1])
-    leaf_path = Path(sys.argv[2])
-    out_dir   = Path(sys.argv[3])
+    bvh_path    = Path(sys.argv[1])
+    leaf_path   = Path(sys.argv[2])
+    branch_path = Path(sys.argv[3])
+    out_dir     = Path(sys.argv[4])
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    children = parse_bvh(bvh_path)
-    parent   = build_parent_map(children)
-    leaves   = parse_leaf_roots(leaf_path)
-    leaf_set = set(leaves)
-    branch_set = set(BRANCH_ROOTS)
+    children      = parse_bvh(bvh_path)
+    parent        = build_parent_map(children)
+    leaves        = parse_leaf_roots(leaf_path)
+    branch_roots  = parse_leaf_roots(branch_path)   # same format
+    leaf_set      = set(leaves)
+    branch_set    = set(branch_roots)
 
     print(f"Loaded {len(children)} BVH nodes, {len(leaves)} leaf core roots, "
-          f"{len(BRANCH_ROOTS)} branch core roots.")
-
+          f"{len(branch_roots)} branch core roots.")
     # 1. Branch-root DFS order.
-    branch_order = left_to_right_branch_order(BRANCH_ROOTS, children)
-    if len(branch_order) != len(BRANCH_ROOTS):
+    branch_order = left_to_right_branch_order(branch_roots, children)
+    if len(branch_order) != len(branch_roots):
         print(f"WARN: DFS reached {len(branch_order)} of "
-              f"{len(BRANCH_ROOTS)} branch roots")
+              f"{len(branch_roots)} branch roots")
 
     # 2. Owner assignment.
     owner = {}
@@ -737,7 +712,7 @@ def main():
 
     sum_path = out_dir / "summary.txt"
     with sum_path.open("w") as f:
-        f.write(f"branches: {len(BRANCH_ROOTS)}\n")
+        f.write(f"branches: {len(branch_roots)}\n")
         f.write(f"leaves:   {len(leaves)}\n")
         f.write(f"groups:   {K_GROUPS}\n")
         f.write(f"super:    {SUPER_W} x {SUPER_H}\n")

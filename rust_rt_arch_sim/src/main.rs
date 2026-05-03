@@ -1029,6 +1029,50 @@ fn count_branch_subtree(
 }
 
 
+
+fn count_leaf_subtree(
+    nodes: &[BvhNode],
+    start: usize,
+    node_id_map: &HashMap<u32, (usize, u32)>
+) -> usize {  
+    println!("length of hash map: {}", node_id_map.len());
+    let mut parent = start;
+    loop{
+        if let Some(u) = node_id_map.get(&(parent as u32)) {
+            if u.1 != 0 {
+                break;
+            }
+        }
+        parent = nodes[parent].parent as usize;
+    }
+    let mut count = 0;
+    let mut stack = vec![parent];
+    while let Some(idx) = stack.pop() {
+        count += 1;
+        if nodes[idx].tri_count > 0 {
+            continue;
+        }
+        let l = nodes[idx].left_first as usize;
+        let r = l + 1;
+        let a = node_id_map.get(&(idx as u32));
+        println!("JOHN IDX: {}", l);
+        println!("JOHN IDX: {}", r);
+        if let Some(b) = a{
+            if idx == start || b.1 != 0 {
+                stack.push(l);
+                stack.push(r);
+            }
+            continue;
+        }
+        stack.push(l);
+        stack.push(r);
+
+    }
+    count
+}
+
+
+
 fn max_depth(nodes: &[BvhNode], index: usize) -> usize {
     if nodes[index].tri_count != 0 {
         return 1;
@@ -1050,7 +1094,7 @@ fn find_depth(nodes: &[BvhNode], index: usize) -> usize {
 }
 
 fn main() {
-    // assemble_tree("bvh_data".to_string());
+    // assemble_tree("src".to_string());
     // return;
 
     let mut stacks: Vec<Stack> = assemble_stacks();
@@ -1129,13 +1173,9 @@ fn main() {
             64 * 1024;
     }
     println!("Allocating values next to the dram queues");
-    println!("ALEX SUPPOSEDLY {} --- {}", 8710512896_u64, address_ray_queue_hash_map.get(&node_id_hash_map.get(&1791132).unwrap().0).unwrap());
+    // println!("ALEX SUPPOSEDLY {} --- {}", 8710512896_u64, address_ray_queue_hash_map.get(&node_id_hash_map.get(&1791132).unwrap().0).unwrap());
     let node_vec = parse_bvh_nodes("bvh_nodes.txt");
     println!("MAX DEPTH: {}", max_depth(&node_vec, 0));
-
-    
-    let start = 1692269;
-
     
 
         // After read_nodes / read_indices / read_triangles and patching first_tri:
@@ -1150,6 +1190,7 @@ fn main() {
             println!("BRANCH_NODE_ID: {}, NUM NODES: {}", i.2, num_in_node);
         }
     }
+    println!("JOHN 977160: {}", count_leaf_subtree(&node_vec, 977160, &node_id_hash_map));
     let mut expanded: Vec<parse_bvh::Indices> = vec![
         parse_bvh::Indices { node_index: 0, first_triangle_index: 0, num_triangles: 0 };
         nodes_p.len().max(2_000_000)
@@ -1184,9 +1225,6 @@ fn main() {
             vertices.len() as u32 * 12,
         );
         println!("STORING AT ADDRESS {} FOR NODE_ID {}: {}", address, node_id, vertices.len() as u32 * 12);
-        if *node_id == start as u32{
-            println!("Size of stuff: {}, {}", indices.len() as u32 * 12, vertices.len() as u32 * 12);
-        }
         for index_set in indices {
             dram_store_word(
                 &mut stacks[stack_num as usize].dram_stack,
@@ -1233,13 +1271,16 @@ fn main() {
             node_id_hash_map.get(&node_id).unwrap().0 as u32;
         stacks[0].dram_stack[2 * index as usize + start_of_node_init_table + 1] =
             (node_id_hash_map.get(&node_id).unwrap().1 << 31) | node_id;
+        if i == 2135 {
+            println!("Node id: ANDREW {}", node_id);
+        }
     }
 
     for i in 0..node_id_vec.len() {
         let (_x, _y, node_id, is_branch) = node_id_vec[i];
         let queue_index = &node_id_hash_map.get(&node_id).unwrap().0;
         let address = address_ray_queue_hash_map.get(queue_index).unwrap();
-        if node_id == 82476 {
+        if node_id == 977160 {
             println!("Putting address {} at {}", address, 12 * node_id as usize + 9 + node_array_start);
         }
         stacks[1].dram_stack[12 * node_id as usize + 8 + node_array_start] = is_branch;
