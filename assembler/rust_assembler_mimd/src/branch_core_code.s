@@ -596,18 +596,19 @@ IS_INTERNAL_NODE:
     # uint32_t request_word = (node->node_id << 17) | self.thread_id;
 
     sll r12, r12, 17
-    and r10, r15, 0xF               # r10 = thread_id
-    or r12, r12, r10                # r12 = request_word
+    or r12, r12, r15                # r12 = request_word
 
     # send_packet(request_word, node->core_owner, 32);
 
-    sendflit r6, r12, 32            # TODO confirm notation w/ Alex
+    sendflit r12, r6, 32            # TODO confirm notation w/ Alex
 
 # uint32_t sent = 0;
     and r3, r3, 0                   # r3 = sent = 0
 
 SEND_RAY_LOOP:
     # uint32_t msg_available = nb_recv(self.thread_id + 16);
+    switchctx
+    and r7, r7, 0
     and r10, r15, 0xF               # r10 = thread_id
     add r11, r10, 16                # r11 = thread_id + 16
     nonblock r12, r11               # r12 = msg_available
@@ -699,25 +700,25 @@ SKIP_UNDO_LOCK:
     getclk r11                      # r11 = clock
     srl r12, r15, 4                 # r12 = core_id
     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
-    lhu r11, r1, 38                 # r13 = node->prev_index
+    lhu r11, r1, 42                 # r13 = node->prev_index
     beq r12, r11, BUMP_IDX, true    # if idx == prev_idx, bump to avoid repeat
     beq r15, r15, SKIP_BUMP, true
 BUMP_IDX:
     add r12, r12, 1                 # r12 = idx + 1
 SKIP_BUMP:
     mod r12, r12, r10               # r12 = idx % core_owner_count
-    sh r12, r1, 38                  # node->prev_index = idx
+    sh r12, r1, 42                  # node->prev_index = idx
     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
     add r9, r9, r12                 # r9 = &core_slots[idx]
     lw_d r10, r9, 28                # r10 = core_to_cache (core_slots at +28 from lock field)
-    sh r10, r1, 32                  # node->core_owner = core_to_cache
+    sh r10, r1, 30                  # node->core_owner = core_to_cache
     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
 
 NO_OWNER:
     # node->core_owner = 0xFFFF
     and r11, r11, 0
     add r11, r11, 0xFFFF            # r11 = 0xFFFF
-    sh r11, r1, 32                  # node->core_owner = 0xFFFF
+    sh r11, r1, 30                  # node->core_owner = 0xFFFF
 
     # if (cur_ray_count > 200) -> emergency queue insertion
     # cur_ray_count still valid from ENSURE_SPACE_IN_QUEUE in r10? No — reload
