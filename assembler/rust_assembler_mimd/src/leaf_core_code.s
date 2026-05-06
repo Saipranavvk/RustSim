@@ -440,7 +440,7 @@ RETURN_FROM_INSERT_DRAM_QUEUE:
 
 
 START_RAY_TRAVERSAL:
-    lw r2, ROOT_NODE_ID         # r2 = node
+    lw r1, ROOT_NODE_ADDRESS         # r1 = node
 START_SEARCHING:
     yield r8                    # clobber r8
     # uint32_t left_bitfield_check = ray->check_left & (1 << ray->ray_depth) | node->left_child == 0;
@@ -448,6 +448,7 @@ START_SEARCHING:
     and r4, r4, 0
     add r4, r4, 1                   # r4 = 1
     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
+    add r2, r0, 44                  # r2 = &node->left_child
     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
     lhu r6, r1, 24                  # r6 = node->left_child
     and r7, r7, 0
@@ -456,6 +457,7 @@ START_SEARCHING:
     and r6, r6, 0                   # left_child != null => contribute 0
     beq r15, r15, LEFT_BITFIELD_DONE, true
 LEFT_CHILD_NULL:
+    and r6, r6, 0
     add r6, r6, 1                   # left_child == null => contribute 1 (forces visited)
 LEFT_BITFIELD_DONE:
     or r4, r4, r6                   # r4 = left_bitfield_check
@@ -466,12 +468,13 @@ LEFT_BITFIELD_DONE:
     add r9, r9, 1
     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
-    lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 25)
+    lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 26)
     beq r6, r7, RIGHT_CHILD_NULL, true
     and r6, r6, 0
     beq r15, r15, RIGHT_BITFIELD_DONE, true
 RIGHT_CHILD_NULL:
-    add r6, r6, 1                   # right_child == null => contribute 1 (forces visited)
+    and r6, r6, 0
+    add r6, r6, 0x1                   # right_child == null => contribute 1 (forces visited)
 RIGHT_BITFIELD_DONE:
     or r9, r9, r6                   # r9 = right_bitfield_check    
 
@@ -481,10 +484,11 @@ RIGHT_BITFIELD_DONE:
     beq r6, r7, CHECK_BOTH_ZERO, true   # if r6 == 0, neither both set - check other cases
 
     # uint32_t bitfield = *(ray.check_left + node->is_right * 4);
-    lbu r6, r1, 32                  # r6 = node->is_right
-    sll r6, r6, 2                   # r6 = node->is_right * 4
-    add r6, r0, r6                  # r6 = &ray.check_left + is_right*4
-    lw r8, r6, 44                    # r8 = bitfield
+    lbu r7, r1, 30                  # r6 = node->is_right
+    sll r7, r7, 2                   # r6 = node->is_right * 4
+    add r6, r0, 44                  # r6 = ray.check_left
+    add r6, r7, r6                  # r6 = &ray.check_left + is_right*4
+    lw r8, r6, 0                    # r8 = bitfield
 
 
     # uint32_t or_value = 1 << (ray->ray_depth - 1);
@@ -498,13 +502,14 @@ RIGHT_BITFIELD_DONE:
     or r8, r8, r10
     sw r8, r6, 0                    # *(ray.check_left + is_right*4) = bitfield
 
+    and r7, r7, 0
     # ray->ray_depth--;
     lbu r5, r0, 62
     add r5, r5, -1
     sb r5, r0, 62
 
     # if (node->parent == 0) goto send_ray_up;
-    lhu r1, r1, 28                  # r6 = node->parent
+    lhu r6, r1, 28                  # r6 = node->parent
     beq r6, r7, SEND_RAY_UP, true  # r7 = 0
     beq r15, r15, START_SEARCHING, true
     
@@ -535,28 +540,17 @@ IS_INTERNAL_NODE:
 #TODO NEED TO ADDRESS WHEN CORE ID == 0xFFFF!!!
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
 SEND_RAY_UP:
-    add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
-
-    # atomic_add(ray_send_pending_addr, 1)
-    atomadd r15, r8, 1               # r9 = clobber
-
     # standalone slot sentinel init
     # slot = 0xFFFFFFFF  //NEEDS FIX HERE! confirm r4 vs r13 as slot register
-    or r4, r4, 0xFFFF
+    and r4, r4, 0
+    add r4, r4, -1
     # uint32_t sent = 0;
     and r3, r3, 0                   # r3 = sent = 0
 
-    # disable_interrupts(32)  -- leaf core uses only mailbox 32 for interrupts
-    intdis 32
-    lhu r11, r1, 28
-    add r10, r7, 32
-    or r13, r13, 0xFFFF
-    bne r11, r13, SKIP_ADDING_ONE_TO_BRANCH_CORE_MAILBOX, true
-    # uint32_t request_word = (node->node_id << 17) | self.thread_id;
-    add r10, r10, 1
-SKIP_ADDING_ONE_TO_BRANCH_CORE_MAILBOX:
+    lw r6, r1, 63
     sll r6, r6, 17
-    or r6, r6, r15                # r12 = request_word
+    and r7, r15, 0xF               # r7 = thread_id
+    or r6, r6, r7                # r12 = request_word
 
     # send_packet(request_word, node->core_owner, 32);
     lhu r9, r1, 30                  # r6 = node->core_owner
@@ -877,7 +871,7 @@ IS_LEAF_NODE:
     lbu r12, r0, 62
     add r13, r7, 1
     add r12, r12, -1
-    sw r12, r0, 62
+    sb  r12, r0, 62
     sll r13, r13, r12
     or r11, r13, r11
     sw r11, r10, 44
@@ -909,11 +903,11 @@ AABB_MISS:
     lbu r12, r0, 62
     add r13, r7, 1
     add r12, r12, -1
-    sw r12, r0, 62
+    sb r12, r0, 62
     sll r13, r13, r12
     or r11, r13, r11
     sw r11, r10, 44
-    lhu r1, r1, 28
+    lhu r1, r1, 28  
     beq r15, r15, START_SEARCHING, true
     
 TRAVERSE_LEFT_OR_RIGHT:
@@ -933,7 +927,7 @@ TRAVERSE_LEFT_OR_RIGHT:
     add r12, r12, 2
 SKIP_LEFT_BITFIELD_INCREMENT:
     add r1, r1, r12
-    lhu r1, r1, 24
+    lhu r1, r1, 24          # Go left or right
     lbu r10, r0, 62
     add r10, r10, 1
     sb r10, r0, 62
