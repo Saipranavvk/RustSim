@@ -540,6 +540,10 @@ IS_INTERNAL_NODE:
 #TODO NEED TO ADDRESS WHEN CORE ID == 0xFFFF!!!
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
 SEND_RAY_UP:
+    add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
+    # atomic_add(ray_send_pending_addr, 1)
+    atomadd r15, r8, 1               # r9 = clobber
+
     # standalone slot sentinel init
     # slot = 0xFFFFFFFF  //NEEDS FIX HERE! confirm r4 vs r13 as slot register
     and r4, r4, 0
@@ -547,16 +551,17 @@ SEND_RAY_UP:
     # uint32_t sent = 0;
     and r3, r3, 0                   # r3 = sent = 0
 
-    lw r6, r1, 63
+    # disable_interrupts(32)  -- leaf core uses only mailbox 32 for interrupts
+    lw r6, r1, 44                  # r6 = node->node_id
     sll r6, r6, 17
-    and r7, r15, 0xF               # r7 = thread_id
-    or r6, r6, r7                # r12 = request_word
+    and r3, r15, 0xF
+    or r6, r6, r3                # r12 = request_word
+    and r3, r3, 0
 
     # send_packet(request_word, node->core_owner, 32);
     lhu r9, r1, 30                  # r6 = node->core_owner
     sll r9, r9, 6
-    add r9, r9, r10
-    sendflit r6, r9            # TODO confirm notation w/ Alex
+    sendflit r6, r9, 32            # TODO confirm notation w/ Alex
 send_ray_loop:
     # uint32_t msg_available = nb_recv(self.thread_id + 16);
     and r10, r15, 0xF               # r10 = thread_id
