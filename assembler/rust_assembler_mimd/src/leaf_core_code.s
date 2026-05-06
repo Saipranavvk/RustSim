@@ -537,6 +537,10 @@ IS_INTERNAL_NODE:
     lw r6, r1, 44                  # r6 = node->node_id 
     or r9, r9, 0xFFFF
     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
+    lhu r6, r1, 34
+    beq r6, r9, REJECT_PATH, false
+
+
 #TODO NEED TO ADDRESS WHEN CORE ID == 0xFFFF!!!
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
 SEND_RAY_UP:
@@ -554,15 +558,14 @@ SEND_RAY_UP:
     # disable_interrupts(32)  -- leaf core uses only mailbox 32 for interrupts
     lw r6, r1, 44                  # r6 = node->node_id
     sll r6, r6, 17
-    and r3, r15, 0xF
-    or r6, r6, r3                # r12 = request_word
+    or r6, r6, r15                # r12 = request_word
     and r3, r3, 0
 
     # send_packet(request_word, node->core_owner, 32);
-    lhu r9, r1, 30                  # r6 = node->core_owner
-    sll r9, r9, 6
+    lhu r9, r1, 34                  # r6 = node->core_owner
     sendflit r6, r9, 32            # TODO confirm notation w/ Alex
 send_ray_loop:
+    switchctx
     # uint32_t msg_available = nb_recv(self.thread_id + 16);
     and r10, r15, 0xF               # r10 = thread_id
     add r11, r10, 16                # r11 = thread_id + 16 (shallow mailbox)
