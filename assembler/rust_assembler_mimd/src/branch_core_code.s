@@ -2487,7 +2487,7 @@ SEARCH_DONE:
     block r9, r9                        # r9 = will_accept_change = blocking_recv(16 + self.thread_id)
     srl r11, r9, 24                     # r11 = will_accept_change >> 24 (response code)
     add r10, r14, 14                    # r10 = REJECT_CHANGE = 14
-    bne r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
+    beq r11, r10, ray_done, false      # if response == REJECT_CHANGE goto RAY_DONE
     add r10, r14, 1                     # r10 = 1
     sendflit r10, r8, 0                # send_flit(1, found_core_id, 0) (acknowledge transfer)
     and r11, r9, 1                      # r11 = will_accept_change & 1 (target core type: 0=leaf, 1=branch)
