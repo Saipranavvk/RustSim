@@ -1069,9 +1069,10 @@ RAY_UPDATE_LOOP:
 RAY_UPDATE_LOOP_DONE:
     and r7, r7, 0
     # *(ray_src - 1) = 0;
-    add r10, r10, -4 # <- I think??
+    sb r7, r10, -1
     # ray->leaf_node_starting_point = self.branch_local_leaf_index;
     lw r8, BRANCH_LOCAL_LEAF_INDEX # TODO Alex what
+    sw r8, r0, 40
     # ray->active_ray = 1;
     add r7, r7, 1
     sb r7, r0, 63           # ray->active_ray = 1 (r7=0)
@@ -1625,7 +1626,7 @@ RECIPROCAL:
     xor r11, r11, 0xFFFF                # r11 = 0x7FFFFFFF
     and r11, r11, r9                    # r11 = |x|
     srl r13, r11, 23                    # r13 = exp (from |x|, NO sign pollution)
-    sub r13, r13, 253                   # r13 = 253 - exp = new_exp
+    sub r13, r13, 254                   # r13 = 253 - exp = new_exp
     srl r9, r11, 10                     # r9 = |x| >> 10 (from |x|, NO sign pollution)
     and r9, r9, 0x1FFC                  # 11-bit mantissa index, byte-aligned
     lw r14, DIV_TABLE_HIGH
