@@ -17,8 +17,8 @@ pub const DRAM_LATENCY_CLOSE: u64 = 6;
 pub const REGS_PER_CONTEXT: usize = 16;
 pub const SRAM_SIZE: usize = 48 * 1024;
 pub const NUM_NOC_PIPES: usize = 64;
-pub const HIGH_CAPACITY_NOC_PIPE_CNT: usize = 32;
-pub const HIGH_CAPACITY_PIPE_SLOTS: usize = 4;
+pub const HIGH_CAPACITY_NOC_PIPE_CNT: usize = 16;
+pub const HIGH_CAPACITY_PIPE_SLOTS: usize = 16;
 pub const OUTPUT_NOC_FIFO_CAPACITY: usize = 1;
 pub const PRIORITIZE_X: bool = false;
 pub const CORES_IN_X: u16 = 32;
@@ -1236,8 +1236,8 @@ impl Core {
     /// Drain one flit (if any) from output_noc_send onto the appropriate outbound NOC.
     fn cycle_output_send(&mut self) {
         // Peek to learn destination + mailbox without committing to pop.
-        let (dest_x, dest_y, mailbox) = match self.output_noc_send.peek() {
-            Some(f) => (f.destination_x, f.destination_y, f.mailbox_id),
+        let (dest_x, dest_y, mailbox, val, orig_x, orig_y) = match self.output_noc_send.peek() {
+            Some(f) => (f.destination_x, f.destination_y, f.mailbox_id, f.value_to_send, f.origin_x, f.origin_y),
             None => return,
         };
 
@@ -1271,7 +1271,7 @@ impl Core {
     /// either delivering it locally or forwarding it onward.
     fn cycle_inbound(&mut self, from: Direction) {
         // Peek: capture fields and check arrival cycle, then release the borrow.
-        let (dest_x, dest_y, mailbox, ready) = {
+        let (dest_x, dest_y, mailbox, ready, val, orig_x, orig_y) = {
             let noc_opt = match from {
                 Direction::Right => self.right_noc.as_mut(),
                 Direction::Left  => self.left_noc.as_mut(),
@@ -1281,9 +1281,15 @@ impl Core {
             let Some(noc) = noc_opt else { return; };
             if noc.eater.is_empty() { return; }
             let Some(f) = noc.eater.peek() else { return; };
-            (f.destination_x, f.destination_y, f.mailbox_id, f.cycle_to_read <= self.cycle)
+            (f.destination_x, f.destination_y, f.mailbox_id, f.cycle_to_read <= self.cycle, f.value_to_send, f.origin_x, f.origin_y)
         };
+        if orig_x == 27 && orig_y == 34 && mailbox == 0 {
+            println!("flit processing at {}, {} going to {}, {}, orig {}, {}", self.core_id / 128, self.core_id % 128, dest_x, dest_y, orig_x, orig_y);
+        }
         if !ready {
+            if orig_x == 27 && orig_y == 34 && mailbox == 0 {
+                println!("flit BLOCKED at {}, {} going to {}, {}", self.core_id / 128, self.core_id % 128, dest_x, dest_y);
+            }
             return;
         }
 
@@ -2318,7 +2324,7 @@ impl Core {
                             if self.pc[self.context_in_progress] == 0x1514 {
                                 println!("NODE_ID EXAMINED: {}", value);
                             }
-                            if 0x05F0 == self.pc[self.context_in_progress] {
+                            if 0x1288 == self.pc[self.context_in_progress] {
                                 let base =  self.register_file
                                         [self.context_in_progress * REGS_PER_CONTEXT + 1]
                                         as u16;
@@ -3468,7 +3474,7 @@ impl Core {
                                     .abs() as usize;
                         if self.output_noc_send.is_full_for(outgoing_flit.mailbox_id) {
                             switch_ctx = true;
-                            println!("Core {} at context {} is trying to send a flit but the output buffer is full. Flit destination: ({}, {}), Mailbox: {}, Value: {}, Cycle: {}", self.core_id, self.context_in_progress, outgoing_flit.destination_x, outgoing_flit.destination_y, outgoing_flit.mailbox_id, outgoing_flit.value_to_send, self.cycle);
+                            // println!("Core {} at context {} is trying to send a flit but the output buffer is full. Flit destination: ({}, {}), Mailbox: {}, Value: {}, Cycle: {}", self.core_id, self.context_in_progress, outgoing_flit.destination_x, outgoing_flit.destination_y, outgoing_flit.mailbox_id, outgoing_flit.value_to_send, self.cycle);
                         } else {
                             let _ = self.output_noc_send.push(outgoing_flit.clone());
                             self.pc[self.context_in_progress] += 4;

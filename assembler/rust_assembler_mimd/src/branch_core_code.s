@@ -817,11 +817,10 @@ CHECK_INTERRUPT_MAILBOX:
     srl r8, r12, 17                 # r8 = supposed_node_id (message >> 17)
     lw r9, ROOT_NODE_ID             # r9 = self.root_node_id
     bne r8, r9, WRONG_CORE_SEND, true   # node mismatch -> wrong core
-
-    add r8, r14, LOCAL_RAY_QUEUE              # r8 = self.local_queue
-    add r8, r8, 8                   # r8 = skip head and tail
-    and r9, r10, 1                  # r9 = thread_id & 1
     and r11, r11, 0
+    add r8, r11, LOCAL_RAY_QUEUE              # r8 = self.local_queue
+    add r8, r8, 8                   # r8 = skip head and tail
+    and r9, r15, 1                  # r9 = thread_id & 1
     add r11, r11, 1036              # r11 = 1036
     mul r9, r9, r11                 # r9 = odd_thread * 1036
     add r8, r8, r9                  # r8 = &local_queue for this thread parity
@@ -1941,7 +1940,7 @@ WAIT_FOR_SLOT_0_TO_OPEN:
     add r13, r11, r9                    # r13 = slot_base for slot 1
 WAIT_FOR_SLOT_1_TO_OPEN:
     switchctx
-    lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+    lbu_d r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
     bne r14, r11, WAIT_FOR_SLOT_1_TO_OPEN, false  # while (slot[31] != 0) spin
     # store shadow ray 1 (light 1)
     sw_d r4, r13, 0                     # store_dram_word(slot_base, hit_x)
@@ -1973,7 +1972,7 @@ WAIT_FOR_SLOT_1_TO_OPEN:
     and r9, r9, r13                     # r9 = tail & mask
     add r13, r11, r9                    # r13 = slot_base for slot 2
 WAIT_FOR_SLOT_2_TO_OPEN:
-    lbu r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
+    lbu_d r11, r13, 31                    # r11 = load_dram_byte(slot_base + 31)
     bne r14, r11, WAIT_FOR_SLOT_2_TO_OPEN, false  # spin until slot empty
     # store shadow ray 2 (light 2)
     sw_d r4, r13, 0                     # store hit_x
@@ -2257,13 +2256,13 @@ reject_ray_interrupt:
 NODE_IDS_MATCH:
     lw r7, LOCAL_QUEUE_FLUSHING             # r7 = *(self.local_queue_flushing)
     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
-    lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
-    add r9, r0, 0                           # r9 = local_queue = ray base address
-    beq r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+    lbu r9, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
+    add r7, r0, 0                           # r9 = local_queue = ray base address
+    beq r14, r9, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
     lw r10, ROOT_NODE_ID             # r10 = sender node id
     beq r13, r10, SENDER_QUEUE_EAT_RAY_INTERRUPT, true  # if node_id == sender goto SENDER_QUEUE
     add r9, r14, LOCAL_RAY_QUEUE              # r9 = receiver ray queue base address
-    add r9, r9, 524
+    add r9, r9, 1036
     beq r15, r15, CHECK_IF_SPACE_IN_QUEUE, true  # unconditional goto CHECK_IF_SPACE_IN_QUEUE
 SENDER_QUEUE_EAT_RAY_INTERRUPT: 
     add r9, r14, LOCAL_RAY_QUEUE                # r9 = sender ray queue base address
@@ -2277,7 +2276,7 @@ CHECK_IF_SPACE_IN_QUEUE:
     sll r7, r7, 24                          # r7 = reject_ray << 24
     srl r9, r8, 4                       # r9 = core_id high nibble
     sll r9, r9, 19
-    sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+    srl r9, r9, 13                           # r9 = high nibble shifted to channel position
     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
     or r9, r9, r8                           # r9 = destination flit
