@@ -528,7 +528,7 @@ AABB_INTERSECT_RETURN:
     beq r11, r7, AABB_MISS, true
 
     # if (node->tri_count == 0) <- ASSUME RAY -> TRI_INDEX
-    lbu r6, r1, 31                  # TODO confirm offset
+    lbu r6, r1, 31                 
     bne r6, r7, IS_LEAF_NODE, true
 
 IS_INTERNAL_NODE:
@@ -537,15 +537,17 @@ IS_INTERNAL_NODE:
     add r5, r5, 1
     sb r5, r0, 62
 
-    # if (node->core_owner != 0xFFFF)
+    # if (node->node_id != 0xFFFF)
     lw r6, r1, 44                  # r6 = node->node_id 
     or r9, r9, 0xFFFF
     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
+    lw r6, ROOT_NODE_ID
+    beq r6, r9, TRAVERSE_OWN_CHILD, true
     lh r6, r1, 34
     beq r6, r9, REJECT_PATH, false
 
 
-#TODO NEED TO ADDRESS WHEN CORE ID == 0xFFFF!!!
+#TODO NEED TO ADDRESS WHEN CORE ID == 0xFFFF!!!  I THINK TAKEN CARE OF NOW BY 553-554
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
 SEND_RAY_UP:
     add r8, r7, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
