@@ -448,7 +448,7 @@ START_SEARCHING:
     and r4, r4, 0
     add r4, r4, 1                   # r4 = 1
     sll r4, r4, r5                  # r4 = 1 << ray->ray_depth
-    add r2, r0, 44                  # r2 = &node->left_child
+    lw r2, r0, 44                  # r2 = ray->check_left 
     and r4, r4, r2                  # r4 = ray->check_left & (1 << ray->ray_depth)
     lhu r6, r1, 24                  # r6 = node->left_child
     and r7, r7, 0
@@ -467,6 +467,7 @@ LEFT_BITFIELD_DONE:
     and r9, r9, 0
     add r9, r9, 1
     sll r9, r9, r5                  # r9 = 1 << ray->ray_depth
+    lw r3, r0, 48                   
     and r9, r9, r3                  # r9 = ray->check_right & (1 << ray->ray_depth)
     lhu r6, r1, 26                  # r6 = node->right_child (uint16 at offset 26)
     beq r6, r7, RIGHT_CHILD_NULL, true
@@ -511,6 +512,9 @@ RIGHT_BITFIELD_DONE:
     # if (node->parent == 0) goto send_ray_up;
     lhu r6, r1, 28                  # r6 = node->parent
     beq r6, r7, SEND_RAY_UP, true  # r7 = 0
+
+    lhu r1, r1, 28  #node = node->parent;
+
     beq r15, r15, START_SEARCHING, true
     
 CHECK_BOTH_ZERO:
@@ -703,13 +707,13 @@ SKIP_UNDO_LOCK:
     getclk r11                      # r11 = clock
     srl r12, r15, 4                 # r12 = core_id
     xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
-    lhu r13, r1, 38                 # r13 = node->prev_index
+    lhu r13, r1, 42                 # r13 = node->prev_index
     bne r12, r13, SKIP_BUMP, true    # if idx == prev_idx, bump to avoid repeat
 BUMP_IDX:
     add r12, r12, 1                 # r12 = idx + 1
 SKIP_BUMP:
     mod r12, r12, r10               # r12 = idx % core_owner_count
-    sh r12, r1, 38                  # node->prev_index = idx
+    sh r12, r1, 42                  # node->prev_index = idx
     sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
     add r9, r9, r12                 # r9 = &core_slots[idx]
     lh_d r10, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
@@ -1751,7 +1755,7 @@ NODE_IDS_MATCH:
     bne r14, r7, reject_ray_interrupt, false # if flushing_queue != 0 goto reject_ray_interrupt
     lbu r7, r0, 63                          # r7 = ray->active_ray (byte at ray+63)
     add r9, r0, 0                           # r9 = local_queue = ray base address
-    bne r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
+    beq r14, r7, RECEIVE_RAY_DATA, false   # if ray slot is empty (active_ray == 0) goto RECEIVE_RAY_DATA
     add r9, r14, RAY_QUEUE_CNT                # r9 = sender ray queue base address
     atomadd r7, r9, 1                       # r7 = old_count = atomic_add(&queue.count, 1)
     add r12, r14, 16                        # r12 = 16 (max queue entries)
