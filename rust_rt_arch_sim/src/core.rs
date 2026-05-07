@@ -974,9 +974,10 @@ impl Core {
     pub fn read_sram_half_unsigned(&self, address: &u16) -> u32 {
         assert!(
             *address & 0x1 == 0,
-            "UNSIGNED HALF NOT ALIGNED! at PC 0x{:08X} on core {}",
+            "UNSIGNED HALF NOT ALIGNED! at PC 0x{:08X} on core {} and context {}",
             self.pc[self.context_in_progress],
-            self.core_id
+            self.core_id,
+            self.context_in_progress
         );
         let index_low = *address as usize;
         let index_high = index_low + 1;
@@ -1779,7 +1780,7 @@ impl Core {
                     switch_ctx = true;
                 }
             }
-            if let Operation::Div = instruction_to_execute.operation {
+            if let Operation::Div | Operation::Mod = instruction_to_execute.operation {
                 if !self.div_seq.is_empty() {
                     // println!("DIV BUSY RN BBY");
                     switch_ctx = true;
@@ -2014,6 +2015,7 @@ impl Core {
                         };
                         if self.div_seq.is_full() {
                             switch_ctx = true;
+                            println!("DIV BUSY RN @ Core {}, context {}", self.core_id, self.context_in_progress);
                         } else {
                             let _ = self.div_seq.push(div_pipe_stage);
                             self.pc[self.context_in_progress] += 4;
@@ -2038,6 +2040,7 @@ impl Core {
                         };
                         if self.div_seq.is_full() {
                             switch_ctx = true;
+                            println!("MOD BUSY RN @ Core {}, context {}", self.core_id, self.context_in_progress);
                         } else {
                             let _ = self.div_seq.push(div_pipe_stage);
                             self.pc[self.context_in_progress] += 4;
@@ -2950,6 +2953,7 @@ impl Core {
                             self.register_file[self.context_in_progress * REGS_PER_CONTEXT
                                 + instruction_to_execute.dr] = val;
                             self.pc[self.context_in_progress] += 4;
+                            println!("Core {} at context {} is clearing interrupt from mailbox pipe {}", self.core_id, self.context_in_progress ,fifo_idx);
                         } else {
                             switch_ctx = true;
                         }
@@ -2969,6 +2973,18 @@ impl Core {
                             + instruction_to_execute.dr] = fill as u32;
 
                         self.pc[self.context_in_progress] += 4;
+
+                        // Info about mailbox being checked
+                        if DEBUG
+                            && (core_in_list || cores_to_monitor.len() == 0)
+                            && (*context_to_monitor == self.context_in_progress as i32
+                                || *context_to_monitor < 0)
+                        {
+                            println!(
+                                "Core {} at context {} is checking mailbox pipe {} - fill level is {}",
+                                self.core_id, self.context_in_progress, fifo_idx, fill
+                            );
+                        }
                     }
                     Operation::Yield => {
                         switch_ctx = true;
@@ -3409,6 +3425,7 @@ impl Core {
                             dram_address,
                             self.core_id
                         );
+
                         let value_to_store = self.register_file[self.context_in_progress
                             * REGS_PER_CONTEXT
                             + instruction_to_execute.dr];
@@ -3435,6 +3452,9 @@ impl Core {
                             dram[(dram_address % DRAM_STACK_SIZE) / 4] = value_to_store;
                         }
                         self.pc[self.context_in_progress] += 4;
+
+
+
                     }
                     Operation::StoreHalfDram => {
                         let dram_address = (if instruction_to_execute.imm_1 != 0 {
@@ -3542,6 +3562,10 @@ impl Core {
                         {
                             println!("Global Atomadd from {:0x}", dram_address);
                         }
+                        if dram_address == 168_000_000 {
+                            /* This DRAM address should be RAYS-COMPLETED, need to know info about what core completes it */
+                            println!("CORE {} COMPLETED A RAY! Context: {}, Cycle: {}", self.core_id, self.context_in_progress, self.cycle);
+                        }
                         let value_to_store = if instruction_to_execute.is_imm {
                             instruction_to_execute.imm_0
                         } else {
@@ -3625,6 +3649,13 @@ impl Core {
                             origin_x: self.x_dim,
                             origin_y: self.y_dim,
                         };
+                        /* Rejection Flits -> top 8 its of the 32 bit value isn't 5*/
+                        // if (mailbox_index as u16 == 33 || mailbox_index as u16 == 13 || mailbox_index as u16 == 29) {
+                        // if (value_to_send >> 24) & 7 != 5 {
+                        //     println!("Core {} at context {} is sending a flit with value {:08X} that will reject the incoming value from the receiver. Flit destination: ({}, {}), Mailbox: {}, Cycle: {}", self.core_id, self.context_in_progress, value_to_send, outgoing_flit.destination_x, outgoing_flit.destination_y, outgoing_flit.mailbox_id, self.cycle);
+                        // }
+                        // }
+
                         self.flits_sent += 1;
                         self.flit_sent_manhattan_distance_traversed +=
                             (outgoing_flit.origin_x as i64 - outgoing_flit.destination_x as i64)
@@ -3634,20 +3665,21 @@ impl Core {
                                     .abs() as usize;
                         if self.output_noc_send.is_full() {
                             switch_ctx = true;
+                            println!("Core {} at context {} is trying to send a flit but the output buffer is full. Flit destination: ({}, {}), Mailbox: {}, Value: {}, Cycle: {}", self.core_id, self.context_in_progress, outgoing_flit.destination_x, outgoing_flit.destination_y, outgoing_flit.mailbox_id, outgoing_flit.value_to_send, self.cycle);
                         } else {
                             let _ = self.output_noc_send.push(outgoing_flit.clone());
                             self.pc[self.context_in_progress] += 4;
                         }
-                        if DEBUG
-                            && (core_in_list || cores_to_monitor.len() == 0)
-                            && (*context_to_monitor == self.context_in_progress as i32
-                                || *context_to_monitor < 0)
-                        {
-                            println!("SENT FLIT: CORE: {}, VALUE: {}, MAILBOX: {}", 
-                                outgoing_flit.destination_x + outgoing_flit.destination_y * (CORES_IN_X * CORES_IN_X_STACK), 
-                                outgoing_flit.value_to_send, outgoing_flit.mailbox_id
-                            );
-                        }
+                        // if DEBUG
+                        //     && (core_in_list || cores_to_monitor.len() == 0)
+                        //     && (*context_to_monitor == self.context_in_progress as i32
+                        //         || *context_to_monitor < 0)
+                        // {
+                            // println!("SENT FLIT: CORE: {}, VALUE: {}, MAILBOX: {}", 
+                            //     outgoing_flit.destination_x + outgoing_flit.destination_y * (CORES_IN_X * CORES_IN_X_STACK), 
+                            //     outgoing_flit.value_to_send, outgoing_flit.mailbox_id
+                            // );
+                        // }
 
 
                     }
