@@ -10,3 +10,10 @@ scene.txt
 assembler/rust_assembler_mimd/src/initialize_core.txt
 assembler/rust_assembler_mimd/src/branch_core_code.txt
 assembler/rust_assembler_mimd/src/leaf_core_code.txt
+bvh_assembler/bvh2.txt
+rust_rt_arch_sim/src/backup_run.log
+rust_rt_arch_sim/src/bvh_leaves.txt
+rust_rt_arch_sim/src/bvh_nodes.txt
+rust_rt_arch_sim/src/bvh_triangles.txt
+rust_rt_arch_sim/src/run.log
+rust_rt_arch_sim/src/auto_gen_code.rs
