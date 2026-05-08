@@ -357,18 +357,18 @@ HAVE_READER_LOCK_CORE_CNT:
     lw_d r9, r9, 4
     add r10, r14, 1
     beq r9, r10, REJECT_CHANGE, false
+    # place to remove lock 
+    lw r9, RAY_QUEUE_LOW
+    add r9, r9, 20
+    atomadd_d r10, r9, -1 
 LEGAL_TO_SWITCH:
     add r9, r14, LOCAL_QUEUE_FLUSHING
     atomadd r15, r9, 1
     add r10, r14, 16 
 WAIT_FOR_FLUSH_READY:
-    # place to remove lock 
-    lw r9, RAY_QUEUE_LOW
-    add r9, r9, 20
-    atomadd_d r10, r9, -1 
     lw r9, LOCAL_QUEUE_FLUSHING
     switchctx
-    beq r10, r9, WAIT_FOR_FLUSH_READY, true
+    bne r10, r9, WAIT_FOR_FLUSH_READY, true
     add r10, r7, 0                      # r10 = switch_core_request
     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
@@ -551,7 +551,7 @@ IS_INTERNAL_NODE:
     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
     lw r6, ROOT_NODE_ID
     beq r6, r9, TRAVERSE_OWN_CHILD, true
-    lh r6, r1, 34
+    lhu r6, r1, 34
     beq r6, r9, REJECT_PATH, false
 
 
@@ -601,6 +601,7 @@ send_ray_loop:
     sll r9, r9, 19
     srl r9, r9, 13    
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+    add r11, r11, 16
     or r9, r9, r11                  # r13 = ray base ptr
 
     lw r7, r0, 0
@@ -651,7 +652,7 @@ ENSURE_SPACE_IN_QUEUE:
     add r9, r9, 8
     atomadd_d r10, r9, 1               # r10 = cur_ray_count (count field is -12 from here)
     add r11, r7, 255               # r11 = 255
-    bgt r10, r11, THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE, true   # spin while count > 255
+    blte r10, r11, THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE, true   # spin while count > 255
     atomadd_d r15, r9, -1
     beq r15, r15, ENSURE_SPACE_IN_QUEUE, true
 THERE_EXISTS_SPACE_IN_DRAM_RAY_QUEUE:
@@ -716,25 +717,27 @@ SKIP_UNDO_LOCK:
     # pick owner round-robin: idx = (core_id ^ clock) % core_owner_count
     getclk r11                      # r11 = clock
     srl r12, r15, 4                 # r12 = core_id
-    xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
-    lhu r13, r1, 42                 # r13 = node->prev_index
-    bne r12, r13, SKIP_BUMP, true    # if idx == prev_idx, bump to avoid repeat
+    #Adjusted because self was selected, so now cannot pick self
+    xor r13, r12, r11               # r12 = core_id ^ clock = raw idx
+    lhu r11, r1, 42                 # r13 = node->prev_index
+    bne r13, r11, SKIP_BUMP, true    # if idx == prev_idx, bump to avoid repeat
 BUMP_IDX:
-    add r12, r12, 1                 # r12 = idx + 1
+    add r13, r13, 1                 # r12 = idx + 1
 SKIP_BUMP:
-    mod r12, r12, r10               # r12 = idx % core_owner_count
-    sh r12, r1, 42                  # node->prev_index = idx
-    sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
-    add r9, r9, r12                 # r9 = &core_slots[idx]
-    lh_d r10, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
-    sh r10, r1, 34                  # node->core_owner = core_to_cache
+    mod r13, r13, r10               # r12 = idx % core_owner_count
+    sh r13, r1, 42                  # node->prev_index = idx
+    sll r13, r13, 1                 # r12 = idx * 2 (uint16 slots)
+    add r9, r9, r13                 # r9 = &core_slots[idx]
+    lh_d r11, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
+    beq r11, r12, NO_OWNER, true
+    sh r11, r1, 34                  # node->core_owner = core_to_cache
     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
 
 NO_OWNER:
     # node->core_owner = 0xFFFF
     and r11, r11, 0
     add r11, r11, 0xFFFF            # r11 = 0xFFFF
-    sh r11, r1, 32                  # node->core_owner = 0xFFFF
+    sh r11, r1, 34                  # node->core_owner = 0xFFFF
 
     # if (cur_ray_count > 200) -> emergency queue insertion
     lw r9, r1, 36                   # r9 = queue_low_bit_addr (reload)
@@ -829,6 +832,8 @@ CHECK_DATA_MAILBOX:
     add r11, r7, 1
     sb r11, r4, 63
     lw r1, ROOT_NODE_ADDRESS
+    and r4, r4, 0
+    add r4, r4, -1
 CHECK_INTERRUPT_MAILBOX:
     nonblock r11, 32
     beq r11, r7, SKIP_INTERRUPT_MAILBOX, true
@@ -838,10 +843,12 @@ CHECK_INTERRUPT_MAILBOX:
     beq r12, r6, CORRECT_NODE_ID, true
 SEND_REJECT_RAY_MSG:
     add r12, r7, 8
+    sll r12, r12, 24 
     srl r13, r11, 4
     sll r13, r13, 19
     srl r13, r13, 13
     and r11, r11, 0xF
+    add r11, r11, 16
     or r13, r13, r11
     sendflit r12, r13
     beq r15, r15, SKIP_INTERRUPT_MAILBOX, true
@@ -865,12 +872,15 @@ SPACE_IN_QUEUE_RAY_SEND:
     add r4, r10, 8
 SEND_ACK_PACKET:
     add r12, r7, 5
+    sll r12, r12, 24
+    or r12, r12, r15
     srl r13, r11, 4
     sll r13, r13, 19
     srl r13, r13, 13
     and r11, r11, 0xF
+    add r11, r11, 16
     or r13, r13, r11
-    or r12, r12, r15
+    #or r12, r12, r15
     sendflit r12, r13
 SKIP_INTERRUPT_MAILBOX:
     or r12, r12, 0xFFFF
@@ -1774,8 +1784,9 @@ NODE_IDS_MATCH:
     atomadd r7, r9, -1                      # revert: atomic_add(&queue.count, -1)
     add r7, r14, 7                          # r7 = reject_ray = 7 (reject code)
     sll r7, r7, 24                          # r7 = reject_ray << 24
-    and r9, r8, 0xF0                        # r9 = core_id high nibble
-    sll r9, r9, 2                           # r9 = high nibble shifted to channel position
+    srl r9, r8, 4 # was and r9, r8, 0xF0    # r9 = core_id high nibble
+    sll r9, r9, 19                          # r9 = high nibble shifted to channel position
+    srl r9, r9, 13
     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
     or r9, r9, r8                           # r9 = destination flit
@@ -1792,8 +1803,10 @@ RECEIVE_RAY_DATA:
     add r9, r14, 5                          # r9 = ray_ack = 5 (ack code)
     sll r9, r9, 24                          # r9 = ray_ack << 24
     or r9, r9, r15                          # r9 = ray_ack << 24 | self (thread_id in low bits)
-    and r10, r8, 0xF0                       # r10 = core_id high nibble
-    sll r10, r10, 2                         # r10 = high nibble shifted to channel position
+    srl r10, r8, 4
+    #and r10, r8, 0xF0                       # r10 = core_id high nibble
+    sll r10, r10, 19                         # r10 = high nibble shifted to channel position
+    srl r10, r10, 13
     and r8, r8, 0xF                         # r8 = core_id low nibble (thread_id)
     add r8, r8, 16                          # r8 = thread_id + 16 (send channel)
     or r10, r10, r8                         # r10 = destination flit
@@ -2111,7 +2124,7 @@ queue_loop_1_done:
     sw r14, LOCAL_QUEUE_FLUSHING
 
     # *(self.tile_data_sram + 4) = 0;
-    lw r1, TILE_DATA_COUNT
+    add r1, r14, TILE_DATA_COUNT
     sw r14, r1, 4
     sw r14, r1, 0
 

@@ -22,6 +22,7 @@ SWITCH_DRAM_QUEUE:
     lw r12, NODE_ID_TABLE_HIGH
     setmembits r12
     lw r12, NODE_ID_TABLE_LOW
+    lw r11, CORE_ID_TO_SWITCH_TO
     sll r11, r11, 2
     add r12, r12, r11
     lw_d r9, r12, 0
@@ -362,18 +363,18 @@ HAVE_READER_LOCK_CORE_CNT:
     lw_d r9, r9, 4
     add r10, r14, 1
     beq r9, r10, REJECT_CHANGE, false
+    # place to remove lock 
+    lw r9, RAY_QUEUE_LOW
+    add r9, r9, 20
+    atomadd_d r10, r9, -1 
 LEGAL_TO_SWITCH:
     add r9, r14, LOCAL_QUEUE_FLUSHING
     atomadd r15, r9, 1
     add r10, r14, 16 
 WAIT_FOR_FLUSH_READY:
-    # place to remove lock NEED TO MAKE SURE REGISTERS
-    lw r9, RAY_QUEUE_LOW
-    add r9, r9, 20
-    atomadd_d r10, r9, -1 
     lw r9, LOCAL_QUEUE_FLUSHING
     switchctx
-    beq r10, r9, WAIT_FOR_FLUSH_READY, true
+    bne r10, r9, WAIT_FOR_FLUSH_READY, true
     add r10, r7, 0                      # r10 = switch_core_request
     add r11, r14, 13                    # r11 = ACCEPT_CHANGE = 13
     sll r11, r11, 24                     # r11 = ACCEPT_CHANGE << 24
@@ -585,6 +586,8 @@ IS_INTERNAL_NODE:
     lw r14, RAY_QUEUE_LOW
     beq r6, r14, TRAVERSE_OWN_CHILD, false
     and r14, r14, 0
+    and r13, r13, 0
+    add r13, r13, -1
     # uint16_t ray_send_pending_addr = self.ray_send_pending_addr;
     add r8, r14, RAY_SEND_PENDING_ADDR    # r8 = self.ray_send_pending_addr
 
@@ -629,12 +632,12 @@ SEND_RAY_LOOP:
     block r12, r11                  # r12 = msg
 
     # uint32_t header = msg >> 24;
-    srl r13, r12, 24                # r13 = header
+    srl r9, r12, 24                # r13 = header
 
     # if (header == ack_ray)  -- ack_ray = 5
     and r11, r11, 0
     add r11, r11, 5                 # r11 = 5 (ack_ray)
-    bne r13, r11, REJECT_PATH, true
+    bne r9, r11, REJECT_PATH, true
 
     # ACK path: for (i = 0; i < 16; i++) send_packet(ray[i], core_owner, mailbox)
     lhu r6, r1, 30                  # r6 = node->core_owner
@@ -642,6 +645,7 @@ SEND_RAY_LOOP:
     sll r10, r10, 19
     srl r10, r10, 13
     and r11, r12, 0xF               # r11 = dest mailbox from ack msg low nibble
+    add r11, r11, 16
     or r10, r10, r11
     add r8, r0, 0                  # r13 = ray base ptr
     and r14, r14, 0                 # r14 = i = 0
@@ -670,7 +674,7 @@ ENSURE_SPACE_IN_QUEUE:
     add r8, r7, 255
     blte r10, r8, SPACE_IN_DRAM_QUEUE_FOR_SEND, true
     atomadd_d r15, r9, -1
-    bgt r15, r15, ENSURE_SPACE_IN_QUEUE, true   # spin while count > 255
+    beq r15, r15, ENSURE_SPACE_IN_QUEUE, true   # spin while count > 255
 SPACE_IN_DRAM_QUEUE_FOR_SEND:
     add r9, r9, -4                 # r9 = queue base (tail field)
     atomadd_d r10, r9, 64           # r10 = old tail, advance tail by 64 bytes
@@ -710,19 +714,22 @@ SKIP_UNDO_LOCK:
     # pick owner round-robin: idx = (core_id ^ clock) % core_owner_count
     getclk r11                      # r11 = clock
     srl r12, r15, 4                 # r12 = core_id
-    xor r12, r12, r11               # r12 = core_id ^ clock = raw idx
+    #Adjusted because self was selected, so now cannot pick self
+    xor r14, r12, r11               # r12 = core_id ^ clock = raw idx
     lhu r11, r1, 42                 # r13 = node->prev_index
-    beq r12, r11, BUMP_IDX, true    # if idx == prev_idx, bump to avoid repeat
-    beq r15, r15, SKIP_BUMP, true
+    bne r14, r11, SKIP_BUMP, true
+    #beq r12, r11, BUMP_IDX, true    # if idx == prev_idx, bump to avoid repeat
+    #beq r15, r15, SKIP_BUMP, true
 BUMP_IDX:
-    add r12, r12, 1                 # r12 = idx + 1
+    add r14, r14, 1                 # r12 = idx + 1
 SKIP_BUMP:
-    mod r12, r12, r10               # r12 = idx % core_owner_count
-    sh r12, r1, 42                  # node->prev_index = idx
-    sll r12, r12, 1                 # r12 = idx * 2 (uint16 slots)
-    add r9, r9, r12                 # r9 = &core_slots[idx]
-    lh_d r10, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
-    sh r10, r1, 30                  # node->core_owner = core_to_cache
+    mod r14, r14, r10               # r12 = idx % core_owner_count
+    sh r14, r1, 42                  # node->prev_index = idx
+    sll r14, r14, 1                 # r12 = idx * 2 (uint16 slots)
+    add r9, r9, r14                 # r9 = &core_slots[idx]
+    lh_d r11, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
+    beq r11, r12, NO_OWNER, true   #if picked self, fall back
+    sh r11, r1, 30                  # node->core_owner = core_to_cache
     beq r15, r15, SKIP_EMERGENCY_ENQUEUE, true
 
 NO_OWNER:
@@ -869,8 +876,8 @@ NO_FLUSH:
     and r9, r12, 0xF                # r9 = dest mailbox + 16
     add r9, r9, 16
     sll r11, r11, 6
-    or r11, r11, r14
-    sendflit r9, r11                # send reject
+    or r11, r11, r9   #was or r11, r11, r14
+    sendflit r14, r11   #was r9, r11              # send reject
     beq r15, r15, DONE_WITH_INTERRUPT, true
 
 WRONG_CORE_SEND:
@@ -2309,6 +2316,7 @@ RECEIVE_RAY_DATA:
     or r10, r10, r8                         # r10 = destination flit
     sendflit r9, r10                        # send_flit(ray_ack << 24 | self, dest) (signal ready to receive)
     and r8, r15, 0xF                        # r8 = self.thread_id (receive channel low bits)
+    add r8, r8, 16
     block r9, r8                            # r9  = ray_data[0]  = blocking_recv(channel)
     block r10, r8                           # r10 = ray_data[1]
     block r11, r8                           # r11 = ray_data[2]
