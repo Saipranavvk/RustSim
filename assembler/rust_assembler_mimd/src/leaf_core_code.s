@@ -551,7 +551,7 @@ IS_INTERNAL_NODE:
     beq r6, r9, TRAVERSE_OWN_CHILD, true   # owner == 0xFFFF means we own it
     lw r6, ROOT_NODE_ID
     beq r6, r9, TRAVERSE_OWN_CHILD, true
-    lhu r6, r1, 34
+    lh r6, r1, 34
     beq r6, r9, REJECT_PATH, false
 
 
