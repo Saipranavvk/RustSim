@@ -727,6 +727,7 @@ SKIP_BUMP:
     sh r14, r1, 42                  # node->prev_index = idx
     sll r14, r14, 1                 # r12 = idx * 2 (uint16 slots)
     add r9, r9, r14                 # r9 = &core_slots[idx]
+    and r14, r14, 0
     lh_d r11, r9, 8                # r10 = core_to_cache (core_slots at +28 from lock field)
     beq r11, r12, NO_OWNER, true   #if picked self, fall back
     sh r11, r1, 30                  # node->core_owner = core_to_cache
