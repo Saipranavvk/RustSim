@@ -5,8 +5,9 @@ use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ptr::{self, NonNull};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, AtomicU32, Ordering};
 use std::sync::mpsc::Sender;
+
 
 use crate::{CORES_IN_X_STACK, CoreLog, dram_read_word};
 
@@ -30,6 +31,10 @@ pub const NOC_FIFO_LATENCY: usize = 1;
 pub const DEBUG: bool = true;
 pub const NOC_UTIL_EPOCH_LEN: usize = 200;
 pub const CTX_CNT: usize = 16;
+
+pub const AABB_INTERSECT_START_RAW: u32 = 0x12B8_8417;
+pub const AABB_INTERSECT_RETURN_FALSE_RAW: u32 = 0x0540_FF93;
+pub const AABB_INTERSECT_RETURN_FALSE_ALT_RAW: u32 = 0x0540_5B93;
 struct Inner<T> {
     buffer: Box<[UnsafeCell<MaybeUninit<T>>]>,
     capacity: usize,
@@ -985,6 +990,20 @@ pub struct Core {
     flits_received: usize,
     flit_sent_manhattan_distance_traversed: usize,
     flit_received_manhattan_distance_traversed: usize,
+    aabb_instruction_count: usize,
+    triangle_instruction_count: usize,
+    aabb_cycle_count: u64,
+    triangle_cycle_count: u64,
+    aabb_intersect_section_active: [bool; CTX_CNT],
+    aabb_intersect_section_cycle_count: [u64; CTX_CNT],
+    aabb_intersect_section_total_cycles: [u64; CTX_CNT],
+    aabb_intersect_section_interval_count: [u64; CTX_CNT],
+    high_priority_noc_util: Vec<usize>,
+    high_priority_noc_congestion: Vec<usize>,
+    low_priority_noc_util: Vec<usize>,
+    low_priority_noc_congestion: Vec<usize>,
+    memory_operations_close: usize,
+    memory_operations_far: usize,
     ctx_ownership: i8,
     runnable: Vec<bool>,
     sram: [u8; SRAM_SIZE],
@@ -1082,6 +1101,20 @@ impl Core {
             flit_sent_manhattan_distance_traversed: 0,
             flits_received: 0,
             flit_received_manhattan_distance_traversed: 0,
+            aabb_instruction_count: 0,
+            triangle_instruction_count: 0,
+            aabb_cycle_count: 0,
+            triangle_cycle_count: 0,
+            aabb_intersect_section_active: [false; CTX_CNT],
+            aabb_intersect_section_cycle_count: [0u64; CTX_CNT],
+            aabb_intersect_section_total_cycles: [0u64; CTX_CNT],
+            aabb_intersect_section_interval_count: [0u64; CTX_CNT],
+            high_priority_noc_util: vec![],
+            high_priority_noc_congestion: vec![],
+            low_priority_noc_util: vec![],
+            low_priority_noc_congestion: vec![],
+            memory_operations_close: 0,
+            memory_operations_far: 0,
             up_noc_util: vec![],
             up_noc_congestion: vec![],
             down_noc_util: vec![],
@@ -1109,6 +1142,10 @@ impl Core {
             right_noc_congestion: self.right_noc_congestion.clone(),
             mailbox_congestion: self.mailbox_congestion.clone(),
             core_busy: self.core_busy.clone(),
+            high_priority_noc_util: self.high_priority_noc_util.clone(),
+            high_priority_noc_congestion: self.high_priority_noc_congestion.clone(),
+            low_priority_noc_util: self.low_priority_noc_util.clone(),
+            low_priority_noc_congestion: self.low_priority_noc_congestion.clone(),
 
             dram_bytes_read_close: self.dram_bytes_read_close,
             dram_bytes_read_far: self.dram_bytes_read_far,
@@ -1120,6 +1157,15 @@ impl Core {
             flit_sent_manhattan_distance_traversed: self.flit_sent_manhattan_distance_traversed,
             flit_received_manhattan_distance_traversed: self
                 .flit_received_manhattan_distance_traversed,
+
+            aabb_instruction_count: self.aabb_instruction_count,
+            triangle_instruction_count: self.triangle_instruction_count,
+            aabb_cycle_count: self.aabb_cycle_count,
+            triangle_cycle_count: self.triangle_cycle_count,
+            aabb_intersect_section_total_cycles: self.aabb_intersect_section_total_cycles,
+            aabb_intersect_section_interval_count: self.aabb_intersect_section_interval_count,
+            memory_operations_close: self.memory_operations_close,
+            memory_operations_far: self.memory_operations_far,
         }
     }
 
@@ -1197,6 +1243,42 @@ impl Core {
         self.mailbox_congestion[epoch] += 1;
     }
 
+    #[inline]
+    fn bump_high_priority_util(&mut self) {
+        let epoch = self.cycle as usize / NOC_UTIL_EPOCH_LEN;
+        while self.high_priority_noc_util.len() <= epoch {
+            self.high_priority_noc_util.push(0);
+        }
+        self.high_priority_noc_util[epoch] += 1;
+    }
+
+    #[inline]
+    fn bump_high_priority_congestion(&mut self) {
+        let epoch = self.cycle as usize / NOC_UTIL_EPOCH_LEN;
+        while self.high_priority_noc_congestion.len() <= epoch {
+            self.high_priority_noc_congestion.push(0);
+        }
+        self.high_priority_noc_congestion[epoch] += 1;
+    }
+
+    #[inline]
+    fn bump_low_priority_util(&mut self) {
+        let epoch = self.cycle as usize / NOC_UTIL_EPOCH_LEN;
+        while self.low_priority_noc_util.len() <= epoch {
+            self.low_priority_noc_util.push(0);
+        }
+        self.low_priority_noc_util[epoch] += 1;
+    }
+
+    #[inline]
+    fn bump_low_priority_congestion(&mut self) {
+        let epoch = self.cycle as usize / NOC_UTIL_EPOCH_LEN;
+        while self.low_priority_noc_congestion.len() <= epoch {
+            self.low_priority_noc_congestion.push(0);
+        }
+        self.low_priority_noc_congestion[epoch] += 1;
+    }
+
     /// Push `flit` into the outbound NOC in direction `dir`. Caller must have
     /// verified has_noc(dir) and !lane_full(dir, flit.mailbox_id).
     #[inline]
@@ -1258,11 +1340,21 @@ impl Core {
         // Lane full → tried but couldn't.
         if self.lane_full(dir, mailbox) {
             self.bump_congestion(dir);
+            if mailbox < 32 {
+                self.bump_high_priority_congestion();
+            } else {
+                self.bump_low_priority_congestion();
+            }
             return;
         }
 
         // Commit: util goes up, flit moves.
         self.bump_util(dir);
+        if mailbox < 32 {
+            self.bump_high_priority_util();
+        } else {
+            self.bump_low_priority_util();
+        }
         let flit = self.output_noc_send.pop().unwrap();
         self.forward_to(dir, flit);
     }
@@ -1483,6 +1575,8 @@ impl Core {
         dram: &mut Vec<u32>,
         cores_to_monitor: &Vec<u32>,
         context_to_monitor: &i32,
+        aabb_intersect_amount: Arc<AtomicU32>,
+        triangle_intersect_amount: Arc<AtomicU32>,
     ) {
         while self.fp_pipe.peek().is_some()
             && self.fp_pipe.peek().unwrap().cycle_to_read <= self.cycle
@@ -1599,6 +1693,13 @@ impl Core {
                 instruction_to_execute.pc == self.pc[self.context_in_progress],
                 "PC MISMATCH DURING EXECUTION"
             );
+
+            let raw_instruction = instruction_to_execute.raw_instruction;
+            let is_aabb_intersect_start = raw_instruction == AABB_INTERSECT_START_RAW;
+            let is_aabb_intersect_return = raw_instruction == AABB_INTERSECT_RETURN_FALSE_RAW
+                || raw_instruction == AABB_INTERSECT_RETURN_FALSE_ALT_RAW;
+            let was_in_aabb_intersect_section =
+                self.aabb_intersect_section_active[self.context_in_progress];
 
             if !switch_ctx {
                 let mut core_in_list = false;
@@ -2668,6 +2769,33 @@ impl Core {
                             self.pc[self.context_in_progress] += 4;
                             flush = instruction_to_execute.branch_hint;
                         }
+
+                        // if the decoded instruction is one of the two AABB branch opcodes, increment the counter
+                        if (instruction_to_execute.raw_instruction == 0x05405B93
+                            || instruction_to_execute.raw_instruction == 0x0540FF93)
+                            && self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.dr]
+                                == self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                    + instruction_to_execute.sr1]
+                        {
+                            aabb_intersect_amount
+                                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                            self.aabb_instruction_count += 1;
+                            self.aabb_cycle_count += 1;
+                        }
+
+                        // if the decoded instruction is the triangle intersection opcode, increment the counter
+                        if instruction_to_execute.raw_instruction == 0x0FB8FF93
+                            && self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                + instruction_to_execute.dr]
+                                == self.register_file[self.context_in_progress * REGS_PER_CONTEXT
+                                    + instruction_to_execute.sr1]
+                        {
+                            triangle_intersect_amount
+                                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                            self.triangle_instruction_count += 1;
+                            self.triangle_cycle_count += 1;
+                        }
                     }
                     Operation::BranchNe => {
                         if self.register_file[self.context_in_progress * REGS_PER_CONTEXT
@@ -3501,6 +3629,23 @@ impl Core {
                         switch_ctx = true;
                         self.pc[self.context_in_progress] += 4;
                     }
+                }
+
+                if was_in_aabb_intersect_section && !is_aabb_intersect_return && !switch_ctx {
+                    self.aabb_intersect_section_cycle_count[self.context_in_progress] += 1;
+                }
+                if is_aabb_intersect_start {
+                    self.aabb_intersect_section_active[self.context_in_progress] = true;
+                    self.aabb_intersect_section_cycle_count[self.context_in_progress] = 0;
+                }
+                if is_aabb_intersect_return {
+                    if self.aabb_intersect_section_active[self.context_in_progress] {
+                        self.aabb_intersect_section_total_cycles[self.context_in_progress] +=
+                            self.aabb_intersect_section_cycle_count[self.context_in_progress];
+                        self.aabb_intersect_section_interval_count[self.context_in_progress] += 1;
+                    }
+                    self.aabb_intersect_section_active[self.context_in_progress] = false;
+                    self.aabb_intersect_section_cycle_count[self.context_in_progress] = 0;
                 }
             } else {
                 while self.core_busy.len() <= self.cycle as usize / NOC_UTIL_EPOCH_LEN {

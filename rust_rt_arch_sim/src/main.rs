@@ -1,6 +1,7 @@
 use crate::auto_gen_code::get_init_vector;
+use std::sync::atomic::{AtomicU32, Ordering};
 use crate::core::{
-    BidirectionalNoc, CORES_IN_X, CORES_IN_Y, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE, Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, PrioritizedFlitQueue, SpscQueue
+    BidirectionalNoc, CORES_IN_X, CORES_IN_Y, CTX_CNT, Core, DEBUG, DRAM_LATENCY_FAR, DRAM_STACK_SIZE, Feeder, LongDramOp, LongDramRequest, NOC_FIFO_LATENCY, NOC_FIFO_SIZE, Operation, PrioritizedFlitQueue, SpscQueue
 };
 use crate::matrices::{MAT_A, MAT_B, MAT_C};
 use crate::parse_bvh::{QPoint, assemble_tree, read_indices, read_nodes, read_triangles, subtree_leaf_size};
@@ -13,7 +14,7 @@ use hashbrown::{HashMap, HashSet};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Barrier};
 use std::{io, thread};
@@ -292,6 +293,10 @@ pub struct CoreLog {
     right_noc_congestion: Vec<usize>,
     mailbox_congestion: Vec<usize>,
     core_busy: Vec<usize>,
+    high_priority_noc_util: Vec<usize>,
+    high_priority_noc_congestion: Vec<usize>,
+    low_priority_noc_util: Vec<usize>,
+    low_priority_noc_congestion: Vec<usize>,
     dram_bytes_read_close: usize,
     dram_bytes_read_far: usize,
     dram_bytes_wrote_close: usize,
@@ -300,6 +305,14 @@ pub struct CoreLog {
     flits_received: usize,
     flit_sent_manhattan_distance_traversed: usize,
     flit_received_manhattan_distance_traversed: usize,
+    aabb_instruction_count: usize,
+    triangle_instruction_count: usize,
+    aabb_cycle_count: u64,
+    triangle_cycle_count: u64,
+    aabb_intersect_section_total_cycles: [u64; CTX_CNT],
+    aabb_intersect_section_interval_count: [u64; CTX_CNT],
+    memory_operations_close: usize,
+    memory_operations_far: usize,
 }
 #[derive(Clone)]
 struct StackLog {
@@ -417,6 +430,53 @@ fn series_for_metric<'a>(cl: &'a CoreLog, m: Metric) -> &'a [usize] {
     }
 }
 
+fn value_to_heatmap_rgb(value: f64, min_log: f64, max_log: f64) -> (u8, u8, u8) {
+    let normalized = if max_log > min_log {
+        ((value.ln_1p() - min_log) / (max_log - min_log)).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+
+    let r = (normalized * 255.0).round() as u8;
+    let b = ((1.0 - normalized) * 255.0).round() as u8;
+    (r, 0, b)
+}
+
+fn write_ppm_heatmap(path: &str, matrix: &Array2<f64>) -> Result<(), Box<dyn std::error::Error>> {
+    let mut min_log = f64::INFINITY;
+    let mut max_log = f64::NEG_INFINITY;
+    for &v in matrix.iter() {
+        if !v.is_finite() || v < 0.0 {
+            continue;
+        }
+        let lv = v.ln_1p();
+        min_log = min_log.min(lv);
+        max_log = max_log.max(lv);
+    }
+    if !min_log.is_finite() || !max_log.is_finite() {
+        min_log = 0.0;
+        max_log = 1.0;
+    }
+
+    let (height, width) = matrix.dim();
+    let mut ppm = String::new();
+    ppm.push_str(&format!("P3\n{} {}\n255\n", width, height));
+    for y in 0..height {
+        for x in 0..width {
+            let v = matrix[(y, x)];
+            let (r, g, b) = if v.is_finite() && v >= 0.0 {
+                value_to_heatmap_rgb(v, min_log, max_log)
+            } else {
+                (0, 0, 0)
+            };
+            ppm.push_str(&format!("{} {} {} ", r, g, b));
+        }
+        ppm.push('\n');
+    }
+    std::fs::write(path, ppm)?;
+    Ok(())
+}
+
 fn dump_logs_for_viz(
     log_vec: &[StackLog],
     out_dir: &str,
@@ -473,6 +533,17 @@ fn dump_logs_for_viz(
     let mut flits_recv = Array2::<u64>::zeros((total_y, total_x));
     let mut flits_sent_manhattan = Array2::<u64>::zeros((total_y, total_x));
     let mut flits_recv_manhattan = Array2::<u64>::zeros((total_y, total_x));
+    let mut aabb_instruction_count = Array2::<u64>::zeros((total_y, total_x));
+    let mut triangle_instruction_count = Array2::<u64>::zeros((total_y, total_x));
+    let mut aabb_cycle_count = Array2::<u64>::zeros((total_y, total_x));
+    let mut triangle_cycle_count = Array2::<u64>::zeros((total_y, total_x));
+    let mut memory_operations_close = Array2::<u64>::zeros((total_y, total_x));
+    let mut memory_operations_far = Array2::<u64>::zeros((total_y, total_x));
+    let mut aabb_intersect_section_total_cycles = Array3::<u64>::zeros((total_y, total_x, CTX_CNT));
+    let mut aabb_intersect_section_interval_count = Array3::<u64>::zeros((total_y, total_x, CTX_CNT));
+    let mut aabb_intersect_section_avg_cycles = Array3::<f64>::from_elem((total_y, total_x, CTX_CNT), f64::NAN);
+    let mut aabb_intersect_section_core_avg = Array2::<f64>::from_elem((total_y, total_x), f64::NAN);
+    let mut aabb_intersect_section_heatmap = Array2::<f64>::from_elem((total_y * 4, total_x * 4), f64::NAN);
     // Also per-stack totals CSV
     {
         let mut w = csv::Writer::from_path(format!("{}/stack_totals.csv", out_dir))?;
@@ -496,6 +567,59 @@ fn dump_logs_for_viz(
     }
 
     // Fill scalar maps + build & write time-series tensors
+    // First, fill the scalar maps for new metrics
+    for s in log_vec {
+        let stack_x = s.stack_id % cores_in_x_stack;
+        let stack_y = s.stack_id / cores_in_x_stack;
+
+        for (i, row) in s.core_logs.iter().enumerate() {
+            for (j, cell) in row.iter().enumerate() {
+                let Some(cl) = cell.as_ref() else {
+                    continue;
+                };
+
+                let gy = stack_y * stack_y_dim + i;
+                let gx = stack_x * stack_x_dim + j;
+
+                bytes_read_close[(gy, gx)] = cl.dram_bytes_read_close as u64;
+                bytes_read_far[(gy, gx)] = cl.dram_bytes_read_far as u64;
+                bytes_wrote_close[(gy, gx)] = cl.dram_bytes_wrote_close as u64;
+                bytes_wrote_far[(gy, gx)] = cl.dram_bytes_wrote_far as u64;
+                flits_sent[(gy, gx)] = cl.flits_sent as u64;
+                flits_recv[(gy, gx)] = cl.flits_received as u64;
+                flits_sent_manhattan[(gy, gx)] = cl.flit_sent_manhattan_distance_traversed as u64;
+                flits_recv_manhattan[(gy, gx)] = cl.flit_received_manhattan_distance_traversed as u64;
+                aabb_instruction_count[(gy, gx)] = cl.aabb_instruction_count as u64;
+                triangle_instruction_count[(gy, gx)] = cl.triangle_instruction_count as u64;
+                aabb_cycle_count[(gy, gx)] = cl.aabb_cycle_count as u64;
+                triangle_cycle_count[(gy, gx)] = cl.triangle_cycle_count as u64;
+                memory_operations_close[(gy, gx)] = cl.memory_operations_close as u64;
+                memory_operations_far[(gy, gx)] = cl.memory_operations_far as u64;
+
+                let mut core_avg_sum = 0.0f64;
+                let mut core_avg_count = 0usize;
+                for ctx in 0..CTX_CNT {
+                    let total = cl.aabb_intersect_section_total_cycles[ctx];
+                    let count = cl.aabb_intersect_section_interval_count[ctx];
+                    aabb_intersect_section_total_cycles[(gy, gx, ctx)] = total;
+                    aabb_intersect_section_interval_count[(gy, gx, ctx)] = count;
+
+                    if count > 0 {
+                        let avg = total as f64 / count as f64;
+                        aabb_intersect_section_avg_cycles[(gy, gx, ctx)] = avg;
+                        aabb_intersect_section_heatmap[(gy * 4 + ctx / 4, gx * 4 + ctx % 4)] = avg;
+                        core_avg_sum += avg;
+                        core_avg_count += 1;
+                    }
+                }
+                if core_avg_count > 0 {
+                    aabb_intersect_section_core_avg[(gy, gx)] = core_avg_sum / core_avg_count as f64;
+                }
+            }
+        }
+    }
+
+    // Fill scalar maps + build & write time-series tensors
     for &m in &metrics {
         let t = *max_t.get(&m).unwrap();
         let mut tensor = Array3::<u32>::zeros((t.max(1), total_y, total_x)); // [T,Y,X]
@@ -514,17 +638,6 @@ fn dump_logs_for_viz(
                     let gx = stack_x * stack_x_dim + j;
                     let gy = stack_y * stack_y_dim + i;
 
-                    // Scalar maps
-                    bytes_read_close[(gy, gx)] = cl.dram_bytes_read_close as u64;
-                    bytes_read_far[(gy, gx)] = cl.dram_bytes_read_far as u64;
-                    bytes_wrote_close[(gy, gx)] = cl.dram_bytes_wrote_close as u64;
-                    bytes_wrote_far[(gy, gx)] = cl.dram_bytes_wrote_far as u64;
-                    flits_sent[(gy, gx)] = cl.flits_sent as u64;
-                    flits_recv[(gy, gx)] = cl.flits_received as u64;
-                    flits_sent_manhattan[(gy, gx)] =
-                        cl.flit_sent_manhattan_distance_traversed as u64;
-                    flits_recv_manhattan[(gy, gx)] =
-                        cl.flit_received_manhattan_distance_traversed as u64;
                     // Time series tensor, padded with last value
                     let series = series_for_metric(cl, m);
                     if series.is_empty() {
@@ -566,6 +679,54 @@ fn dump_logs_for_viz(
     write_npy(
         format!("{}/flits_received_manhattan.npy", out_dir),
         &flits_recv_manhattan,
+    )?;
+    write_npy(
+        format!("{}/aabb_instruction_count.npy", out_dir),
+        &aabb_instruction_count,
+    )?;
+    write_npy(
+        format!("{}/triangle_instruction_count.npy", out_dir),
+        &triangle_instruction_count,
+    )?;
+    write_npy(
+        format!("{}/aabb_cycle_count.npy", out_dir),
+        &aabb_cycle_count,
+    )?;
+    write_npy(
+        format!("{}/triangle_cycle_count.npy", out_dir),
+        &triangle_cycle_count,
+    )?;
+    write_npy(
+        format!("{}/memory_operations_close.npy", out_dir),
+        &memory_operations_close,
+    )?;
+    write_npy(
+        format!("{}/memory_operations_far.npy", out_dir),
+        &memory_operations_far,
+    )?;
+    write_npy(
+        format!("{}/aabb_intersect_section_total_cycles.npy", out_dir),
+        &aabb_intersect_section_total_cycles,
+    )?;
+    write_npy(
+        format!("{}/aabb_intersect_section_interval_count.npy", out_dir),
+        &aabb_intersect_section_interval_count,
+    )?;
+    write_npy(
+        format!("{}/aabb_intersect_section_avg_cycles.npy", out_dir),
+        &aabb_intersect_section_avg_cycles,
+    )?;
+    write_npy(
+        format!("{}/aabb_intersect_section_core_avg.npy", out_dir),
+        &aabb_intersect_section_core_avg,
+    )?;
+    write_npy(
+        format!("{}/aabb_intersect_section_heatmap.npy", out_dir),
+        &aabb_intersect_section_heatmap,
+    )?;
+    write_ppm_heatmap(
+        &format!("{}/aabb_intersect_section_heatmap.ppm", out_dir),
+        &aabb_intersect_section_heatmap,
     )?;
     println!("WROTE ALL LOGS");
     Ok(())
@@ -1514,6 +1675,8 @@ fn main() {
             .filter(|&n| (0..=15).contains(&n))
             .unwrap_or(-1),
     };
+    let aabb_intersect_amount = Arc::new(AtomicU32::new(0));
+    let triangle_intersect_amount = Arc::new(AtomicU32::new(0));
     println!(
         "Context to watch: {}, cores to watch: {:?}",
         context_to_watch, cores_to_watch
@@ -1522,14 +1685,18 @@ fn main() {
         let barrier = barrier.clone();
         let done_per_thread = done.clone();
         let cores_to_monitor = cores_to_watch.clone();
+        let aabb_ctr = Arc::clone(&aabb_intersect_amount);
+        let tri_ctr = Arc::clone(&triangle_intersect_amount);
         let handle = thread::spawn(move || -> Option<StackLog> {
             let mut rays_completed_so_far = 0;
             for cycle in 0..1500 * 1000 * 16 {
                 let mut local_read = 0;
                 let mut local_write = 0;
                 for core in stack.cores.iter_mut() {
+                    let aabb_clone = Arc::clone(&aabb_ctr);
+                    let tri_clone = Arc::clone(&tri_ctr);
                     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        core.tick(&mut stack.dram_stack, &cores_to_monitor, &context_to_watch);
+                        core.tick(&mut stack.dram_stack, &cores_to_monitor, &context_to_watch, aabb_clone, tri_clone);
                     }));
                     if let Err(e) = result {
                         panic!("Core {} panicked: {:?}", core.get_core_id(), e);
@@ -1577,7 +1744,7 @@ fn main() {
                     //     );
                     //     done_per_thread.store(true, Ordering::Release);
                     // }
-                    if cycle == 200000 {
+                    if cycle == 150000 {
                         done_per_thread.store(true, Ordering::Release);
                     }
                     if dram_read_word(&stack.dram_stack, 168_000_000) != rays_completed_so_far {
@@ -1621,6 +1788,8 @@ fn main() {
         return;
     }
     println!("DUMPING LOGS");
+    println!("AABB INTERSECTIONS: {}", aabb_intersect_amount.load(Ordering::Acquire));
+    println!("TRIANGLE INTERSECTIONS: {}", triangle_intersect_amount.load(Ordering::Acquire));
     dump_logs_for_viz(
         &log_vec,
         "sim_logs",

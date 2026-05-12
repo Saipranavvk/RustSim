@@ -12,7 +12,7 @@ FILES = {
 STOP_MARKER = "DO NOT INCLUDE LINES BELOW THIS AS PULLED FROM DRAM"
 HEX_SECTION = "============ HEX ============"
 
-def parse_hex_file(filename: str) -> list[str]:
+def parse_hex_file(filename):
     """
     Parse a hex output file, returning raw lines (with comments) between
     the HEX section header and the DO NOT INCLUDE marker (inclusive of the
@@ -45,7 +45,7 @@ def parse_hex_file(filename: str) -> list[str]:
     return lines
 
 
-def make_rust_fn(fn_name: str, array_name: str, lines: list[str]) -> str:
+def make_rust_fn(fn_name, array_name, lines):
     count = len(lines)
     # Extract just the hex value (first token before comma or end)
     indent = "        "
@@ -82,7 +82,7 @@ def make_rust_fn(fn_name: str, array_name: str, lines: list[str]) -> str:
     }}"""
 
 
-def run_and_capture(src_file: str, out_path: str) -> None:
+def run_and_capture(src_file, out_path):
     """
     Executes `cargo run <src_file>` and writes the command’s stdout to *out_path*.
     The output file (and any missing parent directories) are created automatically.
