@@ -830,7 +830,7 @@ SKIP_EMERGENCY_ENQUEUE:
     add r3, r3, 1                   # r3 = sent = 1
 CHECK_DATA_MAILBOX:
     and r10, r15, 0xF               # r10 = thread_id
-    #add r10, r10, 16
+    # add r10, r10, 16
     nonblock r12, r10               # r12 = nb_recv(thread_id) -- data mailbox
     and r7, r7, 0
     beq r12, r7, CHECK_INTERRUPT_MAILBOX, true   # r7=0, nothing available.
