@@ -1,1 +1,1 @@
-Submission for ECE511 => Tray-tracing Architecture Siumlator
+Submission for ECE511 => Ray-Tracing Architecture Simulator
